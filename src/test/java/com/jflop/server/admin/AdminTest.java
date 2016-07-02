@@ -11,9 +11,14 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test admin REST API
@@ -66,5 +71,22 @@ public class AdminTest {
         assertEquals(0, agents.size());
     }
 
+    @Test
+    public void testDownloadAgent() throws Exception {
+        String id = client.createAgent("my agent");
+        ZipInputStream zipInputStream = client.downloadAgent(id);
+        ZipEntry zipEntry;
+        String propertiesFile = AdminController.JFSERVER_PROPERTIES_FILE;
+        while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+            if (zipEntry.getName().equals(propertiesFile))
+                break;
+        }
+
+        assertNotNull("No configuration file " + propertiesFile, zipEntry);
+        byte[] content = AdminController.readEntryContent(zipInputStream);
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(content));
+        assertEquals(id, properties.getProperty("agent.id"));
+    }
 
 }
