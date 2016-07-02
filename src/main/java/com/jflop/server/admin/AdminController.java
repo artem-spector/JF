@@ -1,12 +1,11 @@
 package com.jflop.server.admin;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -23,10 +22,12 @@ public class AdminController {
 
     public static final String AGENTS_PATH = "/agents";
 
+    @Autowired
+    private AdminDAO dao;
+
     @RequestMapping(method = GET, produces = "application/json")
     @ResponseBody
-    public ResponseEntity getAgentsStatus() {
-        Map<String, Object> agents = new HashMap<>();
-        return ResponseEntity.ok(agents);
+    public ResponseEntity getAgentsStatus(@ModelAttribute(AdminSecurityInterceptor.ACCOUNT_ID_ATTRIBUTE) String accountId) {
+        return ResponseEntity.ok(dao.getAgents(accountId));
     }
 }
