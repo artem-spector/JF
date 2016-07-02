@@ -29,16 +29,40 @@ public class AdminTest {
     @Autowired
     private WebApplicationContext wac;
 
+    @Autowired
+    private AdminDAO adminDAO;
+
     private AdminClient client;
 
     @Before
     public void setUp() throws Exception {
-        client = new AdminClient(MockMvcBuilders.webAppContextSetup(wac).build());
+        String clientCredentials = "account_one";
+        client = new AdminClient(MockMvcBuilders.webAppContextSetup(wac).build(), clientCredentials);
+        String accountId = "account_one";
+        adminDAO.clear(accountId);
     }
 
     @Test
-    public void testGetAgents() throws Exception {
+    public void testAgentsCRUD() throws Exception {
         List<JFAgent> agents = client.getAgents();
+        assertEquals(0, agents.size());
+
+        String name = "my first one";
+        String id = client.createAgent(name);
+        agents = client.getAgents();
+        assertEquals(1, agents.size());
+        assertEquals(id, agents.get(0).id);
+        assertEquals(name, agents.get(0).name);
+
+        name = "updated name";
+        client.updateAgent(id, name);
+        agents = client.getAgents();
+        assertEquals(1, agents.size());
+        assertEquals(id, agents.get(0).id);
+        assertEquals(name, agents.get(0).name);
+
+        client.deleteAgent(id);
+        agents = client.getAgents();
         assertEquals(0, agents.size());
     }
 

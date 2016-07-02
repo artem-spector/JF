@@ -5,10 +5,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
@@ -22,18 +24,40 @@ public class AdminClient {
     private ObjectMapper mapper = new ObjectMapper();
 
     private MockMvc mockMvc;
+
+    private String credentials;
     private String authHeader;
 
-    public AdminClient(MockMvc mockMvc) {
+    public AdminClient(MockMvc mockMvc, String credentials) {
+        this.credentials = credentials;
         this.mockMvc = mockMvc;
     }
 
     public List<JFAgent> getAgents() throws Exception {
         MockHttpServletRequestBuilder request = get(AdminController.AGENTS_PATH);
         MockHttpServletResponse response = sendRequestHandleAuth(request);
+        return readAgentsFromResponse(response);
+    }
+
+    public String createAgent(String displayName) throws Exception {
+        MockHttpServletRequestBuilder request = post(AdminController.AGENTS_PATH).param("name", displayName);
+        MockHttpServletResponse response = sendRequestHandleAuth(request);
+        assertEquals(HttpServletResponse.SC_CREATED, response.getStatus());
+
+        String location = response.getHeader("location");
+        return location.substring(location.lastIndexOf("/") + 1);
+    }
+
+    public void updateAgent(String agentId, String name) throws Exception {
+        MockHttpServletRequestBuilder request = put(AdminController.AGENTS_PATH + "/" + agentId).param("name", name);
+        MockHttpServletResponse response = sendRequestHandleAuth(request);
         assertEquals(200, response.getStatus());
-        String str = response.getContentAsString();
-        return mapper.readValue(str, List.class);
+    }
+
+    public void deleteAgent(String agentId) throws Exception {
+        MockHttpServletRequestBuilder request = delete(AdminController.AGENTS_PATH + "/" + agentId);
+        MockHttpServletResponse response = sendRequestHandleAuth(request);
+        assertEquals(200, response.getStatus());
     }
 
     private MockHttpServletResponse sendRequestHandleAuth(MockHttpServletRequestBuilder request) throws Exception {
@@ -49,8 +73,20 @@ public class AdminClient {
         return response;
     }
 
+    private List<JFAgent> readAgentsFromResponse(MockHttpServletResponse response) throws java.io.IOException {
+        assertEquals(200, response.getStatus());
+        String str = response.getContentAsString();
+        List maps = mapper.readValue(str, List.class);
+        List<JFAgent> res = new ArrayList<>();
+        for (Object map : maps) {
+            res.add(mapper.readValue(mapper.writeValueAsString(map), JFAgent.class));
+        }
+
+        return res;
+    }
+
     private void obtainAuthHeader() {
-            authHeader = "account_one";
+            authHeader = credentials;
     }
 }
 
