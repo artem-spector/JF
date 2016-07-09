@@ -29,6 +29,16 @@ app.controller("adminCtrl", function($scope, $http) {
         });
     }
 
+    $scope.downloadAgent = function(agentId) {
+        $http({
+            method: "GET",
+            url: "/agents/" + agentId + "/download",
+            headers: {
+                "jf-auth": $scope.account
+            }
+        });
+    }
+
     $scope.deleteAgent = function(agentId) {
         $http({
             method: "DELETE",

@@ -23,7 +23,10 @@
             <li ng-repeat="agent in agents">
                 <span ng-click="agent.expand=!agent.expand">{{agent.name}}</span>
                 <div ng-show="agent.expand">
-
+                    <a target="_self" ng-href="/agents/{{agent.id}}/download" download="jflop-agent-{{agent.name}}.jar">
+                        <button>download</button>
+                    </a>
+                    <br>
                     <input type="button" value="delete" ng-click="deleteAgent(agent.id)">
                 </div>
             </li>
