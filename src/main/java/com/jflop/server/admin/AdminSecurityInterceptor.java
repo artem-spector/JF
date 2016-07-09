@@ -1,5 +1,6 @@
 package com.jflop.server.admin;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -18,6 +19,9 @@ public class AdminSecurityInterceptor extends HandlerInterceptorAdapter {
     public static final String AUTH_HEADER = "jf-auth";
     public static final String ACCOUNT_ID_ATTRIBUTE = "accountId";
 
+    @Autowired
+    private AdminDAO dao;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String header = request.getHeader(AUTH_HEADER);
@@ -32,6 +36,10 @@ public class AdminSecurityInterceptor extends HandlerInterceptorAdapter {
     }
 
     private String getAccountId(String header) {
-        return header;
+        String accountId = header;
+        if (!dao.accountExists(accountId)) {
+            dao.createAccount(accountId);
+        }
+        return accountId;
     }
 }

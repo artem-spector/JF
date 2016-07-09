@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * TODO: Document!
+ * Check ResourceHandler mapping, see {@link com.jflop.server.CustomConfig}
  *
  * @author artem
  *         Date: 7/9/16

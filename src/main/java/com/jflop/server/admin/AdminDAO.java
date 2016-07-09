@@ -18,8 +18,12 @@ public class AdminDAO {
 
     private Map<String, AccountData> accounts = new HashMap<>();
 
-    public void clear(String accountId) {
+    public void createAccount(String accountId) {
         accounts.put(accountId, new AccountData());
+    }
+
+    public boolean accountExists(String accountId) {
+        return accounts.get(accountId) != null;
     }
 
     public List<JFAgent> getAgents(String accountId) {

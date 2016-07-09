@@ -12,6 +12,27 @@
 <body>
 
 <div ng-app="adminApp" ng-controller="adminCtrl">
+    <form id="login" ng-show="showLogin">
+        Account: <input type="text" ng-model="account"/> <br/>
+        <input type="button" ng-click="login()" value="Login">
+    </form>
+
+    <div id="accountSummary" ng-show="!showLogin">
+        <h1>{{account}}</h1>
+        <ul>
+            <li ng-repeat="agent in agents">
+                <span ng-click="agent.expand=!agent.expand">{{agent.name}}</span>
+                <div ng-show="agent.expand">
+
+                    <input type="button" value="delete" ng-click="deleteAgent(agent.id)">
+                </div>
+            </li>
+        </ul>
+        <form id="newAgent">
+            Create new agent: <input type="text" ng-model="newAgentName">
+            <input type="button" value="Create" ng-click="createAgent()"/>
+        </form>
+    </div>
 
 </div>
 

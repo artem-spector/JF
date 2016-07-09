@@ -44,7 +44,7 @@ public class AdminTest {
         String clientCredentials = "account_one";
         client = new AdminClient(MockMvcBuilders.webAppContextSetup(wac).build(), clientCredentials);
         String accountId = "account_one";
-        adminDAO.clear(accountId);
+        adminDAO.createAccount(accountId);
     }
 
     @Test
