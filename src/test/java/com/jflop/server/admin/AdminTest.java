@@ -1,5 +1,6 @@
 package com.jflop.server.admin;
 
+import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,10 +42,9 @@ public class AdminTest {
 
     @Before
     public void setUp() throws Exception {
-        String clientCredentials = "account_one";
-        client = new AdminClient(MockMvcBuilders.webAppContextSetup(wac).build(), clientCredentials);
-        String accountId = "account_one";
-        adminDAO.createAccount(accountId);
+        HttpTestClient client = new HttpTestClient(MockMvcBuilders.webAppContextSetup(wac).build());
+        this.client = new AdminClient(client, "account_one");
+        adminDAO.createAccount("account_one");
     }
 
     @Test
@@ -56,14 +56,14 @@ public class AdminTest {
         String id = client.createAgent(name);
         agents = client.getAgents();
         assertEquals(1, agents.size());
-        assertEquals(id, agents.get(0).id);
+        assertEquals(id, agents.get(0).agentId);
         assertEquals(name, agents.get(0).name);
 
         name = "updated name";
         client.updateAgent(id, name);
         agents = client.getAgents();
         assertEquals(1, agents.size());
-        assertEquals(id, agents.get(0).id);
+        assertEquals(id, agents.get(0).agentId);
         assertEquals(name, agents.get(0).name);
 
         client.deleteAgent(id);
@@ -74,7 +74,7 @@ public class AdminTest {
     @Test
     public void testDownloadAgent() throws Exception {
         String id = client.createAgent("my agent");
-        ZipInputStream zipInputStream = client.downloadAgent(id);
+        ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(client.downloadAgent(id)));
         ZipEntry zipEntry;
         String propertiesFile = AdminController.JFSERVER_PROPERTIES_FILE;
         while ((zipEntry = zipInputStream.getNextEntry()) != null) {

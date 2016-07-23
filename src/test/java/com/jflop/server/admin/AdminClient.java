@@ -1,20 +1,14 @@
 package com.jflop.server.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import com.jflop.HttpTestClient;
+import org.springframework.http.HttpMethod;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * Mock of admin UI
@@ -26,70 +20,66 @@ public class AdminClient {
 
     private ObjectMapper mapper = new ObjectMapper();
 
-    private MockMvc mockMvc;
+    private HttpTestClient httpClient;
 
     private String credentials;
     private String authHeader;
 
-    public AdminClient(MockMvc mockMvc, String credentials) {
+    public AdminClient(HttpTestClient httpClient, String credentials) {
         this.credentials = credentials;
-        this.mockMvc = mockMvc;
+        this.httpClient = httpClient;
     }
 
     public List<JFAgent> getAgents() throws Exception {
-        MockHttpServletRequestBuilder request = get(AdminController.AGENTS_PATH);
-        MockHttpServletResponse response = sendRequestHandleAuth(request, true);
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.GET, AdminController.AGENTS_PATH);
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
         return readAgentsFromResponse(response);
     }
 
     public String createAgent(String displayName) throws Exception {
-        MockHttpServletRequestBuilder request = post(AdminController.AGENTS_PATH).param("name", displayName);
-        MockHttpServletResponse response = sendRequestHandleAuth(request, true);
-        assertEquals(HttpServletResponse.SC_CREATED, response.getStatus());
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.POST, AdminController.AGENTS_PATH).param("name", displayName);
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        assertEquals(HttpServletResponse.SC_CREATED, response.statusCode);
 
         String location = response.getHeader("location");
         return location.substring(location.lastIndexOf("/") + 1);
     }
 
     public void updateAgent(String agentId, String name) throws Exception {
-        MockHttpServletRequestBuilder request = put(AdminController.AGENTS_PATH + "/" + agentId).param("name", name);
-        MockHttpServletResponse response = sendRequestHandleAuth(request, true);
-        assertEquals(200, response.getStatus());
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.PUT, AdminController.AGENTS_PATH + "/" + agentId).param("name", name);
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        assertEquals(200, response.statusCode);
     }
 
     public void deleteAgent(String agentId) throws Exception {
-        MockHttpServletRequestBuilder request = delete(AdminController.AGENTS_PATH + "/" + agentId);
-        MockHttpServletResponse response = sendRequestHandleAuth(request, true);
-        assertEquals(200, response.getStatus());
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.DELETE, AdminController.AGENTS_PATH + "/" + agentId);
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        assertEquals(200, response.statusCode);
     }
 
-    public ZipInputStream downloadAgent(String agentId) throws Exception {
-        MockHttpServletRequestBuilder request = get(AdminController.AGENTS_PATH + "/" + agentId + "/download");
-        MockHttpServletResponse response = sendRequestHandleAuth(request, false);
-        assertEquals(200, response.getStatus());
-
-        return new ZipInputStream(new ByteArrayInputStream(response.getContentAsByteArray()));
+    public byte[] downloadAgent(String agentId) throws Exception {
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.GET, AdminController.AGENTS_PATH + "/" + agentId + "/download");
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        assertEquals(200, response.statusCode);
+        return response.getContentAsBytes();
     }
 
-    private MockHttpServletResponse sendRequestHandleAuth(MockHttpServletRequestBuilder request, boolean doPrint) throws Exception {
+    private HttpTestClient.Response sendRequestHandleAuth(HttpTestClient.Request request) throws Exception {
         if (authHeader != null)
             request.header(AdminSecurityInterceptor.AUTH_HEADER, authHeader);
 
-        ResultActions perform = mockMvc.perform(request);
-        if (doPrint) perform.andDo(print());
-        MockHttpServletResponse response = perform.andReturn().getResponse();
-        if (response.getStatus() == 401) {
+        HttpTestClient.Response response = httpClient.send(request);
+        if (response.statusCode == 401) {
             obtainAuthHeader();
-            response = sendRequestHandleAuth(request, true);
+            response = sendRequestHandleAuth(request);
         }
 
         return response;
     }
 
-    private List<JFAgent> readAgentsFromResponse(MockHttpServletResponse response) throws java.io.IOException {
-        assertEquals(200, response.getStatus());
-        String str = response.getContentAsString();
-        List maps = mapper.readValue(str, List.class);
+    private List<JFAgent> readAgentsFromResponse(HttpTestClient.Response response) throws java.io.IOException {
+        assertEquals(200, response.statusCode);
+        List maps = mapper.readValue(response.getContentAsString(), List.class);
         List<JFAgent> res = new ArrayList<>();
         for (Object map : maps) {
             res.add(mapper.readValue(mapper.writeValueAsString(map), JFAgent.class));

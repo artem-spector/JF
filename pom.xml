@@ -32,6 +32,10 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <properties>
+        <env.JAVA_HOME_8>/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home</env.JAVA_HOME_8>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -46,6 +50,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun</groupId>
+            <artifactId>tools</artifactId>
+            <version>1.8.0</version>
+            <scope>system</scope>
+            <systemPath>${env.JAVA_HOME_8}/lib/tools.jar</systemPath>
         </dependency>
     </dependencies>
 

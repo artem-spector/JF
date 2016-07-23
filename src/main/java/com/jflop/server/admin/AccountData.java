@@ -11,9 +11,9 @@ import java.util.List;
  */
 public class AccountData {
 
-    private List<JFAgent> agents = new ArrayList<>();
+    private List<String> agentIDs = new ArrayList<>();
 
-    public List<JFAgent> getAgents() {
-        return agents;
+    public List<String> getAgentIDs() {
+        return agentIDs;
     }
 }

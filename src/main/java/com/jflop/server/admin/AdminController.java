@@ -1,5 +1,6 @@
 package com.jflop.server.admin;
 
+import com.jflop.server.runtime.RuntimeController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -39,26 +40,26 @@ public class AdminController {
     private HttpServletRequest request;
 
     @Autowired
-    private AdminDAO dao;
+    private AdminDAO adminDAO;
 
     @RequestMapping(method = GET, produces = "application/json")
     @ResponseBody
     public ResponseEntity getAgents() {
-        return ResponseEntity.ok(dao.getAgents(accountId()));
+        return ResponseEntity.ok(adminDAO.getAgents(accountId()));
     }
 
     @RequestMapping(method = POST, produces = "application/json")
     @ResponseBody
     public ResponseEntity createAgent(@RequestParam("name") String name) throws URISyntaxException {
-        JFAgent agent = dao.createAgent(accountId(), name);
-        return ResponseEntity.created(new URI(request.getRequestURI() + "/" + agent.id)).build();
+        JFAgent agent = adminDAO.createAgent(accountId(), name);
+        return ResponseEntity.created(new URI(request.getRequestURI() + "/" + agent.agentId)).build();
     }
 
     @RequestMapping(method = PUT, path = "/{id}", produces = "application/json")
     @ResponseBody
     public ResponseEntity updateAgent(@PathVariable("id") String agentId, @RequestParam("name") String name) {
         try {
-            dao.updateAgent(accountId(), agentId, name);
+            adminDAO.updateAgent(accountId(), agentId, name);
             return ResponseEntity.ok().build();
         } catch (NullPointerException e) {
             return ResponseEntity.notFound().build();
@@ -69,7 +70,7 @@ public class AdminController {
     @ResponseBody
     public ResponseEntity deleteAgent(@PathVariable("id") String agentId) {
         try {
-            dao.deleteAgent(accountId(), agentId);
+            adminDAO.deleteAgent(accountId(), agentId);
             return ResponseEntity.ok().build();
         } catch (NullPointerException e) {
             return ResponseEntity.notFound().build();
@@ -81,7 +82,11 @@ public class AdminController {
     public ResponseEntity downloadAgent(@PathVariable("id") String agentId) {
         try {
             InputStream originalJar = new ClassPathResource(JFLOP_AGENT_JAR).getInputStream();
-            return ResponseEntity.ok(generateAgentJar(request.getContextPath(), agentId, originalJar));
+            String protocol = request.getProtocol().toLowerCase().contains("https") ? "https" : "http";
+            String serverUrl = protocol + "://" + request.getLocalName() + ":" + request.getLocalPort();
+            if (!request.getContextPath().isEmpty()) serverUrl += "/" + request.getContextPath();
+            serverUrl += RuntimeController.RUNTIME_API_PATH;
+            return ResponseEntity.ok(generateAgentJar(serverUrl, agentId, originalJar));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(e);
         }

@@ -2,10 +2,7 @@ package com.jflop.server.admin;
 
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Admin data access object
@@ -17,6 +14,7 @@ import java.util.Map;
 public class AdminDAO {
 
     private Map<String, AccountData> accounts = new HashMap<>();
+    private Map<String, JFAgent> agents = new HashMap<>();
 
     public void createAccount(String accountId) {
         accounts.put(accountId, new AccountData());
@@ -27,34 +25,37 @@ public class AdminDAO {
     }
 
     public List<JFAgent> getAgents(String accountId) {
-        return accounts.get(accountId).getAgents();
+        List<String> agentIDs = accounts.get(accountId).getAgentIDs();
+        List<JFAgent> res = new ArrayList<>();
+        for (String id : agentIDs) {
+            res.add(agents.get(id));
+        }
+
+        return res;
     }
 
     public JFAgent createAgent(String accountId, String name) {
-        JFAgent agent = new JFAgent(name);
-        accounts.get(accountId).getAgents().add(agent);
+        JFAgent agent = new JFAgent(accountId, name);
+        accounts.get(accountId).getAgentIDs().add(agent.agentId);
+        agents.put(agent.agentId, agent);
         return agent;
     }
 
     public void updateAgent(String accountId, String agentId, String name) {
-        for (JFAgent agent : accounts.get(accountId).getAgents()) {
-            if (agent.id.equals(agentId)) {
-                agent.name = name;
-                return;
-            }
-        }
-        throw new NullPointerException();
+        JFAgent agent = agents.get(agentId);
+        if (!agent.accountId.equals(accountId)) throw new NullPointerException();
+        agent.name = name;
     }
 
     public void deleteAgent(String accountId, String agentId) {
-        List<JFAgent> agents = accounts.get(accountId).getAgents();
-        for (Iterator<JFAgent> iterator = agents.iterator(); iterator.hasNext();) {
-            JFAgent agent = iterator.next();
-            if (agent.id.equals(agentId)) {
-                iterator.remove();
-                return;
-            }
-        }
-        throw new NullPointerException();
+        JFAgent agent = agents.get(agentId);
+        if (!agent.accountId.equals(accountId)) throw new NullPointerException();
+
+        accounts.get(accountId).getAgentIDs().remove(agentId);
+        agents.remove(agentId);
+    }
+
+    public JFAgent getAgent(String agentId) {
+        return agents.get(agentId);
     }
 }
