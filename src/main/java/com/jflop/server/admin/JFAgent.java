@@ -2,6 +2,7 @@ package com.jflop.server.admin;
 
 import com.jflop.server.feature.Feature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 
 import java.util.*;
 
@@ -18,7 +19,7 @@ public class JFAgent {
     public String name;
     public long lastReportTime;
 
-    private Feature[] features = {new InstrumentationConfigurationFeature()};
+    private Feature[] features = {new InstrumentationConfigurationFeature(), new SnapshotFeature()};
 
     @SuppressWarnings("unused") // for JSON deserialization
     public JFAgent() {

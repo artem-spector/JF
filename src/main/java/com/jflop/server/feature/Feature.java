@@ -1,5 +1,6 @@
 package com.jflop.server.feature;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -14,13 +15,16 @@ public abstract class Feature {
 
     protected Map<String, Object> command;
     private CommandProgress progress;
+    protected String error;
 
     protected Feature(String name) {
         this.name = name;
     }
 
-    protected void sendCommand(Map<String, Object> command) {
-        this.command = command;
+    protected void sendCommand(String name, Object data) {
+        this.error = null;
+        this.command = new HashMap<>();
+        this.command.put(name, data);
         this.progress = new CommandProgress();
         progress.createdAt = System.currentTimeMillis();
     }
@@ -35,8 +39,13 @@ public abstract class Feature {
     }
 
     public Map<String, Object> poll(Object input) {
-        if (input != null)
-            processInput(input);
+        if (input != null) {
+            if (input instanceof Map && ((Map) input).containsKey("error")) {
+                commandDone();
+                error = (String) ((Map) input).get("error");
+            } else
+                processInput(input);
+        }
         if (command != null && progress.sentAt == 0) {
             progress.sentAt = System.currentTimeMillis();
             return command;
@@ -46,6 +55,10 @@ public abstract class Feature {
 
     public CommandProgress getProgress() {
         return progress;
+    }
+
+    public String getError() {
+        return error;
     }
 
     protected abstract void processInput(Object input);

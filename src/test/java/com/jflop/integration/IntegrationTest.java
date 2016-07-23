@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,24 +37,23 @@ import static org.junit.Assert.*;
 public class IntegrationTest {
 
     @Autowired
-    private WebApplicationContext wac;
-
-    @Autowired
     private AdminDAO adminDAO;
 
-    private AdminClient client;
-    private JFAgent agent;
+    private static AdminClient adminClient;
+    private static JFAgent agent;
 
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
 
     @Before
     public void activateAgent() throws Exception {
+        if (adminClient != null) return;
+
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
-        this.client = new AdminClient(client, "testAccount");
-        String agentId = this.client.createAgent("testAgent");
+        adminClient = new AdminClient(client, "testAccount");
+        String agentId = this.adminClient.createAgent("testAgent");
         agent = adminDAO.getAgent(agentId);
-        byte[] bytes = this.client.downloadAgent(agentId);
+        byte[] bytes = this.adminClient.downloadAgent(agentId);
         File file = new File("target/jflop-agent-test.jar");
         FileOutputStream out = new FileOutputStream(file);
         out.write(bytes);
@@ -63,15 +61,10 @@ public class IntegrationTest {
         loadAgent(file.getPath());
     }
 
-    @After
-    public void deleteAgent() throws Exception {
-        client.deleteAgent(agent.agentId);
-    }
-
     @Test
     public void testAgentConnectivity() throws InterruptedException {
         long start = System.currentTimeMillis();
-        assertNotNull(client);
+        assertNotNull(adminClient);
         Thread.sleep(1200);
         assertTrue(agent.lastReportTime > start);
     }
@@ -90,7 +83,7 @@ public class IntegrationTest {
         // 2. set configuration from a file
         conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
         feature.setAgentConfiguration(conf);
-        awaitFeatureResponse(feature, 2100);
+        awaitFeatureResponse(feature, 3000);
         assertEquals(conf, feature.getAgentConfiguration());
     }
 
