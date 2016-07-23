@@ -5,6 +5,8 @@ import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AdminClient;
 import com.jflop.server.admin.AdminDAO;
 import com.jflop.server.admin.JFAgent;
+import com.jflop.server.feature.Feature;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.sample.MultipleFlowsProducer;
 import org.junit.After;
 import org.junit.Before;
@@ -20,8 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.management.ManagementFactory;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Downloads agent and dynamically loads it into the current process.
@@ -66,10 +67,19 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testOk() throws InterruptedException {
+    public void testAgentConnectivity() throws InterruptedException {
+        long start = System.currentTimeMillis();
         assertNotNull(client);
-        Thread.sleep(2000);
-        assertTrue(agent.lastReportTime > 0);
+        Thread.sleep(1200);
+        assertTrue(agent.lastReportTime > start);
+    }
+
+    @Test
+    public void testConfigurationFeature() {
+        InstrumentationConfigurationFeature feature = agent.getFeature(InstrumentationConfigurationFeature.class);
+        feature.requestAgentConfiguration();
+        awaitFeatureResponse(feature, 2100);
+        assertNotNull(feature.getAgentConfiguration());
     }
 
     private void loadAgent(String path) throws Exception {
@@ -84,6 +94,21 @@ public class IntegrationTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void awaitFeatureResponse(Feature feature, long timeoutMillis) {
+        assertNotNull(feature.getProgress());
+        long interval = Math.max(100, timeoutMillis / 10);
+        long timeout = System.currentTimeMillis() + timeoutMillis;
+        while (System.currentTimeMillis() < timeout) {
+            if (feature.getProgress() == null) return;
+            try {
+                Thread.sleep(interval);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
+        fail("Feature " + feature.name + " has not respond after " + timeoutMillis + "ms.");
     }
 
     private void startLoad(int numThreads) {

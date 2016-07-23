@@ -1,9 +1,9 @@
 package com.jflop.server.admin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.jflop.server.feature.Feature;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
+
+import java.util.*;
 
 /**
  * JF Agent registration record
@@ -18,6 +18,8 @@ public class JFAgent {
     public String name;
     public long lastReportTime;
 
+    private Feature[] features = {new InstrumentationConfigurationFeature()};
+
     @SuppressWarnings("unused") // for JSON deserialization
     public JFAgent() {
     }
@@ -30,6 +32,24 @@ public class JFAgent {
 
     public List<Map<String, Object>> reportFeaturesAndGetTasks(Map<String, Object> featuresData) {
         lastReportTime = System.currentTimeMillis();
-        return new ArrayList<>();
+        ArrayList<Map<String, Object>> res = new ArrayList<>();
+        for (Feature feature : features) {
+            Map<String, Object> command = feature.poll(featuresData.get(feature.name));
+            if (command != null) {
+                Map<String, Object> wrappedCommand = new HashMap<>();
+                wrappedCommand.put("feature", feature.name);
+                wrappedCommand.put("command", command);
+                res.add(wrappedCommand);
+            }
+        }
+
+        return res;
+    }
+
+    public <T> T getFeature(Class<T> type) {
+        for (Feature feature : features) {
+            if (type.isInstance(feature)) return type.cast(feature);
+        }
+        return null;
     }
 }
