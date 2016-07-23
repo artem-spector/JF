@@ -8,6 +8,7 @@ import com.jflop.server.admin.JFAgent;
 import com.jflop.server.feature.Feature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.sample.MultipleFlowsProducer;
+import org.jflop.config.JflopConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 import static org.junit.Assert.*;
@@ -75,11 +77,21 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testConfigurationFeature() {
+    public void testConfigurationFeature() throws IOException {
         InstrumentationConfigurationFeature feature = agent.getFeature(InstrumentationConfigurationFeature.class);
+
+        // 1. get configuration and make sure it's empty
         feature.requestAgentConfiguration();
         awaitFeatureResponse(feature, 2100);
-        assertNotNull(feature.getAgentConfiguration());
+        JflopConfiguration conf = feature.getAgentConfiguration();
+        assertNotNull(conf);
+        assertTrue(conf.isEmpty());
+
+        // 2. set configuration from a file
+        conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
+        feature.setAgentConfiguration(conf);
+        awaitFeatureResponse(feature, 2100);
+        assertEquals(conf, feature.getAgentConfiguration());
     }
 
     private void loadAgent(String path) throws Exception {

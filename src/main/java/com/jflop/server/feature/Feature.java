@@ -1,6 +1,5 @@
 package com.jflop.server.feature;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -20,7 +19,7 @@ public abstract class Feature {
         this.name = name;
     }
 
-    protected void sendCommand(HashMap command) {
+    protected void sendCommand(Map<String, Object> command) {
         this.command = command;
         this.progress = new CommandProgress();
         progress.createdAt = System.currentTimeMillis();

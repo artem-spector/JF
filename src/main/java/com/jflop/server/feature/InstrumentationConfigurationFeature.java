@@ -3,27 +3,26 @@ package com.jflop.server.feature;
 import org.jflop.config.JflopConfiguration;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
- * TODO: Document!
+ * Get/set JFlop configuration
  *
  * @author artem
  *         Date: 7/23/16
  */
 public class InstrumentationConfigurationFeature extends Feature {
 
-    public static final String FEATURE_NAME = "instr-conf";
-
     private JflopConfiguration agentConfiguration;
 
     public InstrumentationConfigurationFeature() {
-        super(FEATURE_NAME);
+        super("instr-conf");
     }
 
     @Override
     protected void processInput(Object input) {
-        if (command != null && command.isEmpty()) {
-            // get configuration command, agent config received
+        if (command != null) {
+            // agent config received
             agentConfiguration = JflopConfiguration.fromJson(input);
             commandDone();
         }
@@ -31,6 +30,12 @@ public class InstrumentationConfigurationFeature extends Feature {
 
     public void requestAgentConfiguration() {
         sendCommand(new HashMap());
+    }
+
+    public void setAgentConfiguration(JflopConfiguration conf) {
+        Map<String, Object> setConf = new HashMap();
+        setConf.put("set-methods", conf.asJson());
+        sendCommand(setConf);
     }
 
     public JflopConfiguration getAgentConfiguration() {
