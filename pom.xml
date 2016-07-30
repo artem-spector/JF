@@ -94,9 +94,19 @@
                         </goals>
                         <configuration>
                             <target>
+                                <copy
+                                        file="${user.home}/.m2/repository/jflop/org/jflop-agent/3.0-DEV/jflop-agent-3.0-DEV.jar"
+                                        tofile="src/main/resources/jflop-agent.jar"
+                                        overwrite="true"
+                                        verbose="true"
+                                />
+                            </target>
+<!--
+                            <target>
                                 <get src="https://db.tt/am4F3JmQ"
                                      dest="src/main/resources/jflop-agent.jar"/>
                             </target>
+-->
                         </configuration>
                     </execution>
                 </executions>

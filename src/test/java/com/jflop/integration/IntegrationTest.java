@@ -7,8 +7,10 @@ import com.jflop.server.admin.AdminDAO;
 import com.jflop.server.admin.JFAgent;
 import com.jflop.server.feature.Feature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 import com.sample.MultipleFlowsProducer;
 import org.jflop.config.JflopConfiguration;
+import org.jflop.snapshot.Snapshot;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,6 +63,15 @@ public class IntegrationTest {
         loadAgent(file.getPath());
     }
 
+    @After
+    public void clearConfiguration() {
+        if (adminClient == null) return;
+
+        InstrumentationConfigurationFeature configurationFeature = agent.getFeature(InstrumentationConfigurationFeature.class);
+        configurationFeature.setAgentConfiguration(new JflopConfiguration());
+        awaitFeatureResponse(configurationFeature, 3000);
+    }
+
     @Test
     public void testAgentConnectivity() throws InterruptedException {
         long start = System.currentTimeMillis();
@@ -85,6 +96,33 @@ public class IntegrationTest {
         feature.setAgentConfiguration(conf);
         awaitFeatureResponse(feature, 3000);
         assertEquals(conf, feature.getAgentConfiguration());
+    }
+
+    @Test
+    public void testSnapshotFeature() throws IOException, InterruptedException {
+        // 1. instrument multiple flows producer
+        JflopConfiguration configuration = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
+        InstrumentationConfigurationFeature configFeature = agent.getFeature(InstrumentationConfigurationFeature.class);
+        configFeature.setAgentConfiguration(configuration);
+        awaitFeatureResponse(configFeature, 3000);
+        assertNull(configFeature.getError());
+
+        // 2. take snapshot without load and make sure there are no flows
+        SnapshotFeature snapshotFeature = agent.getFeature(SnapshotFeature.class);
+        snapshotFeature.takeSnapshot(2);
+        awaitFeatureResponse(snapshotFeature, 5000);
+        assertNull(snapshotFeature.getError());
+        Snapshot snapshot = snapshotFeature.getLastSnapshot();
+        assertTrue(snapshot.getFlowMap().isEmpty());
+
+        // 3. take snapshot under load and make sure all the flows are recorded
+        startLoad(2);
+        snapshotFeature.takeSnapshot(2);
+        awaitFeatureResponse(snapshotFeature, 5000);
+        assertNull(snapshotFeature.getError());
+        snapshot = snapshotFeature.getLastSnapshot();
+        System.out.println(snapshot.format(0, 0));
+        assertEquals(2, snapshot.getFlowMap().size());
     }
 
     private void loadAgent(String path) throws Exception {

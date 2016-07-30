@@ -1,5 +1,9 @@
 package com.jflop.server.feature;
 
+import org.jflop.snapshot.Snapshot;
+
+import java.util.Map;
+
 /**
  * Take snapshot
  *
@@ -8,12 +12,37 @@ package com.jflop.server.feature;
  */
 public class SnapshotFeature extends Feature {
 
+    private Integer durationSec;
+    private Snapshot lastSnapshot;
+
     public SnapshotFeature() {
         super("snapshot");
     }
 
     @Override
     protected void processInput(Object input) {
+        Map json = (Map) input;
 
+        Map<String, Object> snapshotJson = (Map<String, Object>) json.get("snapshot");
+        if (snapshotJson != null) {
+            this.lastSnapshot = Snapshot.fromJson(snapshotJson);
+            commandDone();
+            durationSec = null;
+        }
+
+        Integer countdown = (Integer) json.get("countdown");
+        if (countdown != null) {
+            setCommandProgress((durationSec - countdown) / 100);
+        }
+    }
+
+    public void takeSnapshot(Integer durationSec) {
+        this.durationSec = durationSec;
+        sendCommand("takeSnapshot", durationSec);
+    }
+
+    public Snapshot getLastSnapshot() {
+        if (getError() != null) throw new RuntimeException(getError());
+        return lastSnapshot;
     }
 }
