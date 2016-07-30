@@ -1,6 +1,7 @@
-app.controller("adminCtrl", function($scope, $http) {
+app.controller("adminCtrl", function($scope, $http, $timeout) {
     $scope.account = "";
     $scope.showLogin = true;
+    $scope.expanded = {};
 
     $scope.login = function() {
         getAgents(
@@ -63,6 +64,7 @@ app.controller("adminCtrl", function($scope, $http) {
                 $scope.agents = response.data;
                 if (successCallback)
                     successCallback(response);
+                $timeout(getAgents, 1000);
             },
             function onFailure(response) {
                 if (failureCallback)

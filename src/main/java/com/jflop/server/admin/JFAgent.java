@@ -17,7 +17,7 @@ public class JFAgent {
     public String agentId;
     public String accountId;
     public String name;
-    public long lastReportTime;
+    public Date lastReportTime;
 
     private Feature[] features = {new InstrumentationConfigurationFeature(), new SnapshotFeature()};
 
@@ -32,7 +32,7 @@ public class JFAgent {
     }
 
     public List<Map<String, Object>> reportFeaturesAndGetTasks(Map<String, Object> featuresData) {
-        lastReportTime = System.currentTimeMillis();
+        lastReportTime = new Date();
         ArrayList<Map<String, Object>> res = new ArrayList<>();
         for (Feature feature : features) {
             Map<String, Object> command = feature.poll(featuresData.get(feature.name));

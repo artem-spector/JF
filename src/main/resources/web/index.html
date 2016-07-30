@@ -21,13 +21,22 @@
         <h1>{{account}}</h1>
         <ul>
             <li ng-repeat="agent in agents">
-                <span ng-click="agent.expand=!agent.expand">{{agent.name}}</span>
-                <div ng-show="agent.expand">
-                    <a target="_self" ng-href="/agents/{{agent.id}}/download" download="jflop-agent-{{agent.name}}.jar">
+                <span ng-click="expanded[agent.agentId].isVisible=!expanded[agent.agentId].isVisible">{{agent.name}}</span>
+                <span ng-show="agent.lastReportTime">; last reported: {{agent.lastReportTime | date:'yyyy-MM-dd HH:mm:ss'}}</span>
+                <div ng-show="expanded[agent.agentId].isVisible">
+                    <p>
+                        <span ng-click="expanded[agent.agentId].conf = !expanded[agent.agentId].conf">profiler configuration</span>
+                        <div ng-show="expanded[agent.agentId].conf">
+                            Config HERE
+                        </div>
+                    </p>
+
+                    <a target="_self" ng-href="/agents/{{agent.agentId}}/download"
+                       download="jflop-agent-{{agent.name}}.jar">
                         <button>download</button>
                     </a>
                     <br>
-                    <input type="button" value="delete" ng-click="deleteAgent(agent.id)">
+                    <input type="button" value="delete" ng-click="deleteAgent(agent.agentId)">
                 </div>
             </li>
         </ul>

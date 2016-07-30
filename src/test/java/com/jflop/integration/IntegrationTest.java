@@ -77,7 +77,7 @@ public class IntegrationTest {
         long start = System.currentTimeMillis();
         assertNotNull(adminClient);
         Thread.sleep(1200);
-        assertTrue(agent.lastReportTime > start);
+        assertTrue(agent.lastReportTime.getTime() > start);
     }
 
     @Test
