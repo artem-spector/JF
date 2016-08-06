@@ -2,6 +2,7 @@ package com.jflop.server.feature;
 
 import org.jflop.snapshot.Snapshot;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -44,5 +45,13 @@ public class SnapshotFeature extends Feature {
     public Snapshot getLastSnapshot() {
         if (getError() != null) throw new RuntimeException(getError());
         return lastSnapshot;
+    }
+
+    @Override
+    protected Map<String, Object> getState() {
+        Map<String, Object> res = new HashMap<>();
+        if (lastSnapshot != null)
+            res.put("snapshot", lastSnapshot.toString());
+        return res;
     }
 }

@@ -2,7 +2,7 @@ package com.jflop.server.feature;
 
 import org.jflop.config.JflopConfiguration;
 
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Get/set JFlop configuration
@@ -12,10 +12,14 @@ import java.util.HashMap;
  */
 public class InstrumentationConfigurationFeature extends Feature {
 
+    public static final String NAME = "instr-conf";
+    public static final String GET_CONFIG = "get-config";
+    public static final String SET_CONFIG = "set-config";
+
     private JflopConfiguration agentConfiguration;
 
     public InstrumentationConfigurationFeature() {
-        super("instr-conf");
+        super(NAME);
     }
 
     @Override
@@ -28,15 +32,30 @@ public class InstrumentationConfigurationFeature extends Feature {
     }
 
     public void requestAgentConfiguration() {
-        sendCommand("get-config", new HashMap());
+        sendCommand(GET_CONFIG, new HashMap());
     }
 
     public void setAgentConfiguration(JflopConfiguration conf) {
-        sendCommand("set-config", conf.asJson());
+        sendCommand(SET_CONFIG, conf.asJson());
     }
 
     public JflopConfiguration getAgentConfiguration() {
         if (getError() != null) throw new RuntimeException(getError());
         return agentConfiguration;
+    }
+
+    @Override
+    protected Map<String, Object> getState() {
+        String txt = "";
+        if (agentConfiguration != null) {
+            Properties properties = agentConfiguration.toProperties();
+            for (String mtd : properties.stringPropertyNames()) {
+                txt += mtd + "\n";
+            }
+        }
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("methods", txt);
+        return res;
     }
 }

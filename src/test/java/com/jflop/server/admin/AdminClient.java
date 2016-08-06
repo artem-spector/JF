@@ -6,7 +6,9 @@ import org.springframework.http.HttpMethod;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -79,17 +81,24 @@ public class AdminClient {
 
     private List<JFAgent> readAgentsFromResponse(HttpTestClient.Response response) throws java.io.IOException {
         assertEquals(200, response.statusCode);
-        List maps = mapper.readValue(response.getContentAsString(), List.class);
+        List<Map> maps = mapper.readValue(response.getContentAsString(), List.class);
         List<JFAgent> res = new ArrayList<>();
-        for (Object map : maps) {
-            res.add(mapper.readValue(mapper.writeValueAsString(map), JFAgent.class));
+        for (Map map : maps) {
+            JFAgent agent = new JFAgent();
+            agent.name = (String) map.get("name");
+            agent.agentId = (String) map.get("agentId");
+            agent.accountId = (String) map.get("accountId");
+            Long lastReportTime = (Long) map.get("lastReportTime");
+            if (lastReportTime != null)
+                agent.lastReportTime = new Date(lastReportTime);
+            res.add(agent);
         }
 
         return res;
     }
 
     private void obtainAuthHeader() {
-            authHeader = credentials;
+        authHeader = credentials;
     }
 }
 

@@ -1,13 +1,17 @@
 package com.jflop.server.admin;
 
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.RuntimeController;
+import org.jflop.config.JflopConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -90,6 +94,36 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body(e);
         }
+    }
+
+    @RequestMapping(method = POST, path = "/{id}/command", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity command(@PathVariable("id") String agentId,
+                                  @RequestParam("feature") String feature,
+                                  @RequestParam("command") String command,
+                                  @RequestParam(value = "data", required = false) Object data) throws IOException {
+        JFAgent agent = adminDAO.getAgent(agentId);
+        switch (feature) {
+            case InstrumentationConfigurationFeature.NAME:
+                InstrumentationConfigurationFeature conf = agent.getFeature(InstrumentationConfigurationFeature.class);
+                switch (command) {
+                    case InstrumentationConfigurationFeature.GET_CONFIG:
+                        conf.requestAgentConfiguration();
+                        break;
+                    case InstrumentationConfigurationFeature.SET_CONFIG:
+                        String methodsStr = (String) data;
+                        InputStream in = new ByteArrayInputStream(methodsStr.getBytes());
+                        JflopConfiguration configuration = new JflopConfiguration(in);
+                        conf.setAgentConfiguration(configuration);
+                        break;
+                    default:
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid command: " + command);
+                };
+                break;
+            default:
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid feature: " + feature);
+        }
+        return ResponseEntity.ok().build();
     }
 
     private String accountId() {

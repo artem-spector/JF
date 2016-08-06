@@ -1,12 +1,15 @@
-app.controller("adminCtrl", function($scope, $http, $timeout) {
+app.controller("adminCtrl", function($scope, $http, $interval) {
     $scope.account = "";
     $scope.showLogin = true;
     $scope.expanded = {};
+
+    var refreshInterval = 2000;
 
     $scope.login = function() {
         getAgents(
             function onSuccess(response) {
                 $scope.showLogin = false;
+                $interval(getAgents, refreshInterval);
             },
             function onError(response) {
                 $scope.showLogin = true;
@@ -52,6 +55,39 @@ app.controller("adminCtrl", function($scope, $http, $timeout) {
         });
     }
 
+    $scope.getConfiguration = function(agent) {
+        $http({
+            method: "POST",
+            url: "/agents/" + agent.agentId + "/command",
+            params: {
+                feature: "instr-conf",
+                command: "get-config"
+            },
+            headers: {
+                "jf-auth": $scope.account
+            }
+        }).then(function onSuccess(response){
+            getAgents();
+        });
+    }
+
+    $scope.sendConfiguration = function(agent) {
+        $http({
+            method: "POST",
+            url: "/agents/" + agent.agentId + "/command",
+            params: {
+                feature: "instr-conf",
+                command: "set-config",
+                data: agent.features['instr-conf'].state.methods
+            },
+            headers: {
+                "jf-auth": $scope.account
+            }
+        }).then(function onSuccess(response){
+            getAgents();
+        });
+    }
+
     function getAgents(successCallback, failureCallback) {
         $http({
             method: "GET",
@@ -62,9 +98,14 @@ app.controller("adminCtrl", function($scope, $http, $timeout) {
         }).then(
             function onSuccess(response) {
                 $scope.agents = response.data;
-                if (successCallback)
+                var now = new Date().getTime();
+                for (var i = 0; i < $scope.agents.length; i++) {
+                    var agent = $scope.agents[i];
+                    agent.isAlive = agent.lastReportTime && ((now - agent.lastReportTime) < refreshInterval * 3);
+                }
+                if (successCallback) {
                     successCallback(response);
-                $timeout(getAgents, 1000);
+                }
             },
             function onFailure(response) {
                 if (failureCallback)
@@ -72,4 +113,5 @@ app.controller("adminCtrl", function($scope, $http, $timeout) {
             }
         );
     }
+
 });

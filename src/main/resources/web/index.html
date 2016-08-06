@@ -24,12 +24,23 @@
                 <span ng-click="expanded[agent.agentId].isVisible=!expanded[agent.agentId].isVisible">{{agent.name}}</span>
                 <span ng-show="agent.lastReportTime">; last reported: {{agent.lastReportTime | date:'yyyy-MM-dd HH:mm:ss'}}</span>
                 <div ng-show="expanded[agent.agentId].isVisible">
-                    <p>
-                        <span ng-click="expanded[agent.agentId].conf = !expanded[agent.agentId].conf">profiler configuration</span>
+                    <div ng-show="agent.isAlive">
+                        <span ng-click="expanded[agent.agentId].conf = !expanded[agent.agentId].conf">Instrumented methods</span>
                         <div ng-show="expanded[agent.agentId].conf">
-                            Config HERE
+                            <button ng-click="getConfiguration(agent)">get configuration</button>
+                            <div ng-show="agent.features['instr-conf'].command">
+                                Command: <span>{{agent.features['instr-conf'].command.name}}</span><br>
+                                created at: <span>{{agent.features['instr-conf'].command.createdAt | date:'HH:mm:ss'}}</span><br>
+                                sent at: <span>{{agent.features['instr-conf'].command.sentAt | date:'HH:mm:ss'}}</span><br>
+                                progress: <span>{{agent.features['instr-conf'].command.progressReported}}</span>
+                            </div>
+
+                            <div>
+                                <textarea readonly="true" ng-model="agent.features['instr-conf'].state.methods"></textarea><br>
+                                <button ng-click="sendConfiguration(agent)">send configuration</button>
+                            </div>
                         </div>
-                    </p>
+                    </div>
 
                     <a target="_self" ng-href="/agents/{{agent.agentId}}/download"
                        download="jflop-agent-{{agent.name}}.jar">

@@ -1,5 +1,6 @@
 package com.jflop.server.admin;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jflop.server.feature.Feature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
@@ -52,5 +53,14 @@ public class JFAgent {
             if (type.isInstance(feature)) return type.cast(feature);
         }
         return null;
+    }
+
+    @JsonProperty
+    public Map<String, Map<String, Object>> getFeatures() {
+        Map<String, Map<String, Object>> res = new HashMap<>();
+        for (Feature feature : features) {
+            res.put(feature.name, feature.asJson());
+        }
+        return res;
     }
 }
