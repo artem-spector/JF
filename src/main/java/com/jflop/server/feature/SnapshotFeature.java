@@ -16,7 +16,7 @@ public class SnapshotFeature extends Feature {
     public static final String NAME = "snapshot";
     public static final String TAKE_SNAPSHOT = "takeSnapshot";
 
-    private Integer durationSec;
+    private int durationSec = 3;
     private Snapshot lastSnapshot;
 
     public SnapshotFeature() {
@@ -35,7 +35,7 @@ public class SnapshotFeature extends Feature {
 
         Integer countdown = (Integer) json.get("countdown");
         if (countdown != null) {
-            setCommandProgress((durationSec - countdown) / 100);
+            setCommandProgress((int) (((float) (durationSec - countdown) / durationSec) * 100));
         }
     }
 
@@ -52,8 +52,8 @@ public class SnapshotFeature extends Feature {
     @Override
     protected Map<String, Object> getState() {
         Map<String, Object> res = new HashMap<>();
+        res.put("duration", durationSec);
         if (lastSnapshot != null) {
-            res.put("duration", durationSec);
             res.put("snapshot", lastSnapshot.toString());
         }
         return res;
