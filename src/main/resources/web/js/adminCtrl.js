@@ -4,12 +4,26 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
     $scope.expanded = {};
 
     var refreshInterval = 2000;
+    var pageRefresh = null;
+
+    $scope.startRefresh = function() {
+        if (!pageRefresh) {
+          pageRefresh = $interval(getAgents, refreshInterval);
+        }
+    }
+
+    $scope.stopRefresh = function() {
+        if (pageRefresh) {
+          $interval.cancel(pageRefresh);
+          pageRefresh = null;
+        }
+    }
 
     $scope.login = function() {
         getAgents(
             function onSuccess(response) {
                 $scope.showLogin = false;
-                $interval(getAgents, refreshInterval);
+                $scope.startRefresh();
             },
             function onError(response) {
                 $scope.showLogin = true;
@@ -83,9 +97,15 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
             headers: {
                 "jf-auth": $scope.account
             }
-        }).then(function onSuccess(response){
-            getAgents();
-        });
+        }).then(
+            function onSuccess(response) {
+                getAgents();
+            },
+            function onFailure(response) {
+                alert(response.data.error + ": " + response.data.message);
+                getAgents();
+            }
+        );
     }
 
     function getAgents(successCallback, failureCallback) {
@@ -106,6 +126,7 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
                 if (successCallback) {
                     successCallback(response);
                 }
+                $scope.startRefresh();
             },
             function onFailure(response) {
                 if (failureCallback)
