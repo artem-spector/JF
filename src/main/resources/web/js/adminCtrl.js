@@ -123,13 +123,13 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
                     var agent = $scope.agents[i];
                     agent.isAlive = agent.lastReportTime && ((now - agent.lastReportTime) < refreshInterval * 3);
                 }
-                if (successCallback) {
+                if (typeof(successCallback) === "function") {
                     successCallback(response);
                 }
                 $scope.startRefresh();
             },
             function onFailure(response) {
-                if (failureCallback)
+                if (typeof(failureCallback) === "function")
                     failureCallback(response)
             }
         );

@@ -111,14 +111,21 @@ public class AdminController {
                         conf.requestAgentConfiguration();
                         break;
                     case InstrumentationConfigurationFeature.SET_CONFIG:
-                        String methodsStr = (String) data;
-                        InputStream in = new ByteArrayInputStream(methodsStr.getBytes());
-                        JflopConfiguration configuration = new JflopConfiguration(in);
+                        JflopConfiguration configuration;
+                        try {
+                            String methodsStr = (String) data;
+                            InputStream in = new ByteArrayInputStream(methodsStr.getBytes());
+                            configuration = new JflopConfiguration(in);
+                        } catch (Exception e) {
+                            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                    .body("{\"error\": \"Invalid configuration\", \"message\": \"" + e + "\"}");
+                        }
                         conf.setAgentConfiguration(configuration);
                         break;
                     default:
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid command: " + command);
-                };
+                }
+                ;
                 break;
             default:
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid feature: " + feature);
