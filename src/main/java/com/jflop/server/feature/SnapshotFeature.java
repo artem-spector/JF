@@ -13,11 +13,14 @@ import java.util.Map;
  */
 public class SnapshotFeature extends Feature {
 
+    public static final String NAME = "snapshot";
+    public static final String TAKE_SNAPSHOT = "takeSnapshot";
+
     private Integer durationSec;
     private Snapshot lastSnapshot;
 
     public SnapshotFeature() {
-        super("snapshot");
+        super(NAME);
     }
 
     @Override
@@ -28,7 +31,6 @@ public class SnapshotFeature extends Feature {
         if (snapshotJson != null) {
             this.lastSnapshot = Snapshot.fromJson(snapshotJson);
             commandDone();
-            durationSec = null;
         }
 
         Integer countdown = (Integer) json.get("countdown");
@@ -39,7 +41,7 @@ public class SnapshotFeature extends Feature {
 
     public void takeSnapshot(Integer durationSec) {
         this.durationSec = durationSec;
-        sendCommand("takeSnapshot", durationSec);
+        sendCommand(TAKE_SNAPSHOT, durationSec);
     }
 
     public Snapshot getLastSnapshot() {
@@ -50,8 +52,10 @@ public class SnapshotFeature extends Feature {
     @Override
     protected Map<String, Object> getState() {
         Map<String, Object> res = new HashMap<>();
-        if (lastSnapshot != null)
+        if (lastSnapshot != null) {
+            res.put("duration", durationSec);
             res.put("snapshot", lastSnapshot.toString());
+        }
         return res;
     }
 }

@@ -1,6 +1,7 @@
 package com.jflop.server.admin;
 
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.RuntimeController;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,12 +124,33 @@ public class AdminController {
                         conf.setAgentConfiguration(configuration);
                         break;
                     default:
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid command: " + command);
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("{\"error\": \"Invalid command\", \"message\": \"" + "Command not supported: " + command + "\"}");
                 }
-                ;
                 break;
+
+            case SnapshotFeature.NAME:
+                SnapshotFeature snapshot = agent.getFeature(SnapshotFeature.class);
+                switch (command) {
+                    case SnapshotFeature.TAKE_SNAPSHOT:
+                        Integer durationSec;
+                        try {
+                            durationSec = Integer.parseInt((String) data);
+                        } catch (NumberFormatException e) {
+                            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                    .body("{\"error\": \"Invalid duration\", \"message\": \"" + e + "\"}");
+                        }
+                        snapshot.takeSnapshot(durationSec);
+                        break;
+                    default:
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("{\"error\": \"Invalid command\", \"message\": \"" + "Command not supported: " + command + "\"}");
+                }
+                break;
+
             default:
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid feature: " + feature);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("{\"error\": \"Invalid feature\", \"message\": \"" + "Feature not supported: " + feature + "\"}");
         }
         return ResponseEntity.ok().build();
     }

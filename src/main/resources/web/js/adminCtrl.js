@@ -108,6 +108,29 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         );
     }
 
+    $scope.takeSnapshot = function(agent) {
+        $http({
+            method: "POST",
+            url: "/agents/" + agent.agentId + "/command",
+            params: {
+                feature: "snapshot",
+                command: "takeSnapshot",
+                data: agent.features['snapshot'].state.duration
+            },
+            headers: {
+                "jf-auth": $scope.account
+            }
+        }).then(
+            function onSuccess(response) {
+                getAgents();
+            },
+            function onFailure(response) {
+                alert(response.data.error + ": " + response.data.message);
+                getAgents();
+            }
+        );
+    }
+
     function getAgents(successCallback, failureCallback) {
         $http({
             method: "GET",
