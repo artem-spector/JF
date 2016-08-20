@@ -65,6 +65,12 @@
             <scope>system</scope>
             <systemPath>${env.JAVA_HOME_8}/lib/tools.jar</systemPath>
         </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>2.3.5</version>
+        </dependency>
     </dependencies>
 
     <build>
