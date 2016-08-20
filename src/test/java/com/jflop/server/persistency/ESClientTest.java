@@ -12,7 +12,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -56,6 +55,8 @@ public class ESClientTest {
         ObjectMapper mapper = new ObjectMapper();
         String index = "test-idx-1";
         String docType = "somepojo";
+
+        // the mapping in the jso file does extra-wrapping according to https://github.com/elastic/elasticsearch/issues/17886
         String mappingStr = jsonBuilder()
                 .startObject()
                 .startObject("properties")
@@ -71,11 +72,6 @@ public class ESClientTest {
                 .endObject()
                 .string();
 
-        // extra-wrapping the mapping according to https://github.com/elastic/elasticsearch/issues/17886
-        String wrappedMappingStr = "{\"" + docType + "\": " + mappingStr + "}";
-        Map<String, String> mappings = new HashMap<>();
-        mappings.put(docType, wrappedMappingStr);
-
         MappingMetaData metaData;
 
         // auto-create the index and make sure the mapping is not as we want
@@ -90,7 +86,7 @@ public class ESClientTest {
         esClient.deleteIndices("test*");
         assertFalse(esClient.indexExists(index));
         assertEquals(0, esClient.getTemplates("*").size());
-        esClient.putTemplate(template, "test-idx*", mappings);
+        esClient.putTemplate(template, "test-idx*", new DocType[]{new DocType("somepojo", "persistency/somePojo.json", SomePojo.class)});
         assertEquals(1, esClient.getTemplates(template).size());
 
         // add document and make sure the mapping is same as in the template
@@ -98,6 +94,25 @@ public class ESClientTest {
         assertTrue(esClient.indexExists(index));
         metaData = esClient.getMappings(index).get(docType);
         assertEquals(mapper.readValue(mappingStr, Map.class), metaData.getSourceAsMap());
+    }
+
+    @Test
+    public void testIndexTemplate() {
+        SomePojoIndex pojoIndex = new SomePojoIndex(esClient);
+        pojoIndex.afterPropertiesSet();
+        assertFalse(esClient.indexExists(pojoIndex.indexName()));
+
+        SomePojo original = new SomePojo("a", "b");
+        PersistentData<SomePojo> res = pojoIndex.createDocument(new PersistentData<>(original));
+        assertNotNull(res.id);
+        assertEquals(1, res.version);
+
+        assertNull(pojoIndex.getDocument(new PersistentData<>("11", 0), SomePojo.class));
+
+        PersistentData<SomePojo> found = pojoIndex.getDocument(res, SomePojo.class);
+        assertEquals(res.id, found.id);
+        assertEquals(res.version, found.version);
+        assertEquals(res.source, original);
     }
 
 }

@@ -1,12 +1,14 @@
 {
-  "properties": {
-    "name": {
-      "type": "string",
-      "index": "not_analyzed"
-    },
-    "description": {
-      "type": "string",
-      "index": "not_analyzed"
+  "somepojo" : {
+    "properties": {
+      "name": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "description": {
+        "type": "string",
+        "index": "not_analyzed"
+      }
     }
   }
 }

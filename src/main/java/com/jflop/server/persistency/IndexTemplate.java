@@ -2,11 +2,6 @@ package com.jflop.server.persistency;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-
-import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Base class for index templates.
@@ -17,45 +12,38 @@ import java.util.Map;
  */
 public abstract class IndexTemplate implements InitializingBean {
 
-    private String name;
+    private String templateName;
     private String template;
-    private Map<String, String> docTypes;
+    private DocType[] docTypes;
 
     @Autowired
-    private ESClient esClient;
+    protected ESClient esClient;
 
-    protected IndexTemplate(String name, String template, String... typeMappingPairs) throws IOException {
-        assert typeMappingPairs.length % 2 == 0;
-
-        this.name = name;
+    protected IndexTemplate(String templateName, String template, DocType... docTypes) {
+        this.templateName = templateName;
         this.template = template;
-        docTypes = new HashMap<>();
-
-        boolean even = true;
-        String docType = null;
-        for (String value : typeMappingPairs) {
-            if (even) {
-                docType = value;
-            } else {
-                docTypes.put(docType, readMapping(value));
-            }
-            even = !even;
-        }
+        this.docTypes = docTypes;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        esClient.putTemplate(name, template, docTypes);
+    public void afterPropertiesSet() {
+        esClient.putTemplate(templateName, template, docTypes);
     }
 
-    private String readMapping(String path) throws IOException {
-        ClassPathResource resource = new ClassPathResource(path);
-        BufferedReader in = new BufferedReader(new InputStreamReader(resource.getInputStream()));
-        String contentStr = "";
-        String line;
-        while ((line = in.readLine()) != null) {
-            contentStr += line;
-        }
-        return contentStr;
+    public <T> PersistentData<T> getDocument(PersistentData<T> doc, Class<T> type) {
+        return esClient.getDocument(indexName(), getDocType(type), doc, type);
     }
+
+    public <T> PersistentData<T> createDocument(PersistentData<T> doc) {
+        return esClient.createDocument(indexName(), getDocType(doc.source.getClass()), doc);
+    }
+
+    protected String getDocType(Class type) {
+        for (DocType docType : docTypes) {
+            if (docType.type == type) return docType.docType;
+        }
+        throw new IllegalArgumentException("Unsupported source type: " + type.getName());
+    }
+
+    public abstract String indexName();
 }

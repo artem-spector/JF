@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
+import org.elasticsearch.action.get.GetRequestBuilder;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -17,9 +20,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Elastic search client
@@ -57,10 +60,10 @@ public class ESClient implements InitializingBean, DisposableBean {
         return response.getIndexTemplates();
     }
 
-    public void putTemplate(String name, String template, Map<String, String> docTypes) {
+    public void putTemplate(String name, String template, DocType[] docTypes) {
         PutIndexTemplateRequestBuilder request = client.admin().indices().preparePutTemplate(name).setTemplate(template).setOrder(1);
-        for (Map.Entry<String, String> entry : docTypes.entrySet()) {
-            request.addMapping(entry.getKey(), entry.getValue());
+        for (DocType docType : docTypes) {
+            request.addMapping(docType.docType, docType.readMapping());
         }
         request.execute().actionGet();
     }
@@ -93,5 +96,30 @@ public class ESClient implements InitializingBean, DisposableBean {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public <T> PersistentData<T> createDocument(String index, String docType, PersistentData<T> doc) {
+        try {
+            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(doc.source));
+            if (doc.id != null) request.setId(doc.id);
+            IndexResponse response = request.execute().actionGet();
+            return new PersistentData<T>(response.getId(), response.getVersion(), doc.source);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public <T> PersistentData<T> getDocument(String indexName, String docType, PersistentData<T> data, Class<T> type) {
+        GetRequestBuilder request = client.prepareGet(indexName, docType, data.id);
+        if (data.version != 0) request.setVersion(data.version);
+        GetResponse response = request.execute().actionGet();
+        if (response.isExists())
+            try {
+                return new PersistentData<>(response.getId(), response.getVersion(), mapper.readValue(response.getSourceAsBytes(), type));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        else
+            return null;
     }
 }
