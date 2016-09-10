@@ -1,3 +1,4 @@
 /.idea
 /jf-server.iml
 /target
+/doc/*.bak
