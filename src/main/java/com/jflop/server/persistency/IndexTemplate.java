@@ -1,7 +1,16 @@
 package com.jflop.server.persistency;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Base class for index templates.
@@ -11,6 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  *         Date: 8/13/16
  */
 public abstract class IndexTemplate implements InitializingBean {
+
+    private static final Logger logger = Logger.getLogger(IndexTemplate.class.getName());
+
+    private ObjectMapper mapper = new ObjectMapper();
 
     private String templateName;
     private String template;
@@ -36,6 +49,33 @@ public abstract class IndexTemplate implements InitializingBean {
 
     public <T> PersistentData<T> createDocument(PersistentData<T> doc) {
         return esClient.createDocument(indexName(), getDocType(doc.source.getClass()), doc);
+    }
+
+    public boolean deleteDocument(PersistentData doc) {
+        return esClient.deleteDocument(indexName(), getDocType(doc.source.getClass()), doc);
+    }
+
+    public <T> PersistentData<T> updateDocument(PersistentData<T> doc) {
+        return esClient.updateDocument(indexName(), getDocType(doc.source.getClass()), doc);
+    }
+
+    public void deleteByQuery(QueryBuilder query) {
+        esClient.deleteByQuery(indexName(), query);
+    }
+
+    public <T> List<PersistentData<T>> find(QueryBuilder query, int maxHits, Class<T> dataType) {
+        List<PersistentData<T>> res = new ArrayList<>();
+
+        SearchResponse response = esClient.search(indexName(), query, maxHits);
+        for (SearchHit hit : response.getHits().getHits()) {
+            try {
+                res.add(new PersistentData<>(hit.id(), hit.version(), mapper.readValue(hit.source(), dataType)));
+            } catch (IOException e) {
+                logger.warning("Failed to read persistent data as " + dataType.getName() + ": " + e);
+            }
+        }
+
+        return res;
     }
 
     protected String getDocType(Class type) {

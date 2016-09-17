@@ -5,16 +5,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequestBuilder;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +31,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Elastic search client
@@ -33,6 +42,8 @@ import java.util.List;
 
 @Component
 public class ESClient implements InitializingBean, DisposableBean {
+
+    private static final Logger logger = Logger.getLogger(ESClient.class.getName());
 
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -109,6 +120,17 @@ public class ESClient implements InitializingBean, DisposableBean {
         }
     }
 
+    public <T> PersistentData<T> updateDocument(String index, String docType, PersistentData<T> doc) {
+        try {
+            UpdateRequestBuilder request = client.prepareUpdate(index, docType, doc.id).setDoc(mapper.writeValueAsBytes(doc.source));
+            if (doc.version != 0) request.setVersion(doc.version);
+            UpdateResponse response = request.execute().actionGet();
+            return new PersistentData<T>(response.getId(), response.getVersion(), doc.source);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public <T> PersistentData<T> getDocument(String indexName, String docType, PersistentData<T> data, Class<T> type) {
         GetRequestBuilder request = client.prepareGet(indexName, docType, data.id);
         if (data.version != 0) request.setVersion(data.version);
@@ -121,5 +143,39 @@ public class ESClient implements InitializingBean, DisposableBean {
             }
         else
             return null;
+    }
+
+    public boolean deleteDocument(String indexName, String docType, PersistentData document) {
+        DeleteRequestBuilder request = client.prepareDelete(indexName, docType, document.id);
+        if (document.version != 0) request.setVersion(document.version);
+        return request.execute().actionGet().isFound();
+    }
+
+    public SearchResponse search(String indexName, QueryBuilder query, int maxHits) {
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setSize(maxHits);
+        return searchQuery.execute().actionGet();
+    }
+
+    public void deleteByQuery(String indexName, QueryBuilder query) {
+        int maxBulkLen = 100;
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setNoFields();
+
+        boolean done = false;
+        while (!done) {
+            searchQuery.setSize(maxBulkLen);
+            SearchResponse response = searchQuery.execute().actionGet();
+            SearchHit[] hits = response.getHits().hits();
+            done = response.getHits().totalHits() == hits.length;
+
+            BulkRequestBuilder bulk = client.prepareBulk();
+            for (SearchHit hit : hits) {
+                bulk.add(client.prepareDelete().setIndex(indexName).setId(hit.id()));
+            }
+            try {
+                bulk.execute().get();
+            } catch (Exception e) {
+                logger.severe("Bulk delete failed: " + e);
+            }
+        }
     }
 }

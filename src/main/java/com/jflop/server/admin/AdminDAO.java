@@ -16,13 +16,13 @@ public class AdminDAO {
     private Map<String, AccountData> accounts = new HashMap<>();
     private Map<String, JFAgent> agents = new HashMap<>();
 
-    public void createAccount(String accountId) {
-        accounts.put(accountId, new AccountData());
-    }
+        public void createAccount(String accountId) {
+            accounts.put(accountId, new AccountData());
+        }
 
-    public boolean accountExists(String accountId) {
-        return accounts.get(accountId) != null;
-    }
+        public boolean accountExists(String accountId) {
+            return accounts.get(accountId) != null;
+        }
 
     public List<JFAgent> getAgents(String accountId) {
         List<String> agentIDs = accounts.get(accountId).getAgentIDs();
