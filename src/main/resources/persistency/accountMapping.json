@@ -1,0 +1,30 @@
+{
+  "account": {
+    "properties": {
+      "accountId": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "accountName": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "agents": {
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          "agentName": {
+            "type": "string",
+            "index": "no"
+          },
+          "enabledFeatures": {
+            "type": "string",
+            "index": "no"
+          }
+        }
+      }
+    }
+  }
+}

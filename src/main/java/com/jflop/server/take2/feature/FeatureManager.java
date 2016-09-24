@@ -24,5 +24,10 @@ public class FeatureManager {
         }
     }
 
+    public AgentFeature getFeature(String featureId) {
+        AgentFeature res = allFeatures.get(featureId);
+        if (res == null) throw new RuntimeException("Invalid feature ID");
+        return res;
+    }
 
 }

@@ -1,7 +1,9 @@
 package com.jflop.server.take2.feature;
 
+import com.jflop.server.take2.admin.data.FeatureCommand;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -22,12 +24,19 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     }
 
     @Override
-    public FeatureCommand parseCommand(String command, Map<String, Object> paramJson) {
-        return null;
+    public FeatureCommand parseCommand(String command, Object param) {
+        switch (command) {
+            case GET_CONFIG:
+                return new FeatureCommand(FEATURE_ID, command, null);
+            case SET_CONFIG:
+                return new FeatureCommand(FEATURE_ID, command, new HashMap<>());
+            default:
+                throw new RuntimeException("Invalid command: " + command);
+        }
     }
 
     @Override
-    protected FeatureCommand parseCommandUpdate(Map<String, Object> updateJson) {
+    public FeatureCommand parseCommandUpdate(Object update) {
         return null;
     }
 

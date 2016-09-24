@@ -1,6 +1,8 @@
 package com.jflop.server.take2.feature;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jflop.server.take2.admin.ValidationException;
+import com.jflop.server.take2.admin.data.FeatureCommand;
 
 import java.util.Map;
 
@@ -20,9 +22,9 @@ public abstract class AgentFeature {
         this.featureId = featureId;
     }
 
-    public abstract FeatureCommand parseCommand(String command, Map<String, Object> paramJson);
+    public abstract FeatureCommand parseCommand(String command, Object param) throws ValidationException;
 
-    protected abstract FeatureCommand parseCommandUpdate(Map<String, Object> updateJson);
+    public abstract FeatureCommand parseCommandUpdate(Object update);
 
     protected abstract Map<String, Object> parseFeatureData(Map<String, Object> dataJson);
 

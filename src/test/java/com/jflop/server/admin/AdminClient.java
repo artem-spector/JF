@@ -2,11 +2,11 @@ package com.jflop.server.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.HttpTestClient;
+import com.jflop.server.take2.admin.data.JFAgent;
 import org.springframework.http.HttpMethod;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -85,12 +85,9 @@ public class AdminClient {
         List<JFAgent> res = new ArrayList<>();
         for (Map map : maps) {
             JFAgent agent = new JFAgent();
-            agent.name = (String) map.get("name");
+            agent.agentName = (String) map.get("agentName");
             agent.agentId = (String) map.get("agentId");
-            agent.accountId = (String) map.get("accountId");
             Long lastReportTime = (Long) map.get("lastReportTime");
-            if (lastReportTime != null)
-                agent.lastReportTime = new Date(lastReportTime);
             res.add(agent);
         }
 

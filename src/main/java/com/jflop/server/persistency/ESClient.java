@@ -21,6 +21,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.DisposableBean;
@@ -114,7 +115,7 @@ public class ESClient implements InitializingBean, DisposableBean {
             IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(doc.source));
             if (doc.id != null) request.setId(doc.id);
             IndexResponse response = request.execute().actionGet();
-            return new PersistentData<T>(response.getId(), response.getVersion(), doc.source);
+            return new PersistentData<>(response.getId(), response.getVersion(), doc.source);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -125,7 +126,7 @@ public class ESClient implements InitializingBean, DisposableBean {
             UpdateRequestBuilder request = client.prepareUpdate(index, docType, doc.id).setDoc(mapper.writeValueAsBytes(doc.source));
             if (doc.version != 0) request.setVersion(doc.version);
             UpdateResponse response = request.execute().actionGet();
-            return new PersistentData<T>(response.getId(), response.getVersion(), doc.source);
+            return new PersistentData<>(response.getId(), response.getVersion(), doc.source);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -134,7 +135,14 @@ public class ESClient implements InitializingBean, DisposableBean {
     public <T> PersistentData<T> getDocument(String indexName, String docType, PersistentData<T> data, Class<T> type) {
         GetRequestBuilder request = client.prepareGet(indexName, docType, data.id);
         if (data.version != 0) request.setVersion(data.version);
-        GetResponse response = request.execute().actionGet();
+
+        GetResponse response;
+        try {
+            response = request.execute().actionGet();
+        } catch (IndexNotFoundException e) {
+            return null;
+        }
+
         if (response.isExists())
             try {
                 return new PersistentData<>(response.getId(), response.getVersion(), mapper.readValue(response.getSourceAsBytes(), type));
@@ -153,7 +161,11 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public SearchResponse search(String indexName, QueryBuilder query, int maxHits) {
         SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setSize(maxHits);
-        return searchQuery.execute().actionGet();
+        try {
+            return searchQuery.execute().actionGet();
+        } catch (IndexNotFoundException e) {
+            return null;
+        }
     }
 
     public void deleteByQuery(String indexName, QueryBuilder query) {
@@ -177,5 +189,9 @@ public class ESClient implements InitializingBean, DisposableBean {
                 logger.severe("Bulk delete failed: " + e);
             }
         }
+    }
+
+    public void refreshIndices(String indexName) {
+        client.admin().indices().prepareRefresh(indexName).execute().actionGet();
     }
 }

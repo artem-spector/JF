@@ -47,6 +47,14 @@ public abstract class IndexTemplate implements InitializingBean {
         return esClient.getDocument(indexName(), getDocType(type), doc, type);
     }
 
+    public void deleteIndex() {
+        esClient.deleteIndices(indexName());
+    }
+
+    public void refreshIndex() {
+        esClient.refreshIndices(indexName());
+    }
+
     public <T> PersistentData<T> createDocument(PersistentData<T> doc) {
         return esClient.createDocument(indexName(), getDocType(doc.source.getClass()), doc);
     }
@@ -67,15 +75,28 @@ public abstract class IndexTemplate implements InitializingBean {
         List<PersistentData<T>> res = new ArrayList<>();
 
         SearchResponse response = esClient.search(indexName(), query, maxHits);
-        for (SearchHit hit : response.getHits().getHits()) {
-            try {
-                res.add(new PersistentData<>(hit.id(), hit.version(), mapper.readValue(hit.source(), dataType)));
-            } catch (IOException e) {
-                logger.warning("Failed to read persistent data as " + dataType.getName() + ": " + e);
+        if (response != null) {
+            for (SearchHit hit : response.getHits().getHits()) {
+                try {
+                    res.add(new PersistentData<>(hit.id(), hit.version(), mapper.readValue(hit.source(), dataType)));
+                } catch (IOException e) {
+                    logger.warning("Failed to read persistent data as " + dataType.getName() + ": " + e);
+                }
             }
         }
 
         return res;
+    }
+
+    public <T> PersistentData<T> findSingle(QueryBuilder query, Class<T> dataType) {
+        List<PersistentData<T>> found = find(query, 2, dataType);
+        int size = found.size();
+        if (size == 0)
+            return null;
+        else if (size == 1)
+            return found.get(0);
+        else
+            throw new RuntimeException("Found " + size + " elements when maximum one expected.");
     }
 
     protected String getDocType(Class type) {

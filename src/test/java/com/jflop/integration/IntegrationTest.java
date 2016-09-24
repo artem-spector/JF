@@ -3,11 +3,11 @@ package com.jflop.integration;
 import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AdminClient;
-import com.jflop.server.admin.AdminDAO;
-import com.jflop.server.admin.JFAgent;
 import com.jflop.server.feature.Feature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
+import com.jflop.server.take2.admin.AdminDAO;
+import com.jflop.server.take2.admin.data.JFAgent;
 import com.sample.MultipleFlowsProducer;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.snapshot.Snapshot;
@@ -47,6 +47,7 @@ public class IntegrationTest {
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
 
+/*
     @Before
     public void activateAgent() throws Exception {
         if (adminClient != null) return;
@@ -179,4 +180,5 @@ public class IntegrationTest {
     private void stopLoad() {
         stopIt = true;
     }
+*/
 }

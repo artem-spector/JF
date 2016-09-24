@@ -1,5 +1,7 @@
 package com.jflop.server.admin;
 
+import com.jflop.server.take2.admin.AdminDAO;
+import com.jflop.server.take2.admin.data.AccountData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
@@ -35,11 +37,11 @@ public class AdminSecurityInterceptor extends HandlerInterceptorAdapter {
         return true;
     }
 
-    private String getAccountId(String header) {
-        String accountId = header;
-        if (!dao.accountExists(accountId)) {
-            dao.createAccount(accountId);
+    private String getAccountId(String accountName) {
+        AccountData account = dao.findAccountByName(accountName);
+        if (account == null) {
+            account = dao.createAccount(accountName);
         }
-        return accountId;
+        return account.accountId;
     }
 }

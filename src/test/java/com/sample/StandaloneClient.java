@@ -2,7 +2,7 @@ package com.sample;
 
 import com.jflop.HttpTestClient;
 import com.jflop.server.admin.AdminClient;
-import com.jflop.server.admin.JFAgent;
+import com.jflop.server.take2.admin.data.JFAgent;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +38,7 @@ public class StandaloneClient {
 
         String agentId = null;
         for (JFAgent agent : adminClient.getAgents()) {
-            if (agent.name.equals(AGENT_NAME)) {
+            if (agent.agentName.equals(AGENT_NAME)) {
                 agentId = agent.agentId;
                 System.out.println("Agent " + AGENT_NAME + " already exists.");
                 break;

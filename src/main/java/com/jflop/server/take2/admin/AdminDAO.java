@@ -1,19 +1,13 @@
 package com.jflop.server.take2.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jflop.server.take2.admin.data.AccountData;
-import com.jflop.server.take2.admin.data.AgentFeatureState;
-import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.take2.admin.data.*;
 import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
-import com.sun.xml.internal.xsom.impl.scd.Iterators;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -41,8 +35,8 @@ public class AdminDAO {
         agentJvmIndex.deleteAccount(accountId);
     }
 
-    public AccountData getAccount(String accountId) {
-        return accountIndex.getAccount(accountId);
+    public AccountData findAccountByName(String accountName) {
+        return accountIndex.findByName(accountName);
     }
 
     public JFAgent createAgent(String accountId, String agentName) {
@@ -55,33 +49,64 @@ public class AdminDAO {
         return agent;
     }
 
+    public void updateAgent(String accountId, String agentId, String agentName) {
+        accountIndex.updateAgent(accountId, agentId, agentName);
+    }
+
     public void deleteAgent(String accountId, String agentId) {
         accountIndex.deleteAgent(accountId, agentId);
         agentJvmIndex.deleteAgent(accountId, agentId);
     }
 
-    public Map<String, Object> getAccountAgentsJson(String accountId) {
-        try {
-            AccountData account = accountIndex.getAccount(accountId);
-            byte[] bytes = mapper.writeValueAsBytes(account);
-            Map<String, Object> json = mapper.readValue(bytes, Map.class);
+    public List<Map<String, Object>> getAccountAgentsJson(String accountId) {
+        List<Map<String, Object>> res = new ArrayList<>();
 
-            for (AgentFeatureState featureState : agentJvmIndex.getAgentFeatures(accountId)) {
-                Map<String, Object> agentJson = (Map<String, Object>) json.get(featureState.agentJvm.agentId);
-                Map<String, Object>  jvms = (Map<String, Object>) agentJson.get("jvms");
-                if (jvms == null) {
-                    jvms = new HashMap<>();
-                    agentJson.put("jvms", jvms);
+        AccountData account = accountIndex.getAccount(accountId);
+        List<AgentJvmState> agentJvms = agentJvmIndex.getAgentJvms(accountId);
+
+
+        try {
+            for (JFAgent agent : account.agents) {
+                byte[] bytes = mapper.writeValueAsBytes(agent);
+                Map<String, Object> agentJson = mapper.readValue(bytes, Map.class);
+                res.add(agentJson);
+                for (AgentJvmState jvm : agentJvms) {
+                    if (jvm.agentJvm.agentId.equals(agent.agentId)) {
+                        Map<String, Object>  jvms = (Map<String, Object>) agentJson.get("jvms");
+                        if (jvms == null) {
+                            jvms = new HashMap<>();
+                            agentJson.put("jvms", jvms);
+                        }
+                        bytes = mapper.writeValueAsBytes(jvm);
+                        jvms.put(jvm.agentJvm.jvmId, mapper.readValue(bytes, Map.class));
+                    }
                 }
-                bytes = mapper.writeValueAsBytes(featureState.command);
-                jvms.put(featureState.agentJvm.jvmId, mapper.readValue(bytes, Map.class));
             }
 
-
-            return json;
+            return res;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public boolean setCommand(AgentJVM agentJVM, String featureId, FeatureCommand command) {
+        verifyAccount(agentJVM.accountId, agentJVM.agentId, featureId);
+        return agentJvmIndex.setCommand(agentJVM, featureId, command);
+    }
+
+    private AccountData verifyAccount(String accountId, String agentId, String featureId) {
+        AccountData account = accountIndex.getAccount(accountId);
+        if (account == null) throw new RuntimeException("Invalid account ID");
+        if (agentId == null) return account;
+
+        JFAgent agent = account.getAgent(agentId);
+        if (agent == null) throw new RuntimeException("Invalid agent ID");
+        if (featureId == null) return account;
+
+        for (String feature : agent.enabledFeatures) {
+            if (feature.equals(featureId)) return account;
+        }
+        throw new RuntimeException("Invalid feature ID");
     }
 
 }

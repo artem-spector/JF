@@ -1,9 +1,13 @@
 package com.jflop.server.admin;
 
-import com.jflop.server.feature.InstrumentationConfigurationFeature;
-import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.RuntimeController;
-import org.jflop.config.JflopConfiguration;
+import com.jflop.server.take2.admin.AdminDAO;
+import com.jflop.server.take2.admin.ValidationException;
+import com.jflop.server.take2.admin.data.AgentJVM;
+import com.jflop.server.take2.admin.data.FeatureCommand;
+import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.take2.feature.AgentFeature;
+import com.jflop.server.take2.feature.FeatureManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -12,12 +16,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -47,10 +52,14 @@ public class AdminController {
     @Autowired
     private AdminDAO adminDAO;
 
+    @Autowired
+    private FeatureManager featureManager;
+
     @RequestMapping(method = GET, produces = "application/json")
     @ResponseBody
     public ResponseEntity getAgents() {
-        return ResponseEntity.ok(adminDAO.getAgents(accountId()));
+        List<Map<String, Object>> agents = adminDAO.getAccountAgentsJson(accountId());
+        return ResponseEntity.ok(agents);
     }
 
     @RequestMapping(method = POST, produces = "application/json")
@@ -97,62 +106,22 @@ public class AdminController {
         }
     }
 
-    @RequestMapping(method = POST, path = "/{id}/command", produces = "application/json")
+    @RequestMapping(method = POST, path = "/{agentId}/{jvmId}/command", produces = "application/json")
     @ResponseBody
-    public ResponseEntity command(@PathVariable("id") String agentId,
-                                  @RequestParam("feature") String feature,
+    public ResponseEntity command(@PathVariable("agentId") String agentId,
+                                  @PathVariable("jvmId") String jvmId,
+                                  @RequestParam("feature") String featureId,
                                   @RequestParam("command") String command,
                                   @RequestParam(value = "data", required = false) Object data) throws IOException {
-        JFAgent agent = adminDAO.getAgent(agentId);
-        switch (feature) {
-            case InstrumentationConfigurationFeature.NAME:
-                InstrumentationConfigurationFeature conf = agent.getFeature(InstrumentationConfigurationFeature.class);
-                switch (command) {
-                    case InstrumentationConfigurationFeature.GET_CONFIG:
-                        conf.requestAgentConfiguration();
-                        break;
-                    case InstrumentationConfigurationFeature.SET_CONFIG:
-                        JflopConfiguration configuration;
-                        try {
-                            String methodsStr = (String) data;
-                            InputStream in = new ByteArrayInputStream(methodsStr.getBytes());
-                            configuration = new JflopConfiguration(in);
-                        } catch (Exception e) {
-                            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                    .body("{\"error\": \"Invalid configuration\", \"message\": \"" + e + "\"}");
-                        }
-                        conf.setAgentConfiguration(configuration);
-                        break;
-                    default:
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("{\"error\": \"Invalid command\", \"message\": \"" + "Command not supported: " + command + "\"}");
-                }
-                break;
 
-            case SnapshotFeature.NAME:
-                SnapshotFeature snapshot = agent.getFeature(SnapshotFeature.class);
-                switch (command) {
-                    case SnapshotFeature.TAKE_SNAPSHOT:
-                        Integer durationSec;
-                        try {
-                            durationSec = Integer.parseInt((String) data);
-                        } catch (NumberFormatException e) {
-                            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                    .body("{\"error\": \"Invalid duration\", \"message\": \"" + e + "\"}");
-                        }
-                        snapshot.takeSnapshot(durationSec);
-                        break;
-                    default:
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("{\"error\": \"Invalid command\", \"message\": \"" + "Command not supported: " + command + "\"}");
-                }
-                break;
-
-            default:
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("{\"error\": \"Invalid feature\", \"message\": \"" + "Feature not supported: " + feature + "\"}");
+        AgentFeature feature = featureManager.getFeature(featureId);
+        try {
+            FeatureCommand featureCommand = feature.parseCommand(command, data);
+            adminDAO.setCommand(new AgentJVM(accountId(), agentId, jvmId), featureId, featureCommand);
+            return ResponseEntity.ok().build();
+        } catch (ValidationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.toResponseBody());
         }
-        return ResponseEntity.ok().build();
     }
 
     private String accountId() {

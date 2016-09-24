@@ -2,6 +2,9 @@ package com.jflop.server.admin;
 
 import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
+import com.jflop.server.take2.admin.AccountIndex;
+import com.jflop.server.take2.admin.AdminDAO;
+import com.jflop.server.take2.admin.data.JFAgent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,6 +36,9 @@ import static org.junit.Assert.assertNotNull;
 public class AdminTest {
 
     @Autowired
+    private AccountIndex accountIndex;
+
+    @Autowired
     private WebApplicationContext wac;
 
     @Autowired
@@ -42,9 +48,11 @@ public class AdminTest {
 
     @Before
     public void setUp() throws Exception {
+        accountIndex.deleteIndex();
         HttpTestClient client = new HttpTestClient(MockMvcBuilders.webAppContextSetup(wac).build());
         this.client = new AdminClient(client, "account_one");
         adminDAO.createAccount("account_one");
+        accountIndex.refreshIndex();
     }
 
     @Test
@@ -57,14 +65,14 @@ public class AdminTest {
         agents = client.getAgents();
         assertEquals(1, agents.size());
         assertEquals(id, agents.get(0).agentId);
-        assertEquals(name, agents.get(0).name);
+        assertEquals(name, agents.get(0).agentName);
 
         name = "updated name";
         client.updateAgent(id, name);
         agents = client.getAgents();
         assertEquals(1, agents.size());
         assertEquals(id, agents.get(0).agentId);
-        assertEquals(name, agents.get(0).name);
+        assertEquals(name, agents.get(0).agentName);
 
         client.deleteAgent(id);
         agents = client.getAgents();

@@ -11,4 +11,13 @@ public class AgentJVM {
     public String accountId;
     public String agentId;
     public String jvmId;
+
+    public AgentJVM() {
+    }
+
+    public AgentJVM(String accountId, String agentId, String jvmId) {
+        this.accountId = accountId;
+        this.agentId = agentId;
+        this.jvmId = jvmId;
+    }
 }

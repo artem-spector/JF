@@ -1,0 +1,59 @@
+{
+  "agent": {
+    "properties": {
+      "agentJvm": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          "agentId": {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          "jvmId": {
+            "type": "string",
+            "index": "not_analyzed"
+          }
+        }
+      },
+
+      "lastReportedAt": {
+        "type": "date"
+      },
+
+      "featureCommands": {
+        "properties": {
+          "featureId": {
+            "type": "string",
+            "index": "no"
+          },
+          "commandName": {
+            "type": "string",
+            "index": "no"
+          },
+          "createdAt": {
+            "type": "date"
+          },
+          "sentAt": {
+            "type": "date"
+          },
+          "respondedAt": {
+            "type": "date"
+          },
+          "successText": {
+            "type": "string",
+            "index": "no"
+          },
+          "errorText": {
+            "type": "string",
+            "index": "no"
+          },
+          "progressPercent": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}
