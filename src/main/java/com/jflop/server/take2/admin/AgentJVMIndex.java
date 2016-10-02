@@ -6,6 +6,7 @@ import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.take2.admin.data.AgentJVM;
 import com.jflop.server.take2.admin.data.AgentJvmState;
 import com.jflop.server.take2.admin.data.FeatureCommand;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 
@@ -35,18 +36,26 @@ public class AgentJVMIndex extends IndexTemplate {
     }
 
     public void deleteAccount(String accountId) {
-        deleteByQuery(QueryBuilders.termQuery("accountId", accountId));
+        try {
+            deleteByQuery(QueryBuilders.termQuery("agentJvm.accountId", accountId));
+        } catch (IndexNotFoundException e) {
+            // it's ok
+        }
     }
 
     public void deleteAgent(String accountId, String agentId) {
-        deleteByQuery(
-                QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("accountId", accountId))
-                        .must(QueryBuilders.termQuery("agentId", agentId)));
+        try {
+            deleteByQuery(
+                    QueryBuilders.boolQuery()
+                            .must(QueryBuilders.termQuery("agentJvm.accountId", accountId))
+                            .must(QueryBuilders.termQuery("agentJvm.agentId", agentId)));
+        } catch (IndexNotFoundException e) {
+            // it's ok
+        }
     }
 
     public List<AgentJvmState> getAgentJvms(String accountId) {
-        List<PersistentData<AgentJvmState>> list = find(QueryBuilders.termQuery("accountId", accountId), MAX_JVM_NUM * MAX_FEATURES, AgentJvmState.class);
+        List<PersistentData<AgentJvmState>> list = find(QueryBuilders.termQuery("agentJvm.accountId", accountId), MAX_JVM_NUM * MAX_FEATURES, AgentJvmState.class);
         List<AgentJvmState> res = new ArrayList<>(list.size());
         for (PersistentData<AgentJvmState> data : list) {
             res.add(data.source);

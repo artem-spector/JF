@@ -12,8 +12,7 @@
       "agents": {
         "properties": {
           "agentId": {
-            "type": "string",
-            "index": "not_analyzed"
+            "type": "string"
           },
           "agentName": {
             "type": "string",

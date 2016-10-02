@@ -41,6 +41,10 @@ public class HttpTestClient {
             for (Map.Entry<String, String> entry : request.headers.entrySet()) {
                 req.header(entry.getKey(), entry.getValue());
             }
+            if (request.body != null) {
+                req.content(request.body);
+            }
+
             MockHttpServletResponse response = mockMvc.perform(req).andReturn().getResponse();
             Map<String, String> headers = new HashMap<>();
             for (String header : response.getHeaderNames()) {

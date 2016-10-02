@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -88,7 +89,11 @@ public class ESClient implements InitializingBean, DisposableBean {
     }
 
     public void deleteIndices(String... names) {
-        client.admin().indices().prepareDelete(names).get();
+        try {
+            client.admin().indices().prepareDelete(names).get();
+        } catch (IndexNotFoundException e) {
+            logger.warning("Failed to delete " + Arrays.toString(names) + ". " + e);
+        }
     }
 
     public boolean indexExists(String... names) {
@@ -160,7 +165,7 @@ public class ESClient implements InitializingBean, DisposableBean {
     }
 
     public SearchResponse search(String indexName, QueryBuilder query, int maxHits) {
-        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setSize(maxHits);
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setSize(maxHits).setVersion(true);
         try {
             return searchQuery.execute().actionGet();
         } catch (IndexNotFoundException e) {
@@ -181,7 +186,7 @@ public class ESClient implements InitializingBean, DisposableBean {
 
             BulkRequestBuilder bulk = client.prepareBulk();
             for (SearchHit hit : hits) {
-                bulk.add(client.prepareDelete().setIndex(indexName).setId(hit.id()));
+                bulk.add(client.prepareDelete().setIndex(indexName).setType(hit.getType()).setId(hit.id()));
             }
             try {
                 bulk.execute().get();

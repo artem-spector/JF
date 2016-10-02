@@ -38,6 +38,12 @@ public class AdminClient {
         return readAgentsFromResponse(response);
     }
 
+    public List<Map<String, Object>> getAgentsJson() throws Exception {
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.GET, AdminController.AGENTS_PATH);
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        return mapper.readValue(response.getContentAsString(), List.class);
+    }
+
     public String createAgent(String displayName) throws Exception {
         HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.POST, AdminController.AGENTS_PATH).param("name", displayName);
         HttpTestClient.Response response = sendRequestHandleAuth(request);
@@ -87,7 +93,9 @@ public class AdminClient {
             JFAgent agent = new JFAgent();
             agent.agentName = (String) map.get("agentName");
             agent.agentId = (String) map.get("agentId");
-            Long lastReportTime = (Long) map.get("lastReportTime");
+            List<String> enabledFeatures = (List) map.get("enabledFeatures");
+            agent.enabledFeatures = enabledFeatures.toArray(new String[enabledFeatures.size()]);
+//            Long lastReportTime = (Long) map.get("lastReportTime");
             res.add(agent);
         }
 

@@ -76,7 +76,7 @@ public class AccountIndex extends IndexTemplate {
     }
 
     public AccountData findByAgent(String agentId) {
-        PersistentData<AccountData> doc = findSingle(QueryBuilders.termQuery("agentsById.*.agentId", agentId), AccountData.class);
+        PersistentData<AccountData> doc = findSingle(QueryBuilders.matchQuery("agents.agentId", agentId), AccountData.class);
         return doc == null ? null : doc.source;
     }
 

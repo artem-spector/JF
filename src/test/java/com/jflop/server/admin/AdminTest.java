@@ -2,8 +2,10 @@ package com.jflop.server.admin;
 
 import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
+import com.jflop.server.runtime.RuntimeClient;
 import com.jflop.server.take2.admin.AccountIndex;
 import com.jflop.server.take2.admin.AdminDAO;
+import com.jflop.server.take2.admin.AgentJVMIndex;
 import com.jflop.server.take2.admin.data.JFAgent;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,13 +18,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  * Test admin REST API
@@ -39,50 +42,105 @@ public class AdminTest {
     private AccountIndex accountIndex;
 
     @Autowired
+    private AgentJVMIndex agentJVMIndex;
+
+    @Autowired
     private WebApplicationContext wac;
 
     @Autowired
     private AdminDAO adminDAO;
 
-    private AdminClient client;
+    private HttpTestClient testClient;
+    private AdminClient adminClient;
 
     @Before
     public void setUp() throws Exception {
         accountIndex.deleteIndex();
-        HttpTestClient client = new HttpTestClient(MockMvcBuilders.webAppContextSetup(wac).build());
-        this.client = new AdminClient(client, "account_one");
+        agentJVMIndex.deleteIndex();
+        testClient = new HttpTestClient(MockMvcBuilders.webAppContextSetup(wac).build());
+        adminClient = new AdminClient(testClient, "account_one");
         adminDAO.createAccount("account_one");
         accountIndex.refreshIndex();
     }
 
     @Test
     public void testAgentsCRUD() throws Exception {
-        List<JFAgent> agents = client.getAgents();
+        List<JFAgent> agents = adminClient.getAgents();
         assertEquals(0, agents.size());
 
         String name = "my first one";
-        String id = client.createAgent(name);
-        agents = client.getAgents();
+        String id = adminClient.createAgent(name);
+        agents = adminClient.getAgents();
         assertEquals(1, agents.size());
         assertEquals(id, agents.get(0).agentId);
         assertEquals(name, agents.get(0).agentName);
 
         name = "updated name";
-        client.updateAgent(id, name);
-        agents = client.getAgents();
+        adminClient.updateAgent(id, name);
+        agents = adminClient.getAgents();
         assertEquals(1, agents.size());
         assertEquals(id, agents.get(0).agentId);
         assertEquals(name, agents.get(0).agentName);
 
-        client.deleteAgent(id);
-        agents = client.getAgents();
+        adminClient.deleteAgent(id);
+        agents = adminClient.getAgents();
+        assertEquals(0, agents.size());
+    }
+
+    @Test
+    public void testJvmCRUD() throws Exception {
+        List<Map<String, Object>> agents = adminClient.getAgentsJson();
+        assertEquals(0, agents.size());
+
+        String name = "my first one";
+        String agentId = adminClient.createAgent(name);
+        accountIndex.refreshIndex();
+        agents = adminClient.getAgentsJson();
+        assertEquals(1, agents.size());
+
+        Map<String, Object> agent = agents.get(0);
+        assertEquals(name, agent.get("agentName"));
+        assertEquals(Arrays.asList(AdminController.DEFAULT_FEATURES), agent.get("enabledFeatures"));
+        assertEquals(0, ((Map) agent.get("jvms")).size());
+
+        RuntimeClient runtimeClient1 = new RuntimeClient(testClient, agentId);
+        long pingTime = System.currentTimeMillis();
+        runtimeClient1.ping();
+        agentJVMIndex.refreshIndex();
+        agents = adminClient.getAgentsJson();
+        agent = agents.get(0);
+        Map<String, Map<String, Object>> jvms = (Map<String, Map<String, Object>>) agent.get("jvms");
+        assertEquals(1, jvms.size());
+        Map<String, Object> jvm1 = jvms.values().iterator().next();
+        long lastReported = (long) jvm1.get("lastReportedAt");
+        assertTrue(lastReported >= pingTime);
+
+        RuntimeClient runtimeClient2 = new RuntimeClient(testClient, agentId);
+        pingTime = System.currentTimeMillis();
+        runtimeClient2.ping();
+        agentJVMIndex.refreshIndex();
+        agents = adminClient.getAgentsJson();
+        agent = agents.get(0);
+        jvms = (Map<String, Map<String, Object>>) agent.get("jvms");
+        assertEquals(2, jvms.size());
+        Map<String, Object> jvm2 = jvms.get(runtimeClient2.jvmId);
+        lastReported = (long) jvm2.get("lastReportedAt");
+        assertTrue(lastReported >= pingTime);
+
+
+        System.out.println("--------------");
+        System.out.println(agents);
+        System.out.println("--------------");
+
+        adminClient.deleteAgent(agentId);
+        agents = adminClient.getAgentsJson();
         assertEquals(0, agents.size());
     }
 
     @Test
     public void testDownloadAgent() throws Exception {
-        String id = client.createAgent("my agent");
-        ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(client.downloadAgent(id)));
+        String id = adminClient.createAgent("my agent");
+        ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(adminClient.downloadAgent(id)));
         ZipEntry zipEntry;
         String propertiesFile = AdminController.JFSERVER_PROPERTIES_FILE;
         while ((zipEntry = zipInputStream.getNextEntry()) != null) {

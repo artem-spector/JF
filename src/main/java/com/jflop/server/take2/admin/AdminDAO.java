@@ -2,7 +2,6 @@ package com.jflop.server.take2.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.take2.admin.data.*;
-import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -39,11 +38,12 @@ public class AdminDAO {
         return accountIndex.findByName(accountName);
     }
 
-    public JFAgent createAgent(String accountId, String agentName) {
+    public JFAgent createAgent(String accountId, String agentName, String[] features) {
         JFAgent agent = new JFAgent();
-        agent.agentId = UUID.randomUUID().toString();
+        String str = UUID.randomUUID().toString();
+        agent.agentId = str.replace("-", "");
         agent.agentName = agentName;
-        agent.enabledFeatures = new String[] {InstrumentationConfigurationFeature.FEATURE_ID};
+        agent.enabledFeatures = features;
 
         accountIndex.addAgent(accountId, agent);
         return agent;
@@ -64,21 +64,19 @@ public class AdminDAO {
         AccountData account = accountIndex.getAccount(accountId);
         List<AgentJvmState> agentJvms = agentJvmIndex.getAgentJvms(accountId);
 
-
         try {
             for (JFAgent agent : account.agents) {
                 byte[] bytes = mapper.writeValueAsBytes(agent);
                 Map<String, Object> agentJson = mapper.readValue(bytes, Map.class);
+                Map<String, Object>  jvms = new HashMap<>();
+                agentJson.put("jvms", jvms);
                 res.add(agentJson);
                 for (AgentJvmState jvm : agentJvms) {
                     if (jvm.agentJvm.agentId.equals(agent.agentId)) {
-                        Map<String, Object>  jvms = (Map<String, Object>) agentJson.get("jvms");
-                        if (jvms == null) {
-                            jvms = new HashMap<>();
-                            agentJson.put("jvms", jvms);
-                        }
                         bytes = mapper.writeValueAsBytes(jvm);
-                        jvms.put(jvm.agentJvm.jvmId, mapper.readValue(bytes, Map.class));
+                        Map jvmMap = mapper.readValue(bytes, Map.class);
+                        jvmMap.remove("agentJvm");
+                        jvms.put(jvm.agentJvm.jvmId, jvmMap);
                     }
                 }
             }
