@@ -8,8 +8,7 @@ import com.jflop.server.take2.feature.FeatureManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -29,13 +28,15 @@ public class RuntimeDAO {
     @Autowired
     private AgentJVMIndex agentJVMIndex;
 
-    public Map<String, Object> reportFeaturesData(String agentId, String jvmId, Map<String, Object> featuresData) {
+    public List<Map<String, Object>> reportFeaturesData(String agentId, String jvmId, Map<String, Object> featuresData) {
         AccountData account = accountIndex.findByAgent(agentId);
         if (account == null) throw new RuntimeException("Invalid agent ID");
 
+        // update state
+        Date now = new Date();
         AgentJVM agentJVM = new AgentJVM(account.accountId, agentId, jvmId);
         PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, true);
-        jvmState.source.lastReportedAt = new Date();
+        jvmState.source.lastReportedAt = now;
 
         JFAgent agent = account.getAgent(agentId);
         for (Map.Entry<String, Object> entry : featuresData.entrySet()) {
@@ -52,10 +53,25 @@ public class RuntimeDAO {
                 command.updateFrom(update);
             }
         }
+
+        // collect commands to send
+        List<Map<String, Object>> taskList = new ArrayList<>();
+        for (FeatureCommand command : jvmState.source.featureCommands) {
+            if (command.sentAt == null) {
+                Map<String, Object> task = new HashMap<>();
+                task.put("feature", command.featureId);
+                Map<String, Object> commandJson = new HashMap<>();
+                task.put("command", commandJson);
+                commandJson.put(command.commandName, command.commandParam);
+                taskList.add(task);
+                command.sentAt = now;
+            }
+        }
+
+        // update persistent state
         agentJVMIndex.updateDocument(jvmState);
 
-
-        return null;
+        return taskList;
     }
 
     private void validateFeature(JFAgent agent, String featureId) {

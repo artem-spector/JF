@@ -7,6 +7,7 @@ import com.jflop.server.take2.admin.AccountIndex;
 import com.jflop.server.take2.admin.AdminDAO;
 import com.jflop.server.take2.admin.AgentJVMIndex;
 import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -135,6 +136,26 @@ public class AdminTest {
         adminClient.deleteAgent(agentId);
         agents = adminClient.getAgentsJson();
         assertEquals(0, agents.size());
+    }
+
+    @Test
+    public void testFeatureCommand() throws Exception {
+        String agentId = adminClient.createAgent("agent one");
+        accountIndex.refreshIndex();
+        RuntimeClient runtimeClient = new RuntimeClient(testClient, agentId);
+        runtimeClient.ping();
+        agentJVMIndex.refreshIndex();
+
+        // get configuration
+        adminClient.submitCommand(agentId, runtimeClient.jvmId, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.GET_CONFIG, null);
+        agentJVMIndex.refreshIndex();
+
+        runtimeClient.ping();
+        agentJVMIndex.refreshIndex();
+        List<Map<String, Object>> agents = adminClient.getAgentsJson();
+
+        System.out.println("------- admin -------");
+        System.out.println(agents);
     }
 
     @Test

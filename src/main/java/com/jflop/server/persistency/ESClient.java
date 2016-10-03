@@ -17,6 +17,7 @@ import org.elasticsearch.action.update.UpdateRequestBuilder;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -79,6 +80,7 @@ public class ESClient implements InitializingBean, DisposableBean {
             request.addMapping(docType.docType, docType.readMapping());
         }
         request.execute().actionGet();
+        awaitClusterAvailable(5);
     }
 
     public void deleteTemplates(String... names) {
@@ -86,6 +88,7 @@ public class ESClient implements InitializingBean, DisposableBean {
         for (IndexTemplateMetaData template : templates) {
             client.admin().indices().prepareDeleteTemplate(template.getName()).execute().actionGet();
         }
+        awaitClusterAvailable(5);
     }
 
     public void deleteIndices(String... names) {
@@ -94,6 +97,7 @@ public class ESClient implements InitializingBean, DisposableBean {
         } catch (IndexNotFoundException e) {
             logger.warning("Failed to delete " + Arrays.toString(names) + ". " + e);
         }
+        awaitClusterAvailable(5);
     }
 
     public boolean indexExists(String... names) {
@@ -198,5 +202,21 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public void refreshIndices(String indexName) {
         client.admin().indices().prepareRefresh(indexName).execute().actionGet();
+    }
+
+    public void awaitClusterAvailable(int timeoutSec) {
+        long timeputMillis = System.currentTimeMillis() + timeoutSec * 1000;
+        ClusterHealthStatus status = null;
+        do {
+            try {
+                status = client.admin().cluster().prepareHealth().execute().get().getStatus();
+                if (status == ClusterHealthStatus.GREEN || status == ClusterHealthStatus.YELLOW) return;
+                Thread.sleep(300);
+            } catch (Exception e) {
+                // ignore
+            }
+        } while (System.currentTimeMillis() < timeputMillis);
+
+        throw new RuntimeException("Cluster status is " + status + " after " + timeoutSec + " sec");
     }
 }

@@ -25,7 +25,7 @@ public class CustomConfig extends WebMvcConfigurerAdapter {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         InterceptorRegistration registration = registry.addInterceptor(adminSecurityInterceptor);
-        registration.addPathPatterns(AdminController.AGENTS_PATH, AdminController.AGENTS_PATH + "/*");
+        registration.addPathPatterns(AdminController.AGENTS_PATH, AdminController.AGENTS_PATH + "/**");
     }
 
     @Override

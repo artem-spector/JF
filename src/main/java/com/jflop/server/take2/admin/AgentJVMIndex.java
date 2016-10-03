@@ -66,9 +66,9 @@ public class AgentJVMIndex extends IndexTemplate {
     public PersistentData<AgentJvmState> getAgentJvmState(AgentJVM agentJVM, boolean createIfNotExists) {
         PersistentData<AgentJvmState> res = findSingle(
                 QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("accountId", agentJVM.accountId))
-                        .must(QueryBuilders.termQuery("agentId", agentJVM.agentId))
-                        .must(QueryBuilders.termQuery("jvmId", agentJVM.jvmId)),
+                        .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
+                        .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
+                        .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId)),
                 AgentJvmState.class);
 
         if (res != null)

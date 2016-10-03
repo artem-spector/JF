@@ -72,6 +72,16 @@ public class AdminClient {
         return response.getContentAsBytes();
     }
 
+    public void submitCommand(String agentId, String jvmId, String featureId, String command, Object param) throws Exception {
+        HttpTestClient.Request request = new HttpTestClient.Request(HttpMethod.POST, AdminController.AGENTS_PATH + "/" + agentId + "/" + jvmId + "/command");
+        request.param("feature", featureId);
+        request.param("command", command);
+        if (param != null)
+            request.param("data", mapper.writeValueAsString(param));
+        HttpTestClient.Response response = sendRequestHandleAuth(request);
+        assertEquals(200, response.statusCode);
+    }
+
     private HttpTestClient.Response sendRequestHandleAuth(HttpTestClient.Request request) throws Exception {
         if (authHeader != null)
             request.header(AdminSecurityInterceptor.AUTH_HEADER, authHeader);

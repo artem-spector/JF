@@ -41,5 +41,9 @@ public class RuntimeClient {
         request.body(mapper.writeValueAsString(content));
         HttpTestClient.Response response = httpClient.send(request);
         assertEquals(response.getContentAsString(), 200, response.statusCode);
+
+        System.out.println("------ agent --------");
+        System.out.println(response.getContentAsString());
+
     }
 }

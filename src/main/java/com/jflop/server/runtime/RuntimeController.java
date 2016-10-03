@@ -1,8 +1,5 @@
 package com.jflop.server.runtime;
 
-import com.jflop.server.take2.admin.AdminDAO;
-import com.jflop.server.take2.admin.data.AgentJVM;
-import com.jflop.server.take2.admin.data.JFAgent;
 import com.jflop.server.take2.runtime.RuntimeDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -10,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -36,7 +34,12 @@ public class RuntimeController {
             @PathVariable("jvmId") String jvmId,
             @RequestBody Map<String, Object> featuresData) {
 
-        Map<String, Object> res = runtimeDAO.reportFeaturesData(agentId, jvmId, featuresData);
+        List<Map<String, Object>> tasks = runtimeDAO.reportFeaturesData(agentId, jvmId, featuresData);
+
+        Map<String, Object> res = new HashMap<>();
+        if (!tasks.isEmpty()) {
+            res.put("tasks", tasks);
+        }
         return ResponseEntity.ok(res);
     }
 }
