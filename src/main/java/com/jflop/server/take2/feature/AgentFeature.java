@@ -22,10 +22,9 @@ public abstract class AgentFeature {
         this.featureId = featureId;
     }
 
-    public abstract FeatureCommand parseCommand(String command, Object param) throws ValidationException;
+    public abstract FeatureCommand parseCommand(String command, String paramStr) throws ValidationException;
 
-    public abstract FeatureCommand parseCommandUpdate(Object update);
+    public abstract void updateFeatureState(FeatureCommand command, Object agentUpdate);
 
     protected abstract Map<String, Object> parseFeatureData(Map<String, Object> dataJson);
-
 }

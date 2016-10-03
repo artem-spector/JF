@@ -5,6 +5,7 @@ import com.jflop.server.take2.admin.AccountIndex;
 import com.jflop.server.take2.admin.AgentJVMIndex;
 import com.jflop.server.take2.admin.data.*;
 import com.jflop.server.take2.feature.FeatureManager;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -44,14 +45,13 @@ public class RuntimeDAO {
             validateFeature(agent, featureId);
 
             FeatureCommand command = jvmState.source.getCommand(featureId);
-            FeatureCommand update = featureManager.getFeature(featureId).parseCommandUpdate(entry.getValue());
-            if (command != null) {
-                command.updateFrom(update);
-            } else {
+            if (command == null) {
                 command = new FeatureCommand();
+                command.featureId = featureId;
                 jvmState.source.setCommand(command);
-                command.updateFrom(update);
             }
+            command.respondedAt = now;
+            featureManager.getFeature(featureId).updateFeatureState(command, entry.getValue());
         }
 
         // collect commands to send
@@ -69,7 +69,12 @@ public class RuntimeDAO {
         }
 
         // update persistent state
-        agentJVMIndex.updateDocument(jvmState);
+        try {
+            agentJVMIndex.updateDocument(jvmState);
+        } catch (VersionConflictEngineException e) {
+            // admin client has interfered, skip this time
+            taskList = new ArrayList<>();
+        }
 
         return taskList;
     }

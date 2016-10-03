@@ -115,7 +115,7 @@ public class AdminController {
                                   @PathVariable("jvmId") String jvmId,
                                   @RequestParam("feature") String featureId,
                                   @RequestParam("command") String command,
-                                  @RequestParam(value = "data", required = false) Object data) throws IOException {
+                                  @RequestParam(value = "data", required = false) String data) throws IOException {
 
         AgentFeature feature = featureManager.getFeature(featureId);
         try {

@@ -1,7 +1,6 @@
 package com.jflop.server.take2.admin.data;
 
 import java.util.Date;
-import java.util.Map;
 
 /**
  * TODO: Document!
@@ -13,7 +12,7 @@ public class FeatureCommand {
 
     public String featureId;
     public String commandName;
-    public Map<String, Object> commandParam;
+    public Object commandParam;
     public Date createdAt;
     public Date sentAt;
 
@@ -25,18 +24,11 @@ public class FeatureCommand {
     public FeatureCommand() {
     }
 
-    public FeatureCommand(String featureId, String commandName, Map<String, Object> commandParam) {
+    public FeatureCommand(String featureId, String commandName, Object commandParam) {
         this.featureId = featureId;
         this.commandName = commandName;
         this.commandParam = commandParam;
         createdAt = new Date();
     }
 
-    public void updateFrom(FeatureCommand from) {
-        if (!commandName.equals(from.commandName)) throw new RuntimeException("Invalid command update");
-        this.respondedAt = from.respondedAt;
-        this.successText = from.successText;
-        this.errorText = from.errorText;
-        this.progressPercent = from.progressPercent;
-    }
 }

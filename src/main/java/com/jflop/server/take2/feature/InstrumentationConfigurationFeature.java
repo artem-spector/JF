@@ -1,9 +1,12 @@
 package com.jflop.server.take2.feature;
 
 import com.jflop.server.take2.admin.data.FeatureCommand;
+import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,20 +27,31 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     }
 
     @Override
-    public FeatureCommand parseCommand(String command, Object param) {
+    public FeatureCommand parseCommand(String command, String paramStr) {
         switch (command) {
             case GET_CONFIG:
                 return new FeatureCommand(FEATURE_ID, command, null);
             case SET_CONFIG:
-                return new FeatureCommand(FEATURE_ID, command, new HashMap<>());
+                try {
+                    return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, List.class));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             default:
                 throw new RuntimeException("Invalid command: " + command);
         }
     }
 
     @Override
-    public FeatureCommand parseCommandUpdate(Object update) {
-        return null;
+    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
+        try {
+            JflopConfiguration configuration = JflopConfiguration.fromJson(agentUpdate);
+            StringWriter writer = new StringWriter();
+            configuration.toProperties().store(writer, null);
+            command.successText = writer.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse instrumentation configuration");
+        }
     }
 
     @Override

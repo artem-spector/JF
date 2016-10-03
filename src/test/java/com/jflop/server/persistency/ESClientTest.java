@@ -85,7 +85,7 @@ public class ESClientTest {
         String template = "test-template";
         esClient.deleteIndices("test*");
         assertFalse(esClient.indexExists(index));
-        assertEquals(0, esClient.getTemplates("*").size());
+        assertEquals(0, esClient.getTemplates("test*").size());
         esClient.putTemplate(template, "test-idx*", new DocType[]{new DocType("somepojo", "persistency/somePojo.json", SomePojo.class)});
         assertEquals(1, esClient.getTemplates(template).size());
 

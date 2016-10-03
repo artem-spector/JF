@@ -80,9 +80,10 @@ public class AgentJVMIndex extends IndexTemplate {
         throw new RuntimeException("Invalid JVM ID");
     }
 
-    public boolean setCommand(AgentJVM agentJVM, String featureId, FeatureCommand command) {
+    public boolean setCommand(AgentJVM agentJVM, FeatureCommand command) {
         PersistentData<AgentJvmState> document = getAgentJvmState(agentJVM, false);
         document.source.setCommand(command);
+        document.version = 0; // override concurrent changes from agent runtime
 
         PersistentData<AgentJvmState> res = updateDocument(document);
         return res.version > document.version;

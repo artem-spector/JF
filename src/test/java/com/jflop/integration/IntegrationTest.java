@@ -3,10 +3,17 @@ package com.jflop.integration;
 import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AdminClient;
-import com.jflop.server.persistency.IndexTemplate;
+import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.take2.admin.AccountIndex;
 import com.jflop.server.take2.admin.AgentJVMIndex;
+import com.jflop.server.take2.admin.data.AccountData;
+import com.jflop.server.take2.admin.data.AgentJVM;
+import com.jflop.server.take2.admin.data.AgentJvmState;
+import com.jflop.server.take2.admin.data.FeatureCommand;
+import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
 import com.sample.MultipleFlowsProducer;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.jflop.config.JflopConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,9 +24,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.StringBufferInputStream;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Downloads agent and dynamically loads it into the current process.
@@ -42,6 +53,11 @@ public class IntegrationTest {
     @Autowired
     private AgentJVMIndex agentJVMIndex;
 
+    @Autowired
+    private InstrumentationConfigurationFeature configurationFeature;
+
+    private AgentJVM agentJVM;
+
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
 
@@ -54,8 +70,10 @@ public class IntegrationTest {
 
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, "testAccount");
-        String agentId =  adminClient.createAgent(AGENT_NAME);
+        String agentId = adminClient.createAgent(AGENT_NAME);
         accountIndex.refreshIndex();
+        PersistentData<AccountData> account = accountIndex.findSingle(QueryBuilders.termQuery("accountName", "testAccount"), AccountData.class);
+        String accountId = account.id;
 
         byte[] bytes = adminClient.downloadAgent(agentId);
         File file = new File("target/jflop-agent-test.jar");
@@ -63,35 +81,73 @@ public class IntegrationTest {
         out.write(bytes);
         out.close();
         loadAgent(file.getPath());
+
+        String jvmId = awaitJvmStateChange(System.currentTimeMillis(), 3).getKey();
+        agentJVM = new AgentJVM(accountId, agentId, jvmId);
     }
 
     @Test
-    public void testAgentConnectivity() throws Exception {
-        awaitJvmStateChange(System.currentTimeMillis(), 3);
+    public void testConfigurationFeature() throws Exception {
+        String featureId = InstrumentationConfigurationFeature.FEATURE_ID;
+
+        // 1. get configuration and make sure it's empty
+        adminClient.submitCommand(agentJVM.agentId, agentJVM.jvmId, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
+        FeatureCommand command = awaitFeatureResponse(featureId, 10);
+        JflopConfiguration conf = new JflopConfiguration(new StringBufferInputStream(command.successText));
+        assertTrue(conf.isEmpty());
+
+        // 2. set configuration from a file
+        conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
+        adminClient.submitCommand(agentJVM.agentId, agentJVM.jvmId, featureId, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
+        command = awaitFeatureResponse(featureId, 10);
+        assertEquals(conf, new JflopConfiguration(new StringBufferInputStream(command.successText)));
     }
 
-    private Map<String, Object> awaitJvmStateChange(long fromTime, int timeoutSec) throws Exception {
-        long timoutMillis = System.currentTimeMillis() + timeoutSec * 1000;
-        while (System.currentTimeMillis() < timoutMillis) {
-            Map<String, Object> agentState = getAgentState();
-            Map<String, Map<String, Object>> jvms = agentState == null ? null : (Map<String, Map<String, Object>>) agentState.get("jvms");
-            if (jvms != null && !jvms.isEmpty()) {
-                for (Map<String, Object> jvm : jvms.values()) {
-                    Long lastReported = (Long) jvm.get("lastReportedAt");
-                    if (lastReported != null && lastReported >= fromTime)
-                        return jvm;
-                }
+    private FeatureCommand awaitFeatureResponse(String featureId, int timeoutSec) throws Exception {
+        long begin = System.currentTimeMillis();
+        long timeoutMillis = begin + timeoutSec * 1000;
+
+        while (System.currentTimeMillis() < timeoutMillis) {
+            PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, false);
+            FeatureCommand command = jvmState.source.getCommand(featureId);
+            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > begin) {
+                System.out.println(getAgentState());
+                return command;
             }
             Thread.sleep(300);
         }
-        throw new Exception("JVM state not changed in " + timeoutSec + " sec");
+        throw new Exception("Feature state not changed in " + timeoutSec + " sec");
     }
 
+    private Map.Entry<String, Map<String, Object>> awaitJvmStateChange(long fromTime, int timeoutSec) throws Exception {
+        Map<String, Object> agentState = null;
+        try {
+            long timoutMillis = System.currentTimeMillis() + timeoutSec * 1000;
+            while (System.currentTimeMillis() < timoutMillis) {
+                agentState = getAgentState();
+                Map<String, Map<String, Object>> jvms = agentState == null ? null : (Map<String, Map<String, Object>>) agentState.get("jvms");
+                if (jvms != null && !jvms.isEmpty()) {
+                    for (Map.Entry<String, Map<String, Object>> entry : jvms.entrySet()) {
+                        Long lastReported = (Long) entry.getValue().get("lastReportedAt");
+                        if (lastReported != null && lastReported >= fromTime)
+                            return entry;
+                    }
+                }
+                Thread.sleep(300);
+            }
+            throw new Exception("JVM state not changed in " + timeoutSec + " sec");
+        } finally {
+            System.out.println("-------- agent state -------");
+            System.out.println(agentState);
+        }
+    }
 
     private Map<String, Object> getAgentState() throws Exception {
         List<Map<String, Object>> agents = adminClient.getAgentsJson();
         for (Map<String, Object> agent : agents) {
-            if (AGENT_NAME.equals(agent.get("agentName"))) return agent;
+            if (AGENT_NAME.equals(agent.get("agentName"))) {
+                return agent;
+            }
         }
         return null;
     }
@@ -106,23 +162,6 @@ public class IntegrationTest {
         awaitFeatureResponse(configurationFeature, 3000);
     }
 
-        @Test
-        public void testConfigurationFeature() throws IOException {
-            InstrumentationConfigurationFeature feature = agent.getFeature(InstrumentationConfigurationFeature.class);
-
-            // 1. get configuration and make sure it's empty
-            feature.requestAgentConfiguration();
-            awaitFeatureResponse(feature, 2100);
-            JflopConfiguration conf = feature.getAgentConfiguration();
-            assertNotNull(conf);
-            assertTrue(conf.isEmpty());
-
-            // 2. set configuration from a file
-            conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-            feature.setAgentConfiguration(conf);
-            awaitFeatureResponse(feature, 3000);
-            assertEquals(conf, feature.getAgentConfiguration());
-        }
 
         @Test
         public void testSnapshotFeature() throws IOException, InterruptedException {

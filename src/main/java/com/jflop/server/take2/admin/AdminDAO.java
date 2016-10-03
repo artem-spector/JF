@@ -89,7 +89,7 @@ public class AdminDAO {
 
     public boolean setCommand(AgentJVM agentJVM, String featureId, FeatureCommand command) {
         verifyAccount(agentJVM.accountId, agentJVM.agentId, featureId);
-        return agentJvmIndex.setCommand(agentJVM, featureId, command);
+        return agentJvmIndex.setCommand(agentJVM, command);
     }
 
     private AccountData verifyAccount(String accountId, String agentId, String featureId) {
