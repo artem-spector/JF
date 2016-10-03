@@ -1,5 +1,6 @@
 package com.jflop.server.take2.feature;
 
+import com.jflop.server.take2.admin.ValidationException;
 import com.jflop.server.take2.admin.data.FeatureCommand;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,7 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     }
 
     @Override
-    public FeatureCommand parseCommand(String command, String paramStr) {
+    public FeatureCommand parseCommand(String command, String paramStr) throws ValidationException{
         switch (command) {
             case GET_CONFIG:
                 return new FeatureCommand(FEATURE_ID, command, null);
@@ -35,10 +36,10 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
                 try {
                     return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, List.class));
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new ValidationException("Invalid command parameter", e.toString());
                 }
             default:
-                throw new RuntimeException("Invalid command: " + command);
+                throw new ValidationException("Invalid command", "Command " + command + " not supported by feature " + FEATURE_ID);
         }
     }
 

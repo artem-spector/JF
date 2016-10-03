@@ -9,6 +9,7 @@ import com.jflop.server.take2.admin.data.JFAgent;
 import com.jflop.server.take2.feature.AgentFeature;
 import com.jflop.server.take2.feature.FeatureManager;
 import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.take2.feature.SnapshotFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,7 @@ public class AdminController {
 
     public static final String AGENTS_PATH = "/agents";
 
-    public static final String[] DEFAULT_FEATURES = {InstrumentationConfigurationFeature.FEATURE_ID};
+    public static final String[] DEFAULT_FEATURES = {InstrumentationConfigurationFeature.FEATURE_ID, SnapshotFeature.FEATURE_ID};
 
     public static final String JFSERVER_PROPERTIES_FILE = "jfserver.properties";
     private static final String JFLOP_AGENT_JAR = "jflop-agent.jar";

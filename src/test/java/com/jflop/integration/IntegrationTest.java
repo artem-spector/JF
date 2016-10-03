@@ -11,6 +11,7 @@ import com.jflop.server.take2.admin.data.AgentJVM;
 import com.jflop.server.take2.admin.data.AgentJvmState;
 import com.jflop.server.take2.admin.data.FeatureCommand;
 import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.take2.feature.SnapshotFeature;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
@@ -21,15 +22,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import sun.management.resources.agent;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.StringBufferInputStream;
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -91,16 +96,53 @@ public class IntegrationTest {
         String featureId = InstrumentationConfigurationFeature.FEATURE_ID;
 
         // 1. get configuration and make sure it's empty
-        adminClient.submitCommand(agentJVM.agentId, agentJVM.jvmId, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
         FeatureCommand command = awaitFeatureResponse(featureId, 10);
         JflopConfiguration conf = new JflopConfiguration(new StringBufferInputStream(command.successText));
         assertTrue(conf.isEmpty());
 
         // 2. set configuration from a file
         conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-        adminClient.submitCommand(agentJVM.agentId, agentJVM.jvmId, featureId, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
         command = awaitFeatureResponse(featureId, 10);
         assertEquals(conf, new JflopConfiguration(new StringBufferInputStream(command.successText)));
+    }
+
+    @Test
+    public void testSnapshotFeature() throws Exception {
+        // 1. instrument multiple flows producer
+        JflopConfiguration conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
+        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
+        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, 10);
+        assertNull(command.errorText);
+
+        // 2. take snapshot without load and make sure there are no flows
+        Map<String, Object> param = new HashMap<>();
+        param.put("durationSec", 2);
+        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, 10);
+        assertTrue(command.progressPercent >= 50);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, 10);
+        assertTrue(command.successText.contains("contains no flows."));
+
+
+/*
+        SnapshotFeature snapshotFeature = agent.getFeature(SnapshotFeature.class);
+        snapshotFeature.takeSnapshot(2);
+        awaitFeatureResponse(snapshotFeature, 5000);
+        assertNull(snapshotFeature.getError());
+        Snapshot snapshot = snapshotFeature.getLastSnapshot();
+        assertTrue(snapshot.getFlowMap().isEmpty());
+
+        // 3. take snapshot under load and make sure all the flows are recorded
+        startLoad(2);
+        snapshotFeature.takeSnapshot(2);
+        awaitFeatureResponse(snapshotFeature, 5000);
+        assertNull(snapshotFeature.getError());
+        snapshot = snapshotFeature.getLastSnapshot();
+        System.out.println(snapshot.format(0, 0));
+        assertEquals(2, snapshot.getFlowMap().size());
+*/
     }
 
     private FeatureCommand awaitFeatureResponse(String featureId, int timeoutSec) throws Exception {
@@ -152,6 +194,7 @@ public class IntegrationTest {
         return null;
     }
 
+
     /*
     @After
     public void clearConfiguration() {
@@ -163,32 +206,6 @@ public class IntegrationTest {
     }
 
 
-        @Test
-        public void testSnapshotFeature() throws IOException, InterruptedException {
-            // 1. instrument multiple flows producer
-            JflopConfiguration configuration = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-            InstrumentationConfigurationFeature configFeature = agent.getFeature(InstrumentationConfigurationFeature.class);
-            configFeature.setAgentConfiguration(configuration);
-            awaitFeatureResponse(configFeature, 3000);
-            assertNull(configFeature.getError());
-
-            // 2. take snapshot without load and make sure there are no flows
-            SnapshotFeature snapshotFeature = agent.getFeature(SnapshotFeature.class);
-            snapshotFeature.takeSnapshot(2);
-            awaitFeatureResponse(snapshotFeature, 5000);
-            assertNull(snapshotFeature.getError());
-            Snapshot snapshot = snapshotFeature.getLastSnapshot();
-            assertTrue(snapshot.getFlowMap().isEmpty());
-
-            // 3. take snapshot under load and make sure all the flows are recorded
-            startLoad(2);
-            snapshotFeature.takeSnapshot(2);
-            awaitFeatureResponse(snapshotFeature, 5000);
-            assertNull(snapshotFeature.getError());
-            snapshot = snapshotFeature.getLastSnapshot();
-            System.out.println(snapshot.format(0, 0));
-            assertEquals(2, snapshot.getFlowMap().size());
-        }
 
         private void awaitFeatureResponse(Feature feature, long timeoutMillis) {
             assertNotNull(feature.getProgress());

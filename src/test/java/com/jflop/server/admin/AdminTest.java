@@ -6,6 +6,7 @@ import com.jflop.server.runtime.RuntimeClient;
 import com.jflop.server.take2.admin.AccountIndex;
 import com.jflop.server.take2.admin.AdminDAO;
 import com.jflop.server.take2.admin.AgentJVMIndex;
+import com.jflop.server.take2.admin.data.AgentJVM;
 import com.jflop.server.take2.admin.data.JFAgent;
 import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
 import org.junit.Before;
@@ -147,7 +148,8 @@ public class AdminTest {
         agentJVMIndex.refreshIndex();
 
         // get configuration
-        adminClient.submitCommand(agentId, runtimeClient.jvmId, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.GET_CONFIG, null);
+        AgentJVM jvm = new AgentJVM(null, agentId, runtimeClient.jvmId);
+        adminClient.submitCommand(jvm, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.GET_CONFIG, null);
         agentJVMIndex.refreshIndex();
 
         runtimeClient.ping();
