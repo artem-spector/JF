@@ -7,6 +7,7 @@
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
     <script src="js/adminApp.js"></script>
     <script src="js/adminCtrl.js"></script>
+    <script src="js/FileSaver.min.js"></script>
 </head>
 
 <body>
@@ -21,7 +22,14 @@
         <h1>{{account}}</h1>
         <ul>
             <li ng-repeat="agent in agents">
-                <span ng-click="expanded[agent.agentId].isVisible=!expanded[agent.agentId].isVisible">{{agent.name}}</span>
+                <span ng-click="expanded[agent.agentId].isVisible=!expanded[agent.agentId].isVisible">{{agent.agentName}}</span>
+                <div ng-show="expanded[agent.agentId].isVisible">
+                    <input type="button" value="download" ng-click="downloadAgent(agent)">
+                    <br>
+                    <input type="button" value="delete" ng-click="deleteAgent(agent.agentId)">
+                </div>
+
+                <!--
                 <span ng-show="agent.lastReportTime">; last reported: {{agent.lastReportTime | date:'yyyy-MM-dd HH:mm:ss'}}</span>
                 <div ng-show="expanded[agent.agentId].isVisible">
                     <div ng-show="agent.isAlive">
@@ -61,13 +69,8 @@
                         </div>
                     </div>
 
-                    <a target="_self" ng-href="/agents/{{agent.agentId}}/download"
-                       download="jflop-agent-{{agent.name}}.jar">
-                        <button>download</button>
-                    </a>
-                    <br>
-                    <input type="button" value="delete" ng-click="deleteAgent(agent.agentId)">
                 </div>
+-->
             </li>
         </ul>
         <form id="newAgent">

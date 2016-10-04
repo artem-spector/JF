@@ -47,13 +47,17 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         });
     }
 
-    $scope.downloadAgent = function(agentId) {
+    $scope.downloadAgent = function(agent) {
         $http({
             method: "GET",
-            url: "/agents/" + agentId + "/download",
+            url: "/agents/" + agent.agentId + "/download",
+            responseType: "blob",
             headers: {
                 "jf-auth": $scope.account
             }
+        }).then(function onSuccess(response){
+            var blob = response.data;
+            saveAs(blob, "jflop-agent-" + agent.agentName + ".jar");
         });
     }
 
