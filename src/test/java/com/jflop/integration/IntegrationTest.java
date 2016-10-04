@@ -22,20 +22,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import sun.management.resources.agent;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.StringBufferInputStream;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Downloads agent and dynamically loads it into the current process.
@@ -52,6 +48,8 @@ public class IntegrationTest {
 
     private static AdminClient adminClient;
 
+    private static AgentJVM agentJVM;
+
     @Autowired
     private AccountIndex accountIndex;
 
@@ -60,8 +58,6 @@ public class IntegrationTest {
 
     @Autowired
     private InstrumentationConfigurationFeature configurationFeature;
-
-    private AgentJVM agentJVM;
 
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
@@ -95,16 +91,22 @@ public class IntegrationTest {
     public void testConfigurationFeature() throws Exception {
         String featureId = InstrumentationConfigurationFeature.FEATURE_ID;
 
-        // 1. get configuration and make sure it's empty
+        // 1. submit empty configuration
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, new JflopConfiguration().asJson());
+        FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+
+        // 2. get configuration and make sure it's empty
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
-        FeatureCommand command = awaitFeatureResponse(featureId, 10);
+        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
         JflopConfiguration conf = new JflopConfiguration(new StringBufferInputStream(command.successText));
         assertTrue(conf.isEmpty());
 
-        // 2. set configuration from a file
+        // 3. set configuration from a file
         conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
-        command = awaitFeatureResponse(featureId, 10);
+        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
         assertEquals(conf, new JflopConfiguration(new StringBufferInputStream(command.successText)));
     }
 
@@ -113,47 +115,41 @@ public class IntegrationTest {
         // 1. instrument multiple flows producer
         JflopConfiguration conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
         adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
-        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, 10);
+        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         assertNull(command.errorText);
 
         // 2. take snapshot without load and make sure there are no flows
         Map<String, Object> param = new HashMap<>();
         param.put("durationSec", 2);
         adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println("progress: " + command.progressPercent);
         assertTrue(command.progressPercent >= 50);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+        System.out.println(command.successText);
         assertTrue(command.successText.contains("contains no flows."));
 
 
-/*
-        SnapshotFeature snapshotFeature = agent.getFeature(SnapshotFeature.class);
-        snapshotFeature.takeSnapshot(2);
-        awaitFeatureResponse(snapshotFeature, 5000);
-        assertNull(snapshotFeature.getError());
-        Snapshot snapshot = snapshotFeature.getLastSnapshot();
-        assertTrue(snapshot.getFlowMap().isEmpty());
-
         // 3. take snapshot under load and make sure all the flows are recorded
         startLoad(2);
-        snapshotFeature.takeSnapshot(2);
-        awaitFeatureResponse(snapshotFeature, 5000);
-        assertNull(snapshotFeature.getError());
-        snapshot = snapshotFeature.getLastSnapshot();
-        System.out.println(snapshot.format(0, 0));
-        assertEquals(2, snapshot.getFlowMap().size());
-*/
+        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println("progress: " + command.progressPercent);
+        assertTrue(command.progressPercent >= 50);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+        System.out.println(command.successText);
+        assertTrue(command.successText.contains("2 distinct flows"));
+
+        stopLoad();
     }
 
-    private FeatureCommand awaitFeatureResponse(String featureId, int timeoutSec) throws Exception {
-        long begin = System.currentTimeMillis();
-        long timeoutMillis = begin + timeoutSec * 1000;
+    private FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {
+        long timeoutMillis = fromTime + timeoutSec * 1000;
 
         while (System.currentTimeMillis() < timeoutMillis) {
             PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, false);
             FeatureCommand command = jvmState.source.getCommand(featureId);
-            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > begin) {
-                System.out.println(getAgentState());
+            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > fromTime) {
                 return command;
             }
             Thread.sleep(300);
@@ -162,26 +158,20 @@ public class IntegrationTest {
     }
 
     private Map.Entry<String, Map<String, Object>> awaitJvmStateChange(long fromTime, int timeoutSec) throws Exception {
-        Map<String, Object> agentState = null;
-        try {
-            long timoutMillis = System.currentTimeMillis() + timeoutSec * 1000;
-            while (System.currentTimeMillis() < timoutMillis) {
-                agentState = getAgentState();
-                Map<String, Map<String, Object>> jvms = agentState == null ? null : (Map<String, Map<String, Object>>) agentState.get("jvms");
-                if (jvms != null && !jvms.isEmpty()) {
-                    for (Map.Entry<String, Map<String, Object>> entry : jvms.entrySet()) {
-                        Long lastReported = (Long) entry.getValue().get("lastReportedAt");
-                        if (lastReported != null && lastReported >= fromTime)
-                            return entry;
-                    }
+        long timoutMillis = System.currentTimeMillis() + timeoutSec * 1000;
+        while (System.currentTimeMillis() < timoutMillis) {
+            Map<String, Object> agentState = getAgentState();
+            Map<String, Map<String, Object>> jvms = agentState == null ? null : (Map<String, Map<String, Object>>) agentState.get("jvms");
+            if (jvms != null && !jvms.isEmpty()) {
+                for (Map.Entry<String, Map<String, Object>> entry : jvms.entrySet()) {
+                    Long lastReported = (Long) entry.getValue().get("lastReportedAt");
+                    if (lastReported != null && lastReported >= fromTime)
+                        return entry;
                 }
-                Thread.sleep(300);
             }
-            throw new Exception("JVM state not changed in " + timeoutSec + " sec");
-        } finally {
-            System.out.println("-------- agent state -------");
-            System.out.println(agentState);
+            Thread.sleep(300);
         }
+        throw new Exception("JVM state not changed in " + timeoutSec + " sec");
     }
 
     private Map<String, Object> getAgentState() throws Exception {
@@ -194,60 +184,31 @@ public class IntegrationTest {
         return null;
     }
 
-
-    /*
-    @After
-    public void clearConfiguration() {
-        if (adminClient == null) return;
-
-        InstrumentationConfigurationFeature configurationFeature = agent.getFeature(InstrumentationConfigurationFeature.class);
-        configurationFeature.setAgentConfiguration(new JflopConfiguration());
-        awaitFeatureResponse(configurationFeature, 3000);
-    }
-
-
-
-        private void awaitFeatureResponse(Feature feature, long timeoutMillis) {
-            assertNotNull(feature.getProgress());
-            long interval = Math.max(100, timeoutMillis / 10);
-            long timeout = System.currentTimeMillis() + timeoutMillis;
-            while (System.currentTimeMillis() < timeout) {
-                if (feature.getProgress() == null) return;
-                try {
-                    Thread.sleep(interval);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            }
-            fail("Feature " + feature.name + " has not respond after " + timeoutMillis + "ms.");
-        }
-
-        private void startLoad(int numThreads) {
-            stopIt = false;
-            Thread[] threads = new Thread[numThreads];
-            for (int i = 0; i < threads.length; i++) {
-                threads[i] = new Thread("ProcessingThread_" + i) {
-                    public void run() {
-                        for (int i = 1; !stopIt; i++) {
-                            String user = "usr" + i;
-                            for (int j = 0; j < 20; j++) {
-                                try {
-                                    producer.serve(user);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
+    private void startLoad(int numThreads) {
+        stopIt = false;
+        Thread[] threads = new Thread[numThreads];
+        for (int i = 0; i < threads.length; i++) {
+            threads[i] = new Thread("ProcessingThread_" + i) {
+                public void run() {
+                    for (int i = 1; !stopIt; i++) {
+                        String user = "usr" + i;
+                        for (int j = 0; j < 20; j++) {
+                            try {
+                                producer.serve(user);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
                             }
                         }
                     }
-                };
-                threads[i].start();
-            }
+                }
+            };
+            threads[i].start();
         }
+    }
 
-        private void stopLoad() {
-            stopIt = true;
-        }
-    */
+    private void stopLoad() {
+        stopIt = true;
+    }
 
 
     private void loadAgent(String path) throws Exception {

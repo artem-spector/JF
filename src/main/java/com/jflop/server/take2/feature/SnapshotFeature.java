@@ -47,7 +47,8 @@ public class SnapshotFeature extends AgentFeature {
 
         Map<String, Object> snapshotJson = (Map<String, Object>) json.get("snapshot");
         if (snapshotJson != null) {
-            command.successText = Snapshot.fromJson(snapshotJson).format(1, 1);
+            command.successText = Snapshot.fromJson(snapshotJson).format(0, 0);
+            command.progressPercent = 100;
         }
     }
 

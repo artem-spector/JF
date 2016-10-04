@@ -50,6 +50,7 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
             StringWriter writer = new StringWriter();
             configuration.toProperties().store(writer, null);
             command.successText = writer.toString();
+            command.progressPercent = 100;
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse instrumentation configuration");
         }
