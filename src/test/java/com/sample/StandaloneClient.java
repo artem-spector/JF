@@ -2,7 +2,7 @@ package com.sample;
 
 import com.jflop.HttpTestClient;
 import com.jflop.server.admin.AdminClient;
-import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.admin.data.JFAgent;
 
 import java.io.File;
 import java.io.FileOutputStream;

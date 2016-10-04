@@ -1,10 +1,10 @@
-package com.jflop.server.take2.runtime;
+package com.jflop.server.runtime;
 
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.take2.admin.AccountIndex;
-import com.jflop.server.take2.admin.AgentJVMIndex;
-import com.jflop.server.take2.admin.data.*;
-import com.jflop.server.take2.feature.FeatureManager;
+import com.jflop.server.admin.AccountIndex;
+import com.jflop.server.admin.AgentJVMIndex;
+import com.jflop.server.admin.data.*;
+import com.jflop.server.feature.FeatureManager;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

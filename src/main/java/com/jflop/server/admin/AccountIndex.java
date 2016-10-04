@@ -1,10 +1,10 @@
-package com.jflop.server.take2.admin;
+package com.jflop.server.admin;
 
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.take2.admin.data.AccountData;
-import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.admin.data.AccountData;
+import com.jflop.server.admin.data.JFAgent;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 

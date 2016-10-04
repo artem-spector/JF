@@ -1,6 +1,5 @@
 package com.jflop.server.runtime;
 
-import com.jflop.server.take2.runtime.RuntimeDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

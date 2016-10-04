@@ -2,13 +2,10 @@ package com.jflop.server.admin;
 
 import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
+import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.admin.data.JFAgent;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.RuntimeClient;
-import com.jflop.server.take2.admin.AccountIndex;
-import com.jflop.server.take2.admin.AdminDAO;
-import com.jflop.server.take2.admin.AgentJVMIndex;
-import com.jflop.server.take2.admin.data.AgentJVM;
-import com.jflop.server.take2.admin.data.JFAgent;
-import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -1,61 +1,59 @@
 package com.jflop.server.feature;
 
+import com.jflop.server.admin.ValidationException;
+import com.jflop.server.admin.data.FeatureCommand;
 import org.jflop.snapshot.Snapshot;
+import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.Map;
 
 /**
- * Take snapshot
+ * TODO: Document!
  *
  * @author artem
- *         Date: 7/23/16
+ *         Date: 10/3/16
  */
-public class SnapshotFeature extends Feature {
+@Component
+public class SnapshotFeature extends AgentFeature {
 
-    public static final String NAME = "snapshot";
+    public static final String FEATURE_ID = "snapshot";
     public static final String TAKE_SNAPSHOT = "takeSnapshot";
 
-    private int durationSec = 3;
-    private Snapshot lastSnapshot;
-
     public SnapshotFeature() {
-        super(NAME);
+        super(FEATURE_ID);
     }
 
     @Override
-    protected void processInput(Object input) {
-        Map json = (Map) input;
+    public FeatureCommand parseCommand(String command, String paramStr) throws ValidationException {
+        if (!TAKE_SNAPSHOT.equals(command))
+            throw new ValidationException("Invalid command", "Command " + command + " not supported by feature " + FEATURE_ID);
+
+        try {
+            return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, Map.class));
+        } catch (IOException e) {
+            throw new ValidationException("Invalid command parameter", e.toString());
+        }
+    }
+
+    @Override
+    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
+        Map json = (Map) agentUpdate;
+        Integer countdown = (Integer) json.get("countdown");
+        if (countdown != null) {
+            Integer durationSec = (Integer) ((Map) command.commandParam).get("durationSec");
+            command.progressPercent = ((int) (((float) (durationSec - countdown) / durationSec) * 100));
+        }
 
         Map<String, Object> snapshotJson = (Map<String, Object>) json.get("snapshot");
         if (snapshotJson != null) {
-            this.lastSnapshot = Snapshot.fromJson(snapshotJson);
-            commandDone();
+            command.successText = Snapshot.fromJson(snapshotJson).format(0, 0);
+            command.progressPercent = 100;
         }
-
-        Integer countdown = (Integer) json.get("countdown");
-        if (countdown != null) {
-            setCommandProgress((int) (((float) (durationSec - countdown) / durationSec) * 100));
-        }
-    }
-
-    public void takeSnapshot(Integer durationSec) {
-        this.durationSec = durationSec;
-        sendCommand(TAKE_SNAPSHOT, durationSec);
-    }
-
-    public Snapshot getLastSnapshot() {
-        if (getError() != null) throw new RuntimeException(getError());
-        return lastSnapshot;
     }
 
     @Override
-    protected Map<String, Object> getState() {
-        Map<String, Object> res = new HashMap<>();
-        res.put("duration", durationSec);
-        if (lastSnapshot != null) {
-            res.put("snapshot", lastSnapshot.toString());
-        }
-        return res;
+    protected Map<String, Object> parseFeatureData(Map<String, Object> dataJson) {
+        return null;
     }
 }

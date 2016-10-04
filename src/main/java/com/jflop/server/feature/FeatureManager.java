@@ -1,4 +1,4 @@
-package com.jflop.server.take2.feature;
+package com.jflop.server.feature;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

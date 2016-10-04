@@ -1,8 +1,8 @@
-package com.jflop.server.take2.feature;
+package com.jflop.server.feature;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jflop.server.take2.admin.ValidationException;
-import com.jflop.server.take2.admin.data.FeatureCommand;
+import com.jflop.server.admin.ValidationException;
+import com.jflop.server.admin.data.FeatureCommand;
 
 import java.util.Map;
 

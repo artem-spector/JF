@@ -1,4 +1,4 @@
-package com.jflop.server.take2.admin.data;
+package com.jflop.server.admin.data;
 
 import java.util.ArrayList;
 import java.util.Date;

@@ -2,8 +2,8 @@ package com.jflop.server.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.HttpTestClient;
-import com.jflop.server.take2.admin.data.AgentJVM;
-import com.jflop.server.take2.admin.data.JFAgent;
+import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.admin.data.JFAgent;
 import org.springframework.http.HttpMethod;
 
 import javax.servlet.http.HttpServletResponse;

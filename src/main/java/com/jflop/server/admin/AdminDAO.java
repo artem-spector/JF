@@ -1,7 +1,7 @@
-package com.jflop.server.take2.admin;
+package com.jflop.server.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jflop.server.take2.admin.data.*;
+import com.jflop.server.admin.data.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

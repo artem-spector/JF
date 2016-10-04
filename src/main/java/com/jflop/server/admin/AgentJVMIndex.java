@@ -1,11 +1,11 @@
-package com.jflop.server.take2.admin;
+package com.jflop.server.admin;
 
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.take2.admin.data.AgentJVM;
-import com.jflop.server.take2.admin.data.AgentJvmState;
-import com.jflop.server.take2.admin.data.FeatureCommand;
+import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.admin.data.AgentJvmState;
+import com.jflop.server.admin.data.FeatureCommand;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;

@@ -1,7 +1,6 @@
 package com.jflop.server.admin;
 
-import com.jflop.server.take2.admin.AdminDAO;
-import com.jflop.server.take2.admin.data.AccountData;
+import com.jflop.server.admin.data.AccountData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;

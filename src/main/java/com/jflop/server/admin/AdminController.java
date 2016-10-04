@@ -1,15 +1,13 @@
 package com.jflop.server.admin;
 
+import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.admin.data.JFAgent;
+import com.jflop.server.feature.AgentFeature;
+import com.jflop.server.feature.FeatureManager;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.RuntimeController;
-import com.jflop.server.take2.admin.AdminDAO;
-import com.jflop.server.take2.admin.ValidationException;
-import com.jflop.server.take2.admin.data.AgentJVM;
-import com.jflop.server.take2.admin.data.FeatureCommand;
-import com.jflop.server.take2.admin.data.JFAgent;
-import com.jflop.server.take2.feature.AgentFeature;
-import com.jflop.server.take2.feature.FeatureManager;
-import com.jflop.server.take2.feature.InstrumentationConfigurationFeature;
-import com.jflop.server.take2.feature.SnapshotFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;

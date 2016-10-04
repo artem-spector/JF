@@ -1,61 +1,63 @@
 package com.jflop.server.feature;
 
+import com.jflop.server.admin.ValidationException;
+import com.jflop.server.admin.data.FeatureCommand;
 import org.jflop.config.JflopConfiguration;
+import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Get/set JFlop configuration
+ * TODO: Document!
  *
  * @author artem
- *         Date: 7/23/16
+ *         Date: 9/11/16
  */
-public class InstrumentationConfigurationFeature extends Feature {
+@Component
+public class InstrumentationConfigurationFeature extends AgentFeature {
 
-    public static final String NAME = "instr-conf";
+    public static final String FEATURE_ID = "instr-conf";
     public static final String GET_CONFIG = "get-config";
     public static final String SET_CONFIG = "set-config";
 
-    private JflopConfiguration agentConfiguration;
-
     public InstrumentationConfigurationFeature() {
-        super(NAME);
+        super(FEATURE_ID);
     }
 
     @Override
-    protected void processInput(Object input) {
-        if (command != null) {
-            // agent config received
-            agentConfiguration = JflopConfiguration.fromJson(input);
-            commandDone();
+    public FeatureCommand parseCommand(String command, String paramStr) throws ValidationException{
+        switch (command) {
+            case GET_CONFIG:
+                return new FeatureCommand(FEATURE_ID, command, null);
+            case SET_CONFIG:
+                try {
+                    return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, List.class));
+                } catch (IOException e) {
+                    throw new ValidationException("Invalid command parameter", e.toString());
+                }
+            default:
+                throw new ValidationException("Invalid command", "Command " + command + " not supported by feature " + FEATURE_ID);
         }
-    }
-
-    public void requestAgentConfiguration() {
-        sendCommand(GET_CONFIG, new HashMap());
-    }
-
-    public void setAgentConfiguration(JflopConfiguration conf) {
-        sendCommand(SET_CONFIG, conf.asJson());
-    }
-
-    public JflopConfiguration getAgentConfiguration() {
-        if (getError() != null) throw new RuntimeException(getError());
-        return agentConfiguration;
     }
 
     @Override
-    protected Map<String, Object> getState() {
-        String txt = "";
-        if (agentConfiguration != null) {
-            Properties properties = agentConfiguration.toProperties();
-            for (String mtd : properties.stringPropertyNames()) {
-                txt += mtd + "\n";
-            }
+    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
+        try {
+            JflopConfiguration configuration = JflopConfiguration.fromJson(agentUpdate);
+            StringWriter writer = new StringWriter();
+            configuration.toProperties().store(writer, null);
+            command.successText = writer.toString();
+            command.progressPercent = 100;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse instrumentation configuration");
         }
+    }
 
-        Map<String, Object> res = new HashMap<>();
-        res.put("methods", txt);
-        return res;
+    @Override
+    protected Map<String, Object> parseFeatureData(Map<String, Object> dataJson) {
+        return null;
     }
 }

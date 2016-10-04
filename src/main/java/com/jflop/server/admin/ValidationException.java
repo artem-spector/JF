@@ -1,4 +1,4 @@
-package com.jflop.server.take2.admin;
+package com.jflop.server.admin;
 
 /**
  * TODO: Document!
