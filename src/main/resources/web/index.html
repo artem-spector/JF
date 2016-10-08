@@ -72,48 +72,6 @@
                     <input type="button" value="delete" ng-click="deleteAgent(agent.agentId)">
                 </div>
 
-                <!--
-                <span ng-show="agent.lastReportTime">; last reported: {{agent.lastReportTime | date:'yyyy-MM-dd HH:mm:ss'}}</span>
-                <div ng-show="expanded[agent.agentId].isVisible">
-                    <div ng-show="agent.isAlive">
-                        <div>
-                            <span ng-click="expanded[agent.agentId].conf = !expanded[agent.agentId].conf">Instrumented methods</span>
-                            <div ng-show="expanded[agent.agentId].conf">
-                                <button ng-click="getConfiguration(agent)">get configuration</button>
-                                <div ng-show="agent.features['instr-conf'].command">
-                                    Command: <span>{{agent.features['instr-conf'].command.name}}</span><br>
-                                    created at: <span>{{agent.features['instr-conf'].command.createdAt | date:'HH:mm:ss'}}</span><br>
-                                    sent at: <span>{{agent.features['instr-conf'].command.sentAt | date:'HH:mm:ss'}}</span><br>
-                                    progress: <span>{{agent.features['instr-conf'].command.progressReported}}</span>
-                                </div>
-
-                                <div>
-                                    <textarea ng-model="agent.features['instr-conf'].state.methods" ng-change="stopRefresh()" cols="100" rows="10"></textarea><br>
-                                    <button ng-click="sendConfiguration(agent)">send configuration</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <span ng-click="expanded[agent.agentId].snapshot = !expanded[agent.agentId].snapshot">Last snapshot</span>
-                            <div ng-show="expanded[agent.agentId].snapshot">
-                                <input type="text" ng-model="agent.features['snapshot'].state.duration" ng-change="stopRefresh()"/>
-                                <button ng-click="takeSnapshot(agent)">take snapshot</button>
-                                <div ng-show="agent.features['snapshot'].command">
-                                    Command: <span>{{agent.features['snapshot'].command.name}}</span><br>
-                                    created at: <span>{{agent.features['snapshot'].command.createdAt | date:'HH:mm:ss'}}</span><br>
-                                    sent at: <span>{{agent.features['snapshot'].command.sentAt | date:'HH:mm:ss'}}</span><br>
-                                    progress: <span>{{agent.features['snapshot'].command.progressReported}}</span>
-                                </div>
-                                <div>
-                                    <pre> {{agent.features['snapshot'].state.snapshot}} </pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
--->
             </li>
         </ul>
         <form id="newAgent">
