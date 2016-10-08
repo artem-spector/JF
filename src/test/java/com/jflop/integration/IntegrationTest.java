@@ -118,7 +118,7 @@ public class IntegrationTest {
 
         // 2. take snapshot without load and make sure there are no flows
         Map<String, Object> param = new HashMap<>();
-        param.put("durationSec", 2);
+        param.put("durationSec", "2");
         adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
         command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println("progress: " + command.progressPercent);

@@ -32,7 +32,9 @@ public class AccountIndex extends IndexTemplate {
 
     public AccountData createAccount(String accountName) {
         AccountData data = new AccountData(accountName, UUID.randomUUID().toString());
-        return createDocument(new PersistentData<>(data.accountId, 0, data)).source;
+        createDocument(new PersistentData<>(data.accountId, 0, data));
+        refreshIndex();
+        return findByName(accountName);
     }
 
     public boolean deleteAccount(String accountId) {

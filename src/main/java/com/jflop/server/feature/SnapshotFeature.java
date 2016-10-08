@@ -30,7 +30,12 @@ public class SnapshotFeature extends AgentFeature {
             throw new ValidationException("Invalid command", "Command " + command + " not supported by feature " + FEATURE_ID);
 
         try {
-            return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, Map.class));
+            Map param = mapper.readValue(paramStr, Map.class);
+            String duartionParam = "durationSec";
+            Object value = param.get(duartionParam);
+            if (value instanceof String)
+                param.put(duartionParam, Integer.parseInt((String) value));
+            return new FeatureCommand(FEATURE_ID, command, param);
         } catch (IOException e) {
             throw new ValidationException("Invalid command parameter", e.toString());
         }

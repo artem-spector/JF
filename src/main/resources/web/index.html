@@ -45,11 +45,29 @@
                                             <button ng-click="sendConfiguration(agent.agentId, jvmId, jvm)">send configuration</button>
                                         </div>
                                     </div>
+
+                                    <div>
+                                        <span ng-click="expanded[jvmId].snapshot = !expanded[jvmId].snapshot">Last snapshot</span>
+                                        <div ng-show="expanded[jvmId].snapshot">
+                                            <input type="text" ng-model="jvm.features['snapshot'].commandParam.durationSec" ng-change="stopRefresh()"/>
+                                            <button ng-click="takeSnapshot(agent.agentId, jvmId, jvm)">take snapshot</button>
+                                            <div ng-show="jvm.features['snapshot']">
+                                                Command: <span>{{jvm.features['snapshot'].commandName}}</span><br>
+                                                created at: <span>{{jvm.features['snapshot'].createdAt | date:'HH:mm:ss'}}</span><br>
+                                                sent at: <span>{{jvm.features['snapshot'].sentAt | date:'HH:mm:ss'}}</span><br>
+                                                progress: <span>{{jvm.features['snapshot'].progressPercent}}</span>
+                                            </div>
+                                            <div>
+                                                <pre> {{jvm.features['snapshot'].successText}} </pre>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </li>
                     </ul>
-                    <input type="button" value="download" ng-click="downloadAgent(agent.agentId, jvmId)">
+                    <input type="button" value="download" ng-click="downloadAgent(agent)">
                     <br>
                     <input type="button" value="delete" ng-click="deleteAgent(agent.agentId)">
                 </div>

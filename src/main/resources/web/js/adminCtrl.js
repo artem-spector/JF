@@ -112,14 +112,14 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         );
     }
 
-    $scope.takeSnapshot = function(agent) {
+    $scope.takeSnapshot = function(agentId, jvmId, jvm) {
         $http({
             method: "POST",
-            url: "/agents/" + agent.agentId + "/command",
+            url: "/agents/" + agentId + "/" + jvmId + "/command",
             params: {
                 feature: "snapshot",
                 command: "takeSnapshot",
-                data: agent.features['snapshot'].state.duration
+                data: jvm.features['snapshot'].commandParam
             },
             headers: {
                 "jf-auth": $scope.account
