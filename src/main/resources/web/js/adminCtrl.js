@@ -73,10 +73,10 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         });
     }
 
-    $scope.getConfiguration = function(agent) {
+    $scope.getConfiguration = function(agentId, jvmId) {
         $http({
             method: "POST",
-            url: "/agents/" + agent.agentId + "/command",
+            url: "/agents/" + agentId + "/" + jvmId + "/command",
             params: {
                 feature: "instr-conf",
                 command: "get-config"
@@ -89,14 +89,14 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         });
     }
 
-    $scope.sendConfiguration = function(agent) {
+    $scope.sendConfiguration = function(agentId, jvmId, jvm) {
         $http({
             method: "POST",
-            url: "/agents/" + agent.agentId + "/command",
+            url: "/agents/" + agentId + "/" + jvmId + "/command",
             params: {
                 feature: "instr-conf",
                 command: "set-config",
-                data: agent.features['instr-conf'].state.methods
+                data: jvm.features['instr-conf'].successText
             },
             headers: {
                 "jf-auth": $scope.account

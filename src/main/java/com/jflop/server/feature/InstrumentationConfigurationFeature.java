@@ -5,9 +5,9 @@ import com.jflop.server.admin.data.FeatureCommand;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +34,8 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
                 return new FeatureCommand(FEATURE_ID, command, null);
             case SET_CONFIG:
                 try {
-                    return new FeatureCommand(FEATURE_ID, command, mapper.readValue(paramStr, List.class));
+                    JflopConfiguration configuration = new JflopConfiguration(new ByteArrayInputStream(paramStr.getBytes()));
+                    return new FeatureCommand(FEATURE_ID, command, configuration.asJson());
                 } catch (IOException e) {
                     throw new ValidationException("Invalid command parameter", e.toString());
                 }

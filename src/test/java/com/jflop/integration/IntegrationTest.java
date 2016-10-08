@@ -23,9 +23,7 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.StringBufferInputStream;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
@@ -92,29 +90,29 @@ public class IntegrationTest {
         String featureId = InstrumentationConfigurationFeature.FEATURE_ID;
 
         // 1. submit empty configuration
-        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, new JflopConfiguration().asJson());
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(new JflopConfiguration()));
         FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
 
         // 2. get configuration and make sure it's empty
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
         command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
-        JflopConfiguration conf = new JflopConfiguration(new StringBufferInputStream(command.successText));
+        JflopConfiguration conf = new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
         assertTrue(conf.isEmpty());
 
         // 3. set configuration from a file
         conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
         command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
-        assertEquals(conf, new JflopConfiguration(new StringBufferInputStream(command.successText)));
+        assertEquals(conf, new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes())));
     }
 
     @Test
     public void testSnapshotFeature() throws Exception {
         // 1. instrument multiple flows producer
         JflopConfiguration conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, conf.asJson());
+        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
         FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         assertNull(command.errorText);
 
@@ -141,6 +139,12 @@ public class IntegrationTest {
         assertTrue(command.successText.contains("2 distinct flows"));
 
         stopLoad();
+    }
+
+    private String configurationAsText(JflopConfiguration configuration) throws IOException {
+        StringWriter writer = new StringWriter();
+        configuration.toProperties().store(writer, null);
+        return writer.toString();
     }
 
     private FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {

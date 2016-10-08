@@ -78,9 +78,9 @@ public class AdminClient {
         request.param("feature", featureId);
         request.param("command", command);
         if (param != null)
-            request.param("data", mapper.writeValueAsString(param));
+            request.param("data", param instanceof String? (String) param : mapper.writeValueAsString(param));
         HttpTestClient.Response response = sendRequestHandleAuth(request);
-        assertEquals(200, response.statusCode);
+        assertEquals(response.getContentAsString(), 200, response.statusCode);
     }
 
     private HttpTestClient.Response sendRequestHandleAuth(HttpTestClient.Request request) throws Exception {
