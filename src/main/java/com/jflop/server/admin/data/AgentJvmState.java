@@ -14,6 +14,7 @@ public class AgentJvmState {
 
     public AgentJVM agentJvm;
     public Date lastReportedAt;
+    public List<String> errors;
 
     public List<FeatureCommand> featureCommands;
 

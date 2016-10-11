@@ -5,8 +5,6 @@ import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.admin.data.JFAgent;
 import com.jflop.server.feature.AgentFeature;
 import com.jflop.server.feature.FeatureManager;
-import com.jflop.server.feature.InstrumentationConfigurationFeature;
-import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.RuntimeController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -43,8 +41,6 @@ public class AdminController {
 
     public static final String AGENTS_PATH = "/agents";
 
-    public static final String[] DEFAULT_FEATURES = {InstrumentationConfigurationFeature.FEATURE_ID, SnapshotFeature.FEATURE_ID};
-
     public static final String JFSERVER_PROPERTIES_FILE = "jfserver.properties";
     private static final String JFLOP_AGENT_JAR = "jflop-agent.jar";
 
@@ -67,7 +63,7 @@ public class AdminController {
     @RequestMapping(method = POST, produces = "application/json")
     @ResponseBody
     public ResponseEntity createAgent(@RequestParam("name") String name) throws URISyntaxException {
-        JFAgent agent = adminDAO.createAgent(accountId(), name, DEFAULT_FEATURES);
+        JFAgent agent = adminDAO.createAgent(accountId(), name, featureManager.getDefaultFeatures());
         return ResponseEntity.created(new URI(request.getRequestURI() + "/" + agent.agentId)).build();
     }
 

@@ -135,6 +135,28 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         );
     }
 
+    $scope.monitorCpu = function(agentId, jvmId, jvm) {
+        $http({
+            method: "POST",
+            url: "/agents/" + agentId + "/" + jvmId + "/command",
+            params: {
+                feature: "cpu",
+                command: jvm.features['cpu'].command,
+            },
+            headers: {
+                "jf-auth": $scope.account
+            }
+        }).then(
+            function onSuccess(response) {
+                getAgents();
+            },
+            function onFailure(response) {
+                alert(response.data.error + ": " + response.data.message);
+                getAgents();
+            }
+        );
+    }
+
     function getAgents(successCallback, failureCallback) {
         $http({
             method: "GET",

@@ -29,6 +29,8 @@
                             <span ng-click="expanded[jvmId].isVisible=!expanded[jvmId].isVisible">{{jvmId}}</span>
                             <span> reported at: {{jvm.lastReportedAt | date:'yyyy-MM-dd HH:mm:ss'}}</span>
                             <div ng-show="expanded[jvmId].isVisible">
+
+                                <!-- instrumentation configuration -->
                                 <div>
                                     <span ng-click="expanded[jvmId].conf = !expanded[jvmId].conf">Instrumented methods</span>
                                     <div ng-show="expanded[jvmId].conf">
@@ -46,6 +48,7 @@
                                         </div>
                                     </div>
 
+                                    <!-- snapshot -->
                                     <div>
                                         <span ng-click="expanded[jvmId].snapshot = !expanded[jvmId].snapshot">Last snapshot</span>
                                         <div ng-show="expanded[jvmId].snapshot">
@@ -63,6 +66,27 @@
                                         </div>
                                     </div>
 
+                                    <!-- CPU monitor -->
+                                    <div>
+                                        <span ng-click="expanded[jvmId].cpu = !expanded[jvmId].cpu">Process CPU load</span>
+                                        <div ng-show="expanded[jvmId].cpu">
+                                            <label>
+                                                <input type="radio" ng-model="jvm.features['cpu'].command" value="enable" ng-change="monitorCpu(agent.agentId, jvmId, jvm)">Monitor CPU
+                                            </label>
+                                            <label>
+                                                <input type="radio" ng-model="jvm.features['cpu'].command" value="disable" ng-change="monitorCpu(agent.agentId, jvmId, jvm)">Don't monitor CPU
+                                            </label>
+                                            <div ng-show="jvm.features['cpu']">
+                                                Command: <span>{{jvm.features['cpu'].commandName}}</span><br>
+                                                created at: <span>{{jvm.features['cpu'].createdAt | date:'HH:mm:ss'}}</span><br>
+                                                sent at: <span>{{jvm.features['cpu'].sentAt | date:'HH:mm:ss'}}</span><br>
+                                                progress: <span>{{jvm.features['cpu'].progressPercent}}</span>
+                                            </div>
+                                            <div>
+                                                <pre> {{jvm.features['cpu'].successText}} </pre>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </li>

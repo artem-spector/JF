@@ -9,6 +9,7 @@ import com.jflop.server.admin.data.AccountData;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.feature.CpuFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.PersistentData;
@@ -59,6 +60,7 @@ public class IntegrationTest {
 
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
+    private Thread[] loadThreads;
 
     @Before
     public void activateAgent() throws Exception {
@@ -141,6 +143,24 @@ public class IntegrationTest {
         stopLoad();
     }
 
+    @Test
+    public void testCpuFeature() throws Exception {
+        adminClient.submitCommand(agentJVM, CpuFeature.FEATURE_ID, CpuFeature.ENABLE, null);
+        FeatureCommand command = awaitFeatureResponse(CpuFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+        assertTrue(command.successText.contains("process CPU load:"));
+
+        adminClient.submitCommand(agentJVM, CpuFeature.FEATURE_ID, CpuFeature.DISABLE, null);
+        long submitted = System.currentTimeMillis();
+        command = awaitFeatureResponse(CpuFeature.FEATURE_ID, submitted, 10);
+        System.out.println(command.successText);
+        if (!command.successText.contains("OK")) {
+            // the first response may come before the command was received by the client, so wait for the next change
+            command = awaitFeatureResponse(CpuFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+        }
+        assertTrue(command.successText.contains("OK"));
+    }
+
     private String configurationAsText(JflopConfiguration configuration) throws IOException {
         StringWriter writer = new StringWriter();
         configuration.toProperties().store(writer, null);
@@ -190,9 +210,9 @@ public class IntegrationTest {
 
     private void startLoad(int numThreads) {
         stopIt = false;
-        Thread[] threads = new Thread[numThreads];
-        for (int i = 0; i < threads.length; i++) {
-            threads[i] = new Thread("ProcessingThread_" + i) {
+        loadThreads = new Thread[numThreads];
+        for (int i = 0; i < loadThreads.length; i++) {
+            loadThreads[i] = new Thread("ProcessingThread_" + i) {
                 public void run() {
                     for (int i = 1; !stopIt; i++) {
                         String user = "usr" + i;
@@ -206,12 +226,27 @@ public class IntegrationTest {
                     }
                 }
             };
-            threads[i].start();
+            loadThreads[i].start();
         }
     }
 
     private void stopLoad() {
         stopIt = true;
+        if (loadThreads == null) return;
+
+        for (Thread thread : loadThreads) {
+            try {
+                thread.join(5000);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
+        for (Thread thread : loadThreads) {
+            if (thread.isAlive())
+                fail("Thread " + thread.getName() + " is alive after 5 sec");
+        }
+
+        loadThreads = null;
     }
 
 

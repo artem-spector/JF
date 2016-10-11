@@ -38,6 +38,7 @@ public class RuntimeDAO {
         AgentJVM agentJVM = new AgentJVM(account.accountId, agentId, jvmId);
         PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, true);
         jvmState.source.lastReportedAt = now;
+        jvmState.source.errors = (List<String>) featuresData.remove("errors");
 
         JFAgent agent = account.getAgent(agentId);
         for (Map.Entry<String, Object> entry : featuresData.entrySet()) {

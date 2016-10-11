@@ -4,6 +4,7 @@ import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.JFAgent;
+import com.jflop.server.feature.FeatureManager;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.RuntimeClient;
 import org.junit.Before;
@@ -36,6 +37,9 @@ import static org.junit.Assert.*;
 @SpringApplicationConfiguration(classes = ServerApp.class)
 @WebAppConfiguration
 public class AdminTest {
+
+    @Autowired
+    FeatureManager featureManager;
 
     @Autowired
     private AccountIndex accountIndex;
@@ -99,7 +103,7 @@ public class AdminTest {
 
         Map<String, Object> agent = agents.get(0);
         assertEquals(name, agent.get("agentName"));
-        assertEquals(Arrays.asList(AdminController.DEFAULT_FEATURES), agent.get("enabledFeatures"));
+        assertEquals(Arrays.asList(featureManager.getDefaultFeatures()), agent.get("enabledFeatures"));
         assertEquals(0, ((Map) agent.get("jvms")).size());
 
         RuntimeClient runtimeClient1 = new RuntimeClient(testClient, agentId);

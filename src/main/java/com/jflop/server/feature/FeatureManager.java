@@ -3,9 +3,7 @@ package com.jflop.server.feature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -17,12 +15,16 @@ import java.util.Map;
 public class FeatureManager {
 
     private Map<String, AgentFeature> allFeatures = new HashMap<>();
+    private String[] defaultFeatures;
 
     @Autowired
     public void setFeatures(Collection<AgentFeature> features) {
+        List<String> defaultFeatures = new ArrayList<>();
         for (AgentFeature feature : features) {
             allFeatures.put(feature.featureId, feature);
+            defaultFeatures.add(feature.featureId);
         }
+        this.defaultFeatures = defaultFeatures.toArray(new String[defaultFeatures.size()]);
     }
 
     public AgentFeature getFeature(String featureId) {
@@ -31,4 +33,7 @@ public class FeatureManager {
         return res;
     }
 
+    public String[] getDefaultFeatures() {
+        return defaultFeatures;
+    }
 }
