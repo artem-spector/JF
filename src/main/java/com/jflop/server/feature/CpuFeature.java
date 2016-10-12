@@ -2,6 +2,8 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.runtime.data.CpuData;
+import com.jflop.server.runtime.data.RawFeatureData;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -37,9 +39,9 @@ public class CpuFeature extends AgentFeature {
     }
 
     @Override
-    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
-        Map json = (Map) agentUpdate;
-
+    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
+        Map json = (Map) dataJson;
+        CpuData rawData = null;
         Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
         String message = (String) json.get(MESSAGE);
 
@@ -47,15 +49,13 @@ public class CpuFeature extends AgentFeature {
             command.successText = message;
         else if (processCpuLoad != null) {
             command.successText = String.format("process CPU load: %.2f", processCpuLoad * 100) + "%";
+            rawData = new CpuData(processCpuLoad);
         } else {
-            command.successText = "Unrecognizable agent update: " + agentUpdate;
+            command.successText = "Unrecognizable agent update: " + dataJson;
         }
 
         command.progressPercent = 100;
+        return rawData;
     }
 
-    @Override
-    protected Map<String, Object> parseFeatureData(Map<String, Object> dataJson) {
-        return null;
-    }
 }

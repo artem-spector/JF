@@ -13,6 +13,8 @@ import com.jflop.server.feature.CpuFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.runtime.RawDataIndex;
+import com.jflop.server.runtime.data.RawFeatureData;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
@@ -56,6 +58,9 @@ public class IntegrationTest {
     private AgentJVMIndex agentJVMIndex;
 
     @Autowired
+    private RawDataIndex rawDataIndex;
+
+    @Autowired
     private InstrumentationConfigurationFeature configurationFeature;
 
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
@@ -68,6 +73,7 @@ public class IntegrationTest {
 
         accountIndex.deleteIndex();
         agentJVMIndex.deleteIndex();
+        rawDataIndex.deleteIndex();
 
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, "testAccount");

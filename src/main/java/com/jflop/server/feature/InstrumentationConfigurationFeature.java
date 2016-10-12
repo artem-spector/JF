@@ -2,13 +2,13 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.runtime.data.RawFeatureData;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Map;
 
 /**
  * TODO: Document!
@@ -45,20 +45,17 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     }
 
     @Override
-    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
+    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
         try {
-            JflopConfiguration configuration = JflopConfiguration.fromJson(agentUpdate);
+            JflopConfiguration configuration = JflopConfiguration.fromJson(dataJson);
             StringWriter writer = new StringWriter();
             configuration.toProperties().store(writer, null);
             command.successText = writer.toString();
             command.progressPercent = 100;
+            return null;
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse instrumentation configuration");
         }
     }
 
-    @Override
-    protected Map<String, Object> parseFeatureData(Map<String, Object> dataJson) {
-        return null;
-    }
 }

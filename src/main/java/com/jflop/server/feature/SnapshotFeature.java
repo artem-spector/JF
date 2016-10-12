@@ -2,6 +2,7 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.runtime.data.RawFeatureData;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
 
@@ -42,8 +43,8 @@ public class SnapshotFeature extends AgentFeature {
     }
 
     @Override
-    public void updateFeatureState(FeatureCommand command, Object agentUpdate) {
-        Map json = (Map) agentUpdate;
+    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
+        Map json = (Map) dataJson;
         Integer countdown = (Integer) json.get("countdown");
         if (countdown != null) {
             Integer durationSec = (Integer) ((Map) command.commandParam).get("durationSec");
@@ -55,10 +56,8 @@ public class SnapshotFeature extends AgentFeature {
             command.successText = Snapshot.fromJson(snapshotJson).format(0, 0);
             command.progressPercent = 100;
         }
-    }
 
-    @Override
-    protected Map<String, Object> parseFeatureData(Map<String, Object> dataJson) {
         return null;
     }
+
 }
