@@ -9,12 +9,11 @@ import com.jflop.server.admin.data.AccountData;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.feature.CpuFeature;
+import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.RawDataIndex;
-import com.jflop.server.runtime.data.RawFeatureData;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
@@ -150,19 +149,19 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testCpuFeature() throws Exception {
-        adminClient.submitCommand(agentJVM, CpuFeature.FEATURE_ID, CpuFeature.ENABLE, null);
-        FeatureCommand command = awaitFeatureResponse(CpuFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+    public void testJvmMonitorFeature() throws Exception {
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
         assertTrue(command.successText.contains("process CPU load:"));
 
-        adminClient.submitCommand(agentJVM, CpuFeature.FEATURE_ID, CpuFeature.DISABLE, null);
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
         long submitted = System.currentTimeMillis();
-        command = awaitFeatureResponse(CpuFeature.FEATURE_ID, submitted, 10);
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, submitted, 10);
         System.out.println(command.successText);
         if (!command.successText.contains("OK")) {
             // the first response may come before the command was received by the client, so wait for the next change
-            command = awaitFeatureResponse(CpuFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
         }
         assertTrue(command.successText.contains("OK"));
     }

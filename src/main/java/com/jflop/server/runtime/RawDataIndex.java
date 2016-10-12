@@ -2,7 +2,7 @@ package com.jflop.server.runtime;
 
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
-import com.jflop.server.runtime.data.CpuData;
+import com.jflop.server.runtime.data.JvmMonitorData;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,7 +18,7 @@ public class RawDataIndex extends IndexTemplate {
 
     public RawDataIndex() {
         super(RAW_DATA_INDEX + "-template", RAW_DATA_INDEX + "*",
-                new DocType("cpu", "persistency/rawCpu.json", CpuData.class)
+                new DocType("cpu", "persistency/rawJvmMonitor.json", JvmMonitorData.class)
         );
     }
 
