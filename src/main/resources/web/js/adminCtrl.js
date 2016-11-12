@@ -135,13 +135,13 @@ app.controller("adminCtrl", function($scope, $http, $interval) {
         );
     }
 
-    $scope.monitorCpu = function(agentId, jvmId, jvm) {
+    $scope.monitorJvm = function(agentId, jvmId, jvm) {
         $http({
             method: "POST",
             url: "/agents/" + agentId + "/" + jvmId + "/command",
             params: {
-                feature: "cpu",
-                command: jvm.features['cpu'].command,
+                feature: "jvmMonitor",
+                command: jvm.features['jvmMonitor'].command,
             },
             headers: {
                 "jf-auth": $scope.account

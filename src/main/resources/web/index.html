@@ -66,24 +66,24 @@
                                         </div>
                                     </div>
 
-                                    <!-- CPU monitor -->
+                                    <!-- JVM monitor -->
                                     <div>
-                                        <span ng-click="expanded[jvmId].cpu = !expanded[jvmId].cpu">Process CPU load</span>
-                                        <div ng-show="expanded[jvmId].cpu">
+                                        <span ng-click="expanded[jvmId].jvmMonitor = !expanded[jvmId].jvmMonitor">JVM monitor</span>
+                                        <div ng-show="expanded[jvmId].jvmMonitor">
                                             <label>
-                                                <input type="radio" ng-model="jvm.features['cpu'].command" value="enable" ng-change="monitorCpu(agent.agentId, jvmId, jvm)">Monitor CPU
+                                                <input type="radio" ng-model="jvm.features['jvmMonitor'].command" value="enable" ng-change="monitorJvm(agent.agentId, jvmId, jvm)">Monitor JVM
                                             </label>
                                             <label>
-                                                <input type="radio" ng-model="jvm.features['cpu'].command" value="disable" ng-change="monitorCpu(agent.agentId, jvmId, jvm)">Don't monitor CPU
+                                                <input type="radio" ng-model="jvm.features['jvmMonitor'].command" value="disable" ng-change="monitorJvm(agent.agentId, jvmId, jvm)">Don't monitor JVM
                                             </label>
-                                            <div ng-show="jvm.features['cpu']">
-                                                Command: <span>{{jvm.features['cpu'].commandName}}</span><br>
-                                                created at: <span>{{jvm.features['cpu'].createdAt | date:'HH:mm:ss'}}</span><br>
-                                                sent at: <span>{{jvm.features['cpu'].sentAt | date:'HH:mm:ss'}}</span><br>
-                                                progress: <span>{{jvm.features['cpu'].progressPercent}}</span>
+                                            <div ng-show="jvm.features['jvmMonitor']">
+                                                Command: <span>{{jvm.features['jvmMonitor'].commandName}}</span><br>
+                                                created at: <span>{{jvm.features['jvmMonitor'].createdAt | date:'HH:mm:ss'}}</span><br>
+                                                sent at: <span>{{jvm.features['jvmMonitor'].sentAt | date:'HH:mm:ss'}}</span><br>
+                                                progress: <span>{{jvm.features['jvmMonitor'].progressPercent}}</span>
                                             </div>
                                             <div>
-                                                <pre> {{jvm.features['cpu'].successText}} </pre>
+                                                <pre> {{jvm.features['jvmMonitor'].successText}} </pre>
                                             </div>
                                         </div>
                                     </div>
