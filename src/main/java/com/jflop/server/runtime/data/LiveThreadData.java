@@ -34,4 +34,9 @@ public class LiveThreadData {
         }
         return res;
     }
+
+    public ThreadStacktrace asStacktrace() {
+        return new ThreadStacktrace(threadState, stackTrace);
+    }
+
 }

@@ -1,0 +1,29 @@
+# Plan
+
+## 26 Nov 2016
+We have JVMMonitorFeature reporting thread dumps every interval.
+We need to:
+ 
+ 1. Based on the thread dump decide on instrumentation configuration
+    If a flow can be recognized from a thread dump, and a configuration exists for that flow - use the stored configuration.   
+ 2. Merge the new configuration with the existing one
+ 3. Starting from the merged configuration refine the instrumentation configuration for the flows.
+    When done, store the configuration, so that it can be retrieved on step 1.
+    
+Define a new class FlowMetadata, that would keep the information about a single flow, including its name, instrumentation configuration, and statistics.
+This class has a method "covers" that takes a stack trace, and returns true if this flow covers that stack trace.
+
+FlowMetadata are stored as documents in the index ProcessedDataIndex (not a good name).
+They are created by DataProcessor, when a new stack trace is submitted by the agent, and no appropriate FlowMetadata exists
+
+Status: compilation only.
+
+Next steps: 
+
+* define unit test to make sure the flow metadata are created, stored, retrieved, and recognized.
+* for a new flow define instrumentation config
+* when a snapshot is reported, recognize FlowMetadata by the snapshot and stack trace
+* refine a flow
+
+    
+    

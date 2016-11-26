@@ -12,5 +12,4 @@ public class JvmMonitorData extends RawFeatureData {
 
     public double processCpuLoad;
     public List<LiveThreadData> liveThreads;
-
 }

@@ -63,3 +63,6 @@ All the account-related data is stored in a single document, however in future o
 ### Runtime feature data
 
 Runtime feature data contains the states of different features based on the information passed between the agent and server
+
+## Data processing
+
