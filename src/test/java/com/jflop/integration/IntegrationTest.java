@@ -12,8 +12,11 @@ import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
+import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.RawDataIndex;
+import com.jflop.server.runtime.data.ThreadDumpMetadata;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
@@ -27,6 +30,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,12 @@ public class IntegrationTest {
     private RawDataIndex rawDataIndex;
 
     @Autowired
+    private ProcessedDataIndex processedDataIndex;
+
+    @Autowired
+    private Collection<IndexTemplate> allIndexes;
+
+    @Autowired
     private InstrumentationConfigurationFeature configurationFeature;
 
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
@@ -70,9 +80,7 @@ public class IntegrationTest {
     public void activateAgent() throws Exception {
         if (adminClient != null) return;
 
-        accountIndex.deleteIndex();
-        agentJVMIndex.deleteIndex();
-        rawDataIndex.deleteIndex();
+        for (IndexTemplate index : allIndexes) index.deleteIndex();
 
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, "testAccount");
@@ -164,6 +172,29 @@ public class IntegrationTest {
             command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
         }
         assertTrue(command.successText.contains("OK"));
+    }
+
+    @Test
+    public void testThreadDumpMetadata() throws Exception {
+        // 1. no flows in the beginning
+        List<ThreadDumpMetadata> existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        assertEquals(0, existing.size());
+
+        // 2. enable monitor feature, and make sure there are some flows detected, and all have different stack traces
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+
+        processedDataIndex.refreshIndex();
+        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        System.out.println("Number of thread dumps: " + existing.size());
+        assertTrue("No thread dump metadata found for accountId " + agentJVM.accountId, existing.size() > 0);
+
+        // 3. wait for another report and make sure the number of threads was not duplicated
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+        processedDataIndex.refreshIndex();
+        assertTrue(existing.size() < 2 * processedDataIndex.getThreadDumps(agentJVM.accountId).size());
     }
 
     private String configurationAsText(JflopConfiguration configuration) throws IOException {

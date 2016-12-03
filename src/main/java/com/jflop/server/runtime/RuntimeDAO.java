@@ -34,6 +34,9 @@ public class RuntimeDAO {
     @Autowired
     private RawDataIndex rawDataIndex;
 
+    @Autowired
+    private DataProcessor dataProcessor;
+
     public List<Map<String, Object>> reportFeaturesData(String agentId, String jvmId, Map<String, Object> featuresData) {
         // Validate the agent ID, this is the only authorization check available for agent clients
         // This approach is not scalable.
@@ -75,6 +78,9 @@ public class RuntimeDAO {
                 rawData.agentJvm = agentJvm;
                 rawData.time = now;
                 rawDataIndex.createDocument(new PersistentData<>(rawData));
+
+                // send raw data to processing
+                dataProcessor.submitJvmMonitorData(rawData);
             }
         }
 

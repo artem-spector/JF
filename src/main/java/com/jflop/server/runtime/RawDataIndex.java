@@ -28,5 +28,4 @@ public class RawDataIndex extends IndexTemplate {
         return RAW_DATA_INDEX;
     }
 
-
 }

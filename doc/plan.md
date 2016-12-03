@@ -25,5 +25,16 @@ Next steps:
 * when a snapshot is reported, recognize FlowMetadata by the snapshot and stack trace
 * refine a flow
 
-    
+## 3 Dec 2016
+
+In fact, flow cannot be deduced from a stack trace, because a stack trace represents only one branch of a flow.
+So FlowMetadata was converted into ThreadDumpMetadata, when each document represents a unique stacktrace for an account. 
+
+Provided a unit test in IntegrationTest.testThreadDumpMetadata.
+  
+Next steps:
+
+* think of stacktrace - only analysis based on correlation of stactrace occurencies and CPU/memory usage
+* choose stacktraces to instrument, and create initial instrumentation
+* define relationship between stack trace,flow, and configuration
     

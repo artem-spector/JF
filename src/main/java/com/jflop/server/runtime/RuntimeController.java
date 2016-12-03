@@ -1,6 +1,7 @@
 package com.jflop.server.runtime;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -20,6 +23,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RestController
 @RequestMapping(path = RuntimeController.RUNTIME_API_PATH)
 public class RuntimeController {
+
+    private static final Logger logger = Logger.getLogger(RuntimeController.class.getName());
 
     public static final String RUNTIME_API_PATH = "/rt";
 
@@ -40,5 +45,11 @@ public class RuntimeController {
             res.put("tasks", tasks);
         }
         return ResponseEntity.ok(res);
+    }
+
+    @ExceptionHandler({Throwable.class})
+    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR, reason = "JF server error")
+    public void unexpectedException(Throwable ex) {
+        logger.log(Level.SEVERE, "Unexpected exception", ex);
     }
 }
