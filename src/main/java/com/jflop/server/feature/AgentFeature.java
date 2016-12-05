@@ -3,7 +3,9 @@ package com.jflop.server.feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.runtime.data.RawFeatureData;
+import com.jflop.server.runtime.data.RawData;
+
+import java.util.List;
 
 /**
  * TODO: Document!
@@ -23,6 +25,6 @@ public abstract class AgentFeature {
 
     public abstract FeatureCommand parseCommand(String command, String paramStr) throws ValidationException;
 
-    public abstract RawFeatureData parseReportedData(Object dataJson, FeatureCommand command);
+    public abstract List<RawData> parseReportedData(Object dataJson, FeatureCommand command);
 
 }

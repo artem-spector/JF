@@ -2,14 +2,10 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.runtime.data.JvmMonitorData;
-import com.jflop.server.runtime.data.LiveThreadData;
-import com.jflop.server.runtime.data.RawFeatureData;
+import com.jflop.server.runtime.data.*;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -43,31 +39,29 @@ public class JvmMonitorFeature extends AgentFeature {
     }
 
     @Override
-    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
+    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command) {
         Map json = (Map) dataJson;
         Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
         List liveThreads = (List) json.get(LIVE_THREADS);
         String message = (String) json.get(MESSAGE);
         if (message == null) message = "";
-        JvmMonitorData rawData = new JvmMonitorData();
 
+        List<RawData> rawData = new ArrayList<>();
         if (processCpuLoad != null) {
             message += "\n" + String.format("process CPU load: %.2f", processCpuLoad * 100) + "%";
-            rawData.processCpuLoad = processCpuLoad;
+            rawData.add(new LoadData(processCpuLoad));
         }
 
         if (liveThreads != null) {
             message += "\n" + liveThreads.size() + " live threads";
-            List<LiveThreadData> list = new ArrayList<>();
             for (Object thread : liveThreads) {
-                list.add(LiveThreadData.fromJson((Map) thread));
+                rawData.add(new ThreadDumpData((Map<String, Object>) thread));
             }
-            rawData.liveThreads = list;
         }
 
         command.successText = message;
         command.progressPercent = 100;
-        return (processCpuLoad != null || liveThreads != null) ? rawData : null;
+        return rawData;
     }
 
 }

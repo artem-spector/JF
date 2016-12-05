@@ -9,14 +9,13 @@ import com.jflop.server.admin.data.AccountData;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.RawDataIndex;
-import com.jflop.server.runtime.data.ThreadDumpMetadata;
+import com.jflop.server.runtime.data.ThreadDumpData;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
@@ -30,10 +29,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -62,9 +58,6 @@ public class IntegrationTest {
 
     @Autowired
     private RawDataIndex rawDataIndex;
-
-    @Autowired
-    private ProcessedDataIndex processedDataIndex;
 
     @Autowired
     private Collection<IndexTemplate> allIndexes;
@@ -177,7 +170,7 @@ public class IntegrationTest {
     @Test
     public void testThreadDumpMetadata() throws Exception {
         // 1. no flows in the beginning
-        List<ThreadDumpMetadata> existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        List<ThreadDumpData> existing = rawDataIndex.getRawData(agentJVM, ThreadDumpData.class, new Date(0L), 1000);
         assertEquals(0, existing.size());
 
         // 2. enable monitor feature, and make sure there are some flows detected, and all have different stack traces
@@ -185,17 +178,17 @@ public class IntegrationTest {
         FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
 
-        processedDataIndex.refreshIndex();
-        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        rawDataIndex.refreshIndex();
+        existing = rawDataIndex.getRawData(agentJVM, ThreadDumpData.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue("No thread dump metadata found for accountId " + agentJVM.accountId, existing.size() > 0);
 
         // 3. wait for another report and make sure the number of threads was not duplicated
         command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
-        processedDataIndex.refreshIndex();
+        rawDataIndex.refreshIndex();
         int oldSize = existing.size();
-        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        existing = rawDataIndex.getRawData(agentJVM, ThreadDumpData.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue(oldSize < 2 * existing.size());
 
@@ -207,9 +200,9 @@ public class IntegrationTest {
         for (int i = 0; i < 1; i++)
             command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
-        processedDataIndex.refreshIndex();
+        rawDataIndex.refreshIndex();
         oldSize = existing.size();
-        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        existing = rawDataIndex.getRawData(agentJVM, ThreadDumpData.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue(existing.size() >= oldSize + 1);
 

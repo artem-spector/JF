@@ -2,13 +2,14 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.runtime.data.RawFeatureData;
+import com.jflop.server.runtime.data.RawData;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.List;
 
 /**
  * TODO: Document!
@@ -45,7 +46,7 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     }
 
     @Override
-    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
+    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command) {
         try {
             JflopConfiguration configuration = JflopConfiguration.fromJson(dataJson);
             StringWriter writer = new StringWriter();

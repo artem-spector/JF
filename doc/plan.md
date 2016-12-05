@@ -38,3 +38,16 @@ Next steps:
 * choose stacktraces to instrument, and create initial instrumentation
 * define relationship between stack trace,flow, and configuration
     
+## 5 Dec 2016 
+    
+That's how the persistent data should be organized:
+`jf-raw-data` index contains different types of data - CPU load, memory, stack traces, etc. All those data types have common fields: 
+`time`, `dataType`, and `agentJvm`. All the raw documents are created and inserted during command data processing.
+    
+How to choose stacktraces to instrument:
+
+* exclude the stacktraces that do nothing
+ For example, all classes belong to java or methods are native, and the state is WAITING
+ 
+* monitor for some time the stacktraces and choose those that repeat, 
+for example it presents in every dump (or most dumps) during the monitoring interval  

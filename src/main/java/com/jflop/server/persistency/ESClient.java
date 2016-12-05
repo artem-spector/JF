@@ -23,6 +23,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.DisposableBean;
@@ -130,6 +131,15 @@ public class ESClient implements InitializingBean, DisposableBean {
         }
     }
 
+    public <T> PersistentData<T> createDocumentIfNotExists(String index, String docType, PersistentData<T> doc) {
+        // TODO: think of more elegant way
+        try {
+            return createDocument(index, docType, doc);
+        } catch (DocumentAlreadyExistsException e) {
+            return null;
+        }
+    }
+
     public <T> PersistentData<T> updateDocument(String index, String docType, PersistentData<T> doc) {
         try {
             UpdateRequestBuilder request = client.prepareUpdate(index, docType, doc.id).setDoc(mapper.writeValueAsBytes(doc.source));
@@ -168,8 +178,8 @@ public class ESClient implements InitializingBean, DisposableBean {
         return request.execute().actionGet().isFound();
     }
 
-    public SearchResponse search(String indexName, QueryBuilder query, int maxHits) {
-        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setSize(maxHits).setVersion(true);
+    public SearchResponse search(String indexName, String type, QueryBuilder query, int maxHits) {
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setTypes(type).setQuery(query).setSize(maxHits).setVersion(true);
         try {
             return searchQuery.execute().actionGet();
         } catch (IndexNotFoundException e) {

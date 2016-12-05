@@ -59,6 +59,10 @@ public abstract class IndexTemplate implements InitializingBean {
         return esClient.createDocument(indexName(), getDocType(doc.source.getClass()), doc);
     }
 
+    public <T> PersistentData<T> createDocumentIfNotExists(PersistentData<T> doc) {
+        return esClient.createDocumentIfNotExists(indexName(), getDocType(doc.source.getClass()), doc);
+    }
+
     public boolean deleteDocument(PersistentData doc) {
         return esClient.deleteDocument(indexName(), getDocType(doc.source.getClass()), doc);
     }
@@ -74,7 +78,7 @@ public abstract class IndexTemplate implements InitializingBean {
     public <T> List<PersistentData<T>> find(QueryBuilder query, int maxHits, Class<T> dataType) {
         List<PersistentData<T>> res = new ArrayList<>();
 
-        SearchResponse response = esClient.search(indexName(), query, maxHits);
+        SearchResponse response = esClient.search(indexName(), getDocType(dataType), query, maxHits);
         if (response != null) {
             for (SearchHit hit : response.getHits().getHits()) {
                 try {

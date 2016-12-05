@@ -2,11 +2,12 @@ package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.runtime.data.RawFeatureData;
+import com.jflop.server.runtime.data.RawData;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,7 +44,7 @@ public class SnapshotFeature extends AgentFeature {
     }
 
     @Override
-    public RawFeatureData parseReportedData(Object dataJson, FeatureCommand command) {
+    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command) {
         Map json = (Map) dataJson;
         Integer countdown = (Integer) json.get("countdown");
         if (countdown != null) {

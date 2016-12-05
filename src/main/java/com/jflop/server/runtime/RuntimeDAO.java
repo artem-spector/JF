@@ -6,7 +6,7 @@ import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AgentJVMIndex;
 import com.jflop.server.admin.data.*;
 import com.jflop.server.feature.FeatureManager;
-import com.jflop.server.runtime.data.RawFeatureData;
+import com.jflop.server.runtime.data.RawData;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -33,9 +33,6 @@ public class RuntimeDAO {
 
     @Autowired
     private RawDataIndex rawDataIndex;
-
-    @Autowired
-    private DataProcessor dataProcessor;
 
     public List<Map<String, Object>> reportFeaturesData(String agentId, String jvmId, Map<String, Object> featuresData) {
         // Validate the agent ID, this is the only authorization check available for agent clients
@@ -70,17 +67,25 @@ public class RuntimeDAO {
             // update the command state and extract raw data
             command.respondedAt = now;
             Object dataJson = entry.getValue();
-            RawFeatureData rawData = feature.parseReportedData(dataJson, command);
+            List<RawData> rawData = feature.parseReportedData(dataJson, command);
+
+            // remove duplicate document IDs from raw data list
+            Set<String> docIDs = new HashSet<>();
+            for (Iterator<RawData> iterator = rawData.iterator(); iterator.hasNext(); ) {
+                String documentId = iterator.next().getDocumentId();
+                if (documentId != null)
+                    if (docIDs.contains(documentId))
+                        iterator.remove();
+                    else
+                        docIDs.add(documentId);
+            }
 
             // insert raw data
-            // TODO: use bulk update instead of inserting one by one
             if (rawData != null) {
-                rawData.agentJvm = agentJvm;
-                rawData.time = now;
-                rawDataIndex.createDocument(new PersistentData<>(rawData));
-
-                // send raw data to processing
-                dataProcessor.submitJvmMonitorData(rawData);
+                for (RawData data : rawData) {
+                    data.complete(agentJvm, now);
+                }
+                rawDataIndex.addRawData(rawData);
             }
         }
 
