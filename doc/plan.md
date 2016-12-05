@@ -51,3 +51,9 @@ How to choose stacktraces to instrument:
  
 * monitor for some time the stacktraces and choose those that repeat, 
 for example it presents in every dump (or most dumps) during the monitoring interval  
+
+Status: thread dump data refactored to be raw data
+
+Next step: 
+create a raw event that represents usage of a specific thread (dumpId) and includes count of that dump.
+That would allow to recognize "active" stacktraces that should be instrumented.
