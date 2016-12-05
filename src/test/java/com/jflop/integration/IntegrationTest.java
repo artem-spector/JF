@@ -194,7 +194,27 @@ public class IntegrationTest {
         command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
         processedDataIndex.refreshIndex();
-        assertTrue(existing.size() < 2 * processedDataIndex.getThreadDumps(agentJVM.accountId).size());
+        int oldSize = existing.size();
+        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        System.out.println("Number of thread dumps: " + existing.size());
+        assertTrue(oldSize < 2 * existing.size());
+
+        // 4. turn on load and make sure there is at least 1 new thread dump
+        // the flow of initializing user cache happens in the beginning of a thread and is unlikely to be caught by the thread dump
+        System.out.println("start load..");
+        startLoad(5);
+
+        for (int i = 0; i < 1; i++)
+            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+        processedDataIndex.refreshIndex();
+        oldSize = existing.size();
+        existing = processedDataIndex.getThreadDumps(agentJVM.accountId);
+        System.out.println("Number of thread dumps: " + existing.size());
+        assertTrue(existing.size() >= oldSize + 1);
+
+        System.out.println("stop load..");
+        stopLoad();
     }
 
     private String configurationAsText(JflopConfiguration configuration) throws IOException {
