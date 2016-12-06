@@ -103,7 +103,7 @@ public abstract class IndexTemplate implements InitializingBean {
             throw new RuntimeException("Found " + size + " elements when maximum one expected.");
     }
 
-    protected String getDocType(Class type) {
+    public String getDocType(Class type) {
         for (DocType docType : docTypes) {
             if (docType.type == type) return docType.docType;
         }

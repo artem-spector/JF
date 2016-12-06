@@ -18,14 +18,12 @@ public abstract class RawData {
     protected AgentJVM agentJvm;
 
     @JsonProperty
-    private Date time;
+    protected Date time;
+
+    @JsonProperty
+    protected String dataType;
 
     protected RawData() {
-    }
-
-    public void complete(AgentJVM agentJvm, Date time) {
-        this.agentJvm = agentJvm;
-        this.time = time;
     }
 
     /**

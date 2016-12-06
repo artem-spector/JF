@@ -7,6 +7,7 @@ import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.LoadData;
 import com.jflop.server.runtime.data.RawData;
 import com.jflop.server.runtime.data.ThreadDumpData;
+import com.jflop.server.runtime.data.ThreadOccurrenceData;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
@@ -28,8 +29,9 @@ public class RawDataIndex extends IndexTemplate {
 
     public RawDataIndex() {
         super(RAW_DATA_INDEX + "-template", RAW_DATA_INDEX + "*",
-                new DocType(LoadData.TYPE, "persistency/loadData.json", LoadData.class),
-                new DocType(ThreadDumpData.TYPE, "persistency/threadDumpData.json", ThreadDumpData.class)
+                new DocType("load", "persistency/loadData.json", LoadData.class),
+                new DocType("thread", "persistency/threadDumpData.json", ThreadDumpData.class),
+                new DocType("occurrence", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class)
         );
     }
 

@@ -39,7 +39,7 @@ public class JvmMonitorFeature extends AgentFeature {
     }
 
     @Override
-    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command) {
+    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command, RawDataFactory rawDataFactory) {
         Map json = (Map) dataJson;
         Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
         List liveThreads = (List) json.get(LIVE_THREADS);
@@ -49,14 +49,31 @@ public class JvmMonitorFeature extends AgentFeature {
         List<RawData> rawData = new ArrayList<>();
         if (processCpuLoad != null) {
             message += "\n" + String.format("process CPU load: %.2f", processCpuLoad * 100) + "%";
-            rawData.add(new LoadData(processCpuLoad));
+            LoadData data = rawDataFactory.createInstance(LoadData.class);
+            data.processCpuLoad = processCpuLoad;
+            rawData.add(data);
         }
 
         if (liveThreads != null) {
             message += "\n" + liveThreads.size() + " live threads";
+
+            Map<String, ThreadOccurrenceData> occurrences = new HashMap<>();
             for (Object thread : liveThreads) {
-                rawData.add(new ThreadDumpData((Map<String, Object>) thread));
+                ThreadDumpData dumpData = rawDataFactory.createInstance(ThreadDumpData.class);
+                dumpData.read((Map<String, Object>) thread);
+
+                ThreadOccurrenceData occurrenceData = occurrences.get(dumpData.dumpId);
+                if (occurrenceData == null) {
+                    rawData.add(dumpData);
+                    occurrenceData = rawDataFactory.createInstance(ThreadOccurrenceData.class);
+                    occurrenceData.dumpId = dumpData.dumpId;
+                    occurrenceData.count = 1;
+                    occurrences.put(occurrenceData.dumpId, occurrenceData);
+                } else {
+                    occurrenceData.count++;
+                }
             }
+            rawData.addAll(occurrences.values());
         }
 
         command.successText = message;

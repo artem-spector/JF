@@ -1,12 +1,13 @@
 package com.jflop.server.runtime;
 
-import com.jflop.server.feature.AgentFeature;
-import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AgentJVMIndex;
 import com.jflop.server.admin.data.*;
+import com.jflop.server.feature.AgentFeature;
 import com.jflop.server.feature.FeatureManager;
+import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.RawData;
+import com.jflop.server.runtime.data.RawDataFactory;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -50,6 +51,7 @@ public class RuntimeDAO {
 
         // loop by features reported by the agent, and update the command state and insert the raw data
         JFAgent agent = account.getAgent(agentId);
+        RawDataFactory rawDataFactory = new RawDataFactory(rawDataIndex, agentJvm, now);
         for (Map.Entry<String, Object> entry : featuresData.entrySet()) {
             // make sure the reported feature is enabled for the agent
             String featureId = entry.getKey();
@@ -66,27 +68,10 @@ public class RuntimeDAO {
 
             // update the command state and extract raw data
             command.respondedAt = now;
-            Object dataJson = entry.getValue();
-            List<RawData> rawData = feature.parseReportedData(dataJson, command);
-
-            // remove duplicate document IDs from raw data list
-            Set<String> docIDs = new HashSet<>();
-            for (Iterator<RawData> iterator = rawData.iterator(); iterator.hasNext(); ) {
-                String documentId = iterator.next().getDocumentId();
-                if (documentId != null)
-                    if (docIDs.contains(documentId))
-                        iterator.remove();
-                    else
-                        docIDs.add(documentId);
-            }
+            List<RawData> rawData = feature.parseReportedData(entry.getValue(), command, rawDataFactory);
 
             // insert raw data
-            if (rawData != null) {
-                for (RawData data : rawData) {
-                    data.complete(agentJvm, now);
-                }
-                rawDataIndex.addRawData(rawData);
-            }
+            if (rawData != null) rawDataIndex.addRawData(rawData);
         }
 
         // collect commands to send

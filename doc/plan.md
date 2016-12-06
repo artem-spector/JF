@@ -57,3 +57,7 @@ Status: thread dump data refactored to be raw data
 Next step: 
 create a raw event that represents usage of a specific thread (dumpId) and includes count of that dump.
 That would allow to recognize "active" stacktraces that should be instrumented.
+
+## 6 Dec 2016
+
+Added thread occurrence raw data
