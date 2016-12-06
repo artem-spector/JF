@@ -8,5 +8,6 @@ package com.jflop.server.runtime.data;
 public class ThreadOccurrenceData extends RawData {
 
     public String dumpId;
+    public Thread.State threadState;
     public int count;
 }
