@@ -21,6 +21,7 @@ public class JvmMonitorFeature extends AgentFeature {
     public static final String DISABLE = "disable";
     private static final String PROCESS_CPU_LOAD = "processCpuLoad";
     private static final String LIVE_THREADS = "liveThreads";
+    private static final String HEAP_MEMORY_USAGE = "heapUsage";
     private static final String MESSAGE = "message";
 
     public JvmMonitorFeature() {
@@ -41,19 +42,31 @@ public class JvmMonitorFeature extends AgentFeature {
     @Override
     public List<RawData> parseReportedData(Object dataJson, FeatureCommand command, RawDataFactory rawDataFactory) {
         Map json = (Map) dataJson;
-        Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
-        List liveThreads = (List) json.get(LIVE_THREADS);
         String message = (String) json.get(MESSAGE);
         if (message == null) message = "";
-
         List<RawData> rawData = new ArrayList<>();
-        if (processCpuLoad != null) {
-            message += "\n" + String.format("process CPU load: %.2f", processCpuLoad * 100) + "%";
-            LoadData data = rawDataFactory.createInstance(LoadData.class);
-            data.processCpuLoad = processCpuLoad;
+
+        // JVM load
+        Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
+        Map heapMemoryUsage = (Map) json.get(HEAP_MEMORY_USAGE);
+        LoadData data = null;
+        if (processCpuLoad != null || heapMemoryUsage != null) {
+            data = rawDataFactory.createInstance(LoadData.class);
             rawData.add(data);
         }
+        if (processCpuLoad != null) {
+            data.processCpuLoad = processCpuLoad.floatValue() * 100;
+            message += "\n" + String.format("process CPU load: %.2f", data.processCpuLoad) + "%";
+        }
+        if (heapMemoryUsage != null) {
+            data.heapUsed = intToFloat(heapMemoryUsage.get("used")) / 1000000;
+            data.heapCommitted = intToFloat(heapMemoryUsage.get("committed")) / 1000000;
+            data.heapMax = intToFloat(heapMemoryUsage.get("max")) / 1000000;
+            message += "\n" + String.format("Heap usage (MB): %,.1f of %,.1f, max %,.1f", data.heapUsed, data.heapCommitted, data.heapMax);
+        }
 
+        // threads
+        List liveThreads = (List) json.get(LIVE_THREADS);
         if (liveThreads != null) {
             message += "\n" + liveThreads.size() + " live threads";
 
@@ -79,6 +92,12 @@ public class JvmMonitorFeature extends AgentFeature {
         command.successText = message;
         command.progressPercent = 100;
         return rawData;
+    }
+
+    private float intToFloat(Object val) {
+        if (val instanceof Integer) return ((Integer) val).floatValue();
+        if (val instanceof Long) return ((Long) val).floatValue();
+        throw new RuntimeException("Cannot convert " + val.getClass().getName() + " to float.");
     }
 
 }

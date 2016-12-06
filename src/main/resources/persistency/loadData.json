@@ -29,6 +29,15 @@
 
       "processCpuLoad": {
         "type": "float"
+      },
+      "heapUsed": {
+        "type": "float"
+      },
+      "heapCommitted": {
+        "type": "float"
+      },
+      "heapMax": {
+        "type": "float"
       }
     }
   }

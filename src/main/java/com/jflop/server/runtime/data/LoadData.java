@@ -7,6 +7,9 @@ package com.jflop.server.runtime.data;
  */
 public class LoadData extends RawData {
 
-    public double processCpuLoad;
+    public float processCpuLoad;
+    public float heapUsed;
+    public float heapCommitted;
+    public float heapMax;
 
 }
