@@ -7,12 +7,12 @@ import com.jflop.server.admin.data.AgentJVM;
 import java.util.Date;
 
 /**
- * Base class containing the field common for all types of raw data
+ * Base class for any data type coming from an agent.
  *
  * @author artem
  *         Date: 10/12/16
  */
-public abstract class RawData {
+public abstract class AgentData {
 
     @JsonProperty
     protected AgentJVM agentJvm;
@@ -23,15 +23,4 @@ public abstract class RawData {
     @JsonProperty
     protected String dataType;
 
-    protected RawData() {
-    }
-
-    /**
-     * Define the custom document ID. Default implementation does not define ID and returns null
-     * @return custom document ID or null
-     */
-    @JsonIgnore
-    public String getDocumentId() {
-        return null;
-    }
 }

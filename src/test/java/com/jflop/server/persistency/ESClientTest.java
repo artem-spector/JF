@@ -12,6 +12,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -86,7 +87,7 @@ public class ESClientTest {
         esClient.deleteIndices("test*");
         assertFalse(esClient.indexExists(index));
         assertEquals(0, esClient.getTemplates("test*").size());
-        esClient.putTemplate(template, "test-idx*", new DocType[]{new DocType("somepojo", "persistency/somePojo.json", SomePojo.class)});
+        esClient.putTemplate(template, "test-idx*", Arrays.asList(new DocType("somepojo", "persistency/somePojo.json", SomePojo.class)));
         assertEquals(1, esClient.getTemplates(template).size());
 
         // add document and make sure the mapping is same as in the template

@@ -15,7 +15,7 @@ import java.util.Map;
  * @author artem
  *         Date: 11/26/16
  */
-public class ThreadDumpData extends RawData {
+public class ThreadMetadata extends Metadata {
 
     public String dumpId;
     public Thread.State threadState;

@@ -4,9 +4,8 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.runtime.data.AgentData;
-import com.jflop.server.runtime.data.LoadData;
-import com.jflop.server.runtime.data.ThreadOccurrenceData;
+import com.jflop.server.runtime.data.Metadata;
+import com.jflop.server.runtime.data.ThreadMetadata;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
@@ -16,44 +15,42 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * TODO: Document!
+ * Index for metadata like stacktraces or flows definitions that are share by many instances of the raw data,
+ * and kept for long time
  *
  * @author artem
- *         Date: 10/12/16
+ *         Date: 11/26/16
  */
 @Component
-public class RawDataIndex extends IndexTemplate {
+public class MetadataIndex extends IndexTemplate {
 
-    private static final String RAW_DATA_INDEX = "jf-raw-data";
+    private static final String METADADATA_INDEX = "jf-metadata";
 
-    public RawDataIndex() {
-        super(RAW_DATA_INDEX + "-template", RAW_DATA_INDEX + "*",
-                new DocType("load", "persistency/loadData.json", LoadData.class),
-                new DocType("occurrence", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class)
+    public MetadataIndex() {
+        super(METADADATA_INDEX + "-template", METADADATA_INDEX + "*",
+                new DocType("thread", "persistency/threadMetadata.json", ThreadMetadata.class)
         );
     }
 
     @Override
     public String indexName() {
-        // TODO: implement time suffix/alias
-        return RAW_DATA_INDEX;
+        return METADADATA_INDEX;
     }
 
-    public void addRawData(List<AgentData> dataList) {
-        // TODO: use bulk update instead of inserting one by one
-        for (AgentData rawData : dataList) {
-            createDocument(new PersistentData<>(rawData));
+    public void addMetadata(List<Metadata> list) {
+        for (Metadata metadata : list) {
+            createDocumentIfNotExists(new PersistentData<>(metadata.getDocumentId(), 0, metadata));
         }
     }
 
-    public <T extends AgentData> List<T> getRawData(AgentJVM agentJVM, Class<T> rawDataClass, Date fromTime, int maxHits) {
+    public <T extends Metadata> List<T> getMetadata(AgentJVM agentJVM, Class<T> metadataClass, Date fromTime, int maxHits) {
         QueryBuilder query = QueryBuilders.boolQuery()
                 .must(QueryBuilders.rangeQuery("time").gte(fromTime))
                 .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
                 .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
                 .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));
 
-        List<PersistentData<T>> found = find(query, maxHits, rawDataClass);
+        List<PersistentData<T>> found = find(query, maxHits, metadataClass);
 
         List<T> res = new ArrayList<T>();
         for (PersistentData<T> doc : found) {

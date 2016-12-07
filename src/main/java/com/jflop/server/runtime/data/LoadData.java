@@ -5,7 +5,7 @@ package com.jflop.server.runtime.data;
  *
  * @author artem on 12/5/16.
  */
-public class LoadData extends RawData {
+public class LoadData extends AgentData {
 
     public float processCpuLoad;
     public float heapUsed;

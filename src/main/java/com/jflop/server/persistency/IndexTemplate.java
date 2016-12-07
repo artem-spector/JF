@@ -8,8 +8,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -27,7 +26,7 @@ public abstract class IndexTemplate implements InitializingBean {
 
     private String templateName;
     private String template;
-    private DocType[] docTypes;
+    private Map<Class, DocType> docTypes;
 
     @Autowired
     protected ESClient esClient;
@@ -35,12 +34,13 @@ public abstract class IndexTemplate implements InitializingBean {
     protected IndexTemplate(String templateName, String template, DocType... docTypes) {
         this.templateName = templateName;
         this.template = template;
-        this.docTypes = docTypes;
+        this.docTypes = new HashMap<>();
+        for (DocType docType : docTypes) this.docTypes.put(docType.type, docType);
     }
 
     @Override
     public void afterPropertiesSet() {
-        esClient.putTemplate(templateName, template, docTypes);
+        esClient.putTemplate(templateName, template, docTypes.values());
     }
 
     public <T> PersistentData<T> getDocument(PersistentData<T> doc, Class<T> type) {
@@ -103,10 +103,13 @@ public abstract class IndexTemplate implements InitializingBean {
             throw new RuntimeException("Found " + size + " elements when maximum one expected.");
     }
 
+    public Collection<? extends DocType> getDocTypes() {
+        return docTypes.values();
+    }
+
     public String getDocType(Class type) {
-        for (DocType docType : docTypes) {
-            if (docType.type == type) return docType.docType;
-        }
+        DocType docType = docTypes.get(type);
+        if (docType != null) return docType.docType;
         throw new IllegalArgumentException("Unsupported source type: " + type.getName());
     }
 

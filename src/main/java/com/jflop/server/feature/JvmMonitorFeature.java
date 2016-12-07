@@ -40,19 +40,19 @@ public class JvmMonitorFeature extends AgentFeature {
     }
 
     @Override
-    public List<RawData> parseReportedData(Object dataJson, FeatureCommand command, RawDataFactory rawDataFactory) {
+    public List<AgentData> parseReportedData(Object dataJson, FeatureCommand command, AgentDataFactory agentDataFactory) {
         Map json = (Map) dataJson;
         String message = (String) json.get(MESSAGE);
         if (message == null) message = "";
-        List<RawData> rawData = new ArrayList<>();
+        List<AgentData> res = new ArrayList<>();
 
         // JVM load
         Double processCpuLoad = (Double) json.get(PROCESS_CPU_LOAD);
         Map heapMemoryUsage = (Map) json.get(HEAP_MEMORY_USAGE);
         LoadData data = null;
         if (processCpuLoad != null || heapMemoryUsage != null) {
-            data = rawDataFactory.createInstance(LoadData.class);
-            rawData.add(data);
+            data = agentDataFactory.createInstance(LoadData.class);
+            res.add(data);
         }
         if (processCpuLoad != null) {
             data.processCpuLoad = processCpuLoad.floatValue() * 100;
@@ -72,27 +72,27 @@ public class JvmMonitorFeature extends AgentFeature {
 
             Map<String, ThreadOccurrenceData> occurrences = new HashMap<>();
             for (Object thread : liveThreads) {
-                ThreadDumpData dumpData = rawDataFactory.createInstance(ThreadDumpData.class);
-                dumpData.read((Map<String, Object>) thread);
+                ThreadMetadata threadMetadata = agentDataFactory.createInstance(ThreadMetadata.class);
+                threadMetadata.read((Map<String, Object>) thread);
 
-                ThreadOccurrenceData occurrenceData = occurrences.get(dumpData.dumpId);
+                ThreadOccurrenceData occurrenceData = occurrences.get(threadMetadata.dumpId);
                 if (occurrenceData == null) {
-                    rawData.add(dumpData);
-                    occurrenceData = rawDataFactory.createInstance(ThreadOccurrenceData.class);
-                    occurrenceData.dumpId = dumpData.dumpId;
-                    occurrenceData.threadState = dumpData.threadState;
+                    res.add(threadMetadata);
+                    occurrenceData = agentDataFactory.createInstance(ThreadOccurrenceData.class);
+                    occurrenceData.dumpId = threadMetadata.dumpId;
+                    occurrenceData.threadState = threadMetadata.threadState;
                     occurrenceData.count = 1;
                     occurrences.put(occurrenceData.dumpId, occurrenceData);
                 } else {
                     occurrenceData.count++;
                 }
             }
-            rawData.addAll(occurrences.values());
+            res.addAll(occurrences.values());
         }
 
         command.successText = message;
         command.progressPercent = 100;
-        return rawData;
+        return res;
     }
 
     private float intToFloat(Object val) {

@@ -34,7 +34,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -75,7 +77,7 @@ public class ESClient implements InitializingBean, DisposableBean {
         return response.getIndexTemplates();
     }
 
-    public void putTemplate(String name, String template, DocType[] docTypes) {
+    public void putTemplate(String name, String template, Collection<DocType> docTypes) {
         PutIndexTemplateRequestBuilder request = client.admin().indices().preparePutTemplate(name).setTemplate(template).setOrder(1);
         for (DocType docType : docTypes) {
             request.addMapping(docType.docType, docType.readMapping());

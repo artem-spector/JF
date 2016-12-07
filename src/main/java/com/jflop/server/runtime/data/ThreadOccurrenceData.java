@@ -5,7 +5,7 @@ package com.jflop.server.runtime.data;
  *
  * @author artem on 12/6/16.
  */
-public class ThreadOccurrenceData extends RawData {
+public class ThreadOccurrenceData extends AgentData {
 
     public String dumpId;
     public Thread.State threadState;
