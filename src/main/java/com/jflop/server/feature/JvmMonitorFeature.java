@@ -81,6 +81,7 @@ public class JvmMonitorFeature extends AgentFeature {
                     occurrenceData = agentDataFactory.createInstance(ThreadOccurrenceData.class);
                     occurrenceData.dumpId = threadMetadata.dumpId;
                     occurrenceData.threadState = threadMetadata.threadState;
+                    occurrenceData.instrumentable = threadMetadata.instrumentable;
                     occurrenceData.count = 1;
                     occurrences.put(occurrenceData.dumpId, occurrenceData);
                 } else {

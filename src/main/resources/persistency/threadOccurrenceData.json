@@ -39,6 +39,10 @@
 
       "count": {
         "type": "integer"
+      },
+
+      "instrumentable": {
+        "type": "boolean"
       }
     }
   }

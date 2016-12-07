@@ -10,4 +10,5 @@ public class ThreadOccurrenceData extends AgentData {
     public String dumpId;
     public Thread.State threadState;
     public int count;
+    public boolean instrumentable;
 }

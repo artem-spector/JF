@@ -20,6 +20,7 @@ public class ThreadMetadata extends Metadata {
     public String dumpId;
     public Thread.State threadState;
     public StackTraceElement[] stackTrace;
+    public boolean instrumentable;
 
     public void read(Map<String, Object> json) {
         threadState = Thread.State.valueOf((String) json.get("threadState"));
@@ -35,6 +36,7 @@ public class ThreadMetadata extends Metadata {
         }
 
         calculateDumpId();
+        calculateInstrumentable();
     }
 
     @Override
@@ -58,6 +60,16 @@ public class ThreadMetadata extends Metadata {
             dumpId = HexUtils.toHexString(res);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void calculateInstrumentable() {
+        instrumentable = false;
+        for (StackTraceElement element : stackTrace) {
+            if (!element.isNativeMethod() && !element.getClassName().startsWith("java.")) {
+                instrumentable = true;
+                return;
+            }
         }
     }
 
