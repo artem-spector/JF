@@ -1,8 +1,11 @@
 package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
+import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.runtime.data.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -24,16 +27,22 @@ public class JvmMonitorFeature extends AgentFeature {
     private static final String HEAP_MEMORY_USAGE = "heapUsage";
     private static final String MESSAGE = "message";
 
+    @Autowired
+    private JvmMonitorAnalysis analysisTask;
+
     public JvmMonitorFeature() {
         super(FEATURE_ID);
     }
 
     @Override
-    public FeatureCommand parseCommand(String command, String paramStr) throws ValidationException {
+    public FeatureCommand parseCommand(AgentJVM agentJVM, String command, String paramStr) throws ValidationException {
         switch (command) {
             case ENABLE:
+                analysisTask.start(agentJVM);
+                return new FeatureCommand(FEATURE_ID, ENABLE, null);
             case DISABLE:
-                return new FeatureCommand(FEATURE_ID, command, null);
+                analysisTask.stop(agentJVM);
+                return new FeatureCommand(FEATURE_ID, DISABLE, null);
             default:
                 throw new ValidationException("Invalid command", "Feature " + FEATURE_ID + " does not support command " + command);
         }

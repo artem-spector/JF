@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 /**
  * TODO: Document!
@@ -60,5 +61,9 @@ public class RawDataIndex extends IndexTemplate {
             res.add(doc.source);
         }
         return res;
+    }
+
+    public Set<String> getRecentDumps(AgentJVM agentJvm, Date fromTime) {
+        return null;
     }
 }

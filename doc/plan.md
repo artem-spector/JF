@@ -61,3 +61,15 @@ That would allow to recognize "active" stacktraces that should be instrumented.
 ## 6 Dec 2016
 
 Added thread occurrence raw data
+
+## 8 Dec 2016
+
+Define instrumentation metadata, that would keep track of instrumented methods.
+A typical life cycle of an instrumented method is like this:
+
+1. reported as a stack trace element of a recently active stack trace - create an entry or update last usage time
+2. attempt to instrument and convert it to class + method with signature or add to black list if not instrumentable
+3. snapshot dynamic tuning??
+4. if last usage time is long ago, un-instrument
+ 
+ 

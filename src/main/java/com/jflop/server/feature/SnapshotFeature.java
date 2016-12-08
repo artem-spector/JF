@@ -1,6 +1,7 @@
 package com.jflop.server.feature;
 
 import com.jflop.server.admin.ValidationException;
+import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
@@ -28,7 +29,7 @@ public class SnapshotFeature extends AgentFeature {
     }
 
     @Override
-    public FeatureCommand parseCommand(String command, String paramStr) throws ValidationException {
+    public FeatureCommand parseCommand(AgentJVM agentJVM, String command, String paramStr) throws ValidationException {
         if (!TAKE_SNAPSHOT.equals(command))
             throw new ValidationException("Invalid command", "Command " + command + " not supported by feature " + FEATURE_ID);
 
