@@ -1,5 +1,7 @@
 package com.jflop.server.admin.data;
 
+import java.util.Arrays;
+
 /**
  * TODO: Document!
  *
@@ -19,5 +21,19 @@ public class AgentJVM {
         this.accountId = accountId;
         this.agentId = agentId;
         this.jvmId = jvmId;
+    }
+
+    @Override
+    public int hashCode() {
+        return accountId.hashCode() << 2 + agentId.hashCode() << 1 + jvmId.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || !(obj instanceof AgentJVM)) return false;
+
+        AgentJVM that = (AgentJVM) obj;
+        return Arrays.equals(new Object[]{accountId, agentId, jvmId}, new Object[]{that.accountId, that.agentId, that.jvmId});
     }
 }

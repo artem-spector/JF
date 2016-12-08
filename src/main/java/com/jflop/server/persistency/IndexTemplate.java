@@ -75,6 +75,7 @@ public abstract class IndexTemplate implements InitializingBean {
         esClient.deleteByQuery(indexName(), query);
     }
 
+    // TODO: scalability WARNING - check what happens when there are more entities that maxHits
     public <T> List<PersistentData<T>> find(QueryBuilder query, int maxHits, Class<T> dataType) {
         List<PersistentData<T>> res = new ArrayList<>();
 
