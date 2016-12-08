@@ -56,7 +56,7 @@ public class TaskTest {
         int numSteps = 7;
 
         // same task name and agentJvm - simulates multiple nodes competing for the same lock
-        String taskName = "one";
+        String taskName = "two";
         AgentJVM agentJvm = new AgentJVM("acc1", "agent1", "jvm1");
         String lockId = new TaskLockData(taskName, agentJvm).lockId;
         Map<String, Integer> counter = new HashMap<>();
