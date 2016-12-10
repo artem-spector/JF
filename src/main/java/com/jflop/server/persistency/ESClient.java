@@ -26,6 +26,8 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
+import org.elasticsearch.search.aggregations.Aggregation;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +38,6 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -186,6 +187,23 @@ public class ESClient implements InitializingBean, DisposableBean {
             return searchQuery.execute().actionGet();
         } catch (IndexNotFoundException e) {
             return null;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public Aggregation aggregate(String indexName, String type, QueryBuilder query, AbstractAggregationBuilder aggregation) {
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setTypes(type).setQuery(query).setSize(0)
+                .addAggregation(aggregation);
+        try {
+            SearchResponse response = searchQuery.execute().actionGet();
+            return response.getAggregations().get(aggregation.getName());
+        } catch (IndexNotFoundException e) {
+            return null;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 

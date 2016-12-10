@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
+import org.elasticsearch.search.aggregations.Aggregation;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -91,6 +93,10 @@ public abstract class IndexTemplate implements InitializingBean {
         }
 
         return res;
+    }
+
+    public Aggregation aggregate(QueryBuilder query, AbstractAggregationBuilder aggregation, Class dataType) {
+        return esClient.aggregate(indexName(), getDocType(dataType), query, aggregation);
     }
 
     public <T> PersistentData<T> findSingle(QueryBuilder query, Class<T> dataType) {

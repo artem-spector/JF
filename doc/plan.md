@@ -72,4 +72,10 @@ A typical life cycle of an instrumented method is like this:
 3. snapshot dynamic tuning??
 4. if last usage time is long ago, un-instrument
  
+## 10 Dec 2016
+
+Exceptions in tests caused probably by IntegratioTest that initializes a true JFlop agent, which keeps sending pings when another test clears the indexes.
+Think of a feature that shits down an agent - explicitly in tests, and gradually in real life scenarios.
+
+
  

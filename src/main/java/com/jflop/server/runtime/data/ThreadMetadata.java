@@ -1,12 +1,16 @@
 package com.jflop.server.runtime.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jflop.server.persistency.ValuePair;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.elasticsearch.common.hash.MessageDigests;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Unique thread dump, including the thread state and stack trace.
@@ -36,12 +40,24 @@ public class ThreadMetadata extends Metadata {
         }
 
         calculateDumpId();
-        calculateInstrumentable();
+        instrumentable = !getInstrumentableMethods().isEmpty();
     }
 
     @Override
     public String getDocumentId() {
         return dumpId;
+    }
+
+    @JsonIgnore
+    public Set<ValuePair<String, String>> getInstrumentableMethods() {
+        Set<ValuePair<String, String>> res = new HashSet<>();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            if (!element.isNativeMethod() && !className.startsWith("java.")) {
+                res.add(new ValuePair<>(className, element.getMethodName()));
+            }
+        }
+        return res;
     }
 
     private void calculateDumpId() {
@@ -60,16 +76,6 @@ public class ThreadMetadata extends Metadata {
             dumpId = HexUtils.toHexString(res);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private void calculateInstrumentable() {
-        instrumentable = false;
-        for (StackTraceElement element : stackTrace) {
-            if (!element.isNativeMethod() && !element.getClassName().startsWith("java.")) {
-                instrumentable = true;
-                return;
-            }
         }
     }
 

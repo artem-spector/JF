@@ -212,6 +212,24 @@ public class IntegrationTest {
 
         System.out.println("stop load..");
         stopLoad();
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
+    }
+
+    @Test
+    public void testThreadAnalysis() throws Exception {
+        // start load and monitoring
+        startLoad(5);
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
+
+        Thread.sleep(10000);
+
+        // stop load and monitoring
+        stopLoad();
+        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        System.out.println(command.successText);
     }
 
     private String configurationAsText(JflopConfiguration configuration) throws IOException {

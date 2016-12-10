@@ -1,6 +1,7 @@
 package com.jflop.server.background;
 
 import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,10 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     private void instrumentActiveThreads(AgentJVM agentJvm) {
         GregorianCalendar calendar = new GregorianCalendar();
         calendar.add(Calendar.MINUTE, -5);
-        Set<String> recentDumpIds = rawDataIndex.getRecentDumps(agentJvm, calendar.getTime());
+        Set<String> recentDumpIds = rawDataIndex.getRecentDumpIds(agentJvm, calendar.getTime());
+        Set<ValuePair<String, String>> instrumentable = metadataIndex.getInstrumentableMethods(recentDumpIds);
+
         // report them to instrumentation metadata
+        System.out.println("num of instrumentable methods: " +  instrumentable.size());
     }
 }

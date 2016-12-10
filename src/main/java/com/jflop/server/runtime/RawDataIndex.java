@@ -9,12 +9,13 @@ import com.jflop.server.runtime.data.LoadData;
 import com.jflop.server.runtime.data.ThreadOccurrenceData;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -63,7 +64,24 @@ public class RawDataIndex extends IndexTemplate {
         return res;
     }
 
-    public Set<String> getRecentDumps(AgentJVM agentJvm, Date fromTime) {
-        return null;
+    public Set<String> getRecentDumpIds(AgentJVM agentJvm, Date fromTime) {
+        QueryBuilder query = QueryBuilders.boolQuery()
+                .must(QueryBuilders.rangeQuery("time").gte(fromTime))
+                .must(QueryBuilders.termQuery("agentJvm.accountId", agentJvm.accountId))
+                .must(QueryBuilders.termQuery("agentJvm.agentId", agentJvm.agentId))
+                .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJvm.jvmId));
+
+        // TODO: scalability issue - what if there are mopre that 10000 unique threads?
+        AbstractAggregationBuilder uniqueDumpIds = AggregationBuilders.terms("Unique dump IDs").field("dumpId").size(10000);
+
+        Set<String> res = new HashSet<>();
+        StringTerms found = (StringTerms) aggregate(query, uniqueDumpIds, ThreadOccurrenceData.class);
+        if (found != null) {
+            for (Terms.Bucket bucket : found.getBuckets()) {
+                res.add((String) bucket.getKey());
+            }
+        }
+
+        return res;
     }
 }

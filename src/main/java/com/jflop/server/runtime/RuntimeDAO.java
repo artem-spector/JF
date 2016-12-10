@@ -55,7 +55,7 @@ public class RuntimeDAO implements InitializingBean {
         // This approach is not scalable.
         // TODO: replace the DB access with a token that contains account ID, and is obtained by agent on JVM start
         AccountData account = accountIndex.findByAgent(agentId);
-        if (account == null) throw new RuntimeException("Invalid agent ID");
+        if (account == null) throw new RuntimeException("Invalid agent ID: " + agentId);
 
         // update JVM - level state
         Date now = new Date();

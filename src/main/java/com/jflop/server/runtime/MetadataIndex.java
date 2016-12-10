@@ -4,15 +4,15 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.Metadata;
 import com.jflop.server.runtime.data.ThreadMetadata;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Index for metadata like stacktraces or flows definitions that are share by many instances of the raw data,
@@ -56,6 +56,33 @@ public class MetadataIndex extends IndexTemplate {
         for (PersistentData<T> doc : found) {
             res.add(doc.source);
         }
+        return res;
+    }
+
+    public Set<ValuePair<String, String>> getInstrumentableMethods(Set<String> dumpIds) {
+        Set<ValuePair<String, String>> res = new HashSet<>();
+        BoolQueryBuilder dumps = null;
+        int termCount = 0;
+        int maxTerms = 1024;
+
+        QueryBuilder instrumentable = QueryBuilders.termQuery("instrumentable", true);
+
+        for(Iterator<String> iterator = dumpIds.iterator(); iterator.hasNext();) {
+            if (dumps == null) dumps = QueryBuilders.boolQuery();
+            dumps = dumps.should(QueryBuilders.termQuery("dumpId", iterator.next()));
+            termCount++;
+
+            if (termCount == maxTerms || !iterator.hasNext()) {
+                BoolQueryBuilder query = QueryBuilders.boolQuery().must(instrumentable).must(dumps);
+                List<PersistentData<ThreadMetadata>> found = find(query, termCount, ThreadMetadata.class);
+                for (PersistentData<ThreadMetadata> data : found) {
+                    res.addAll(data.source.getInstrumentableMethods());
+                }
+                dumps = null;
+                termCount = 0;
+            }
+        }
+
         return res;
     }
 }
