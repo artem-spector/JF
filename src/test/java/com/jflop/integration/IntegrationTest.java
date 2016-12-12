@@ -223,7 +223,7 @@ public class IntegrationTest {
         FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
 
-        Thread.sleep(10000);
+        Thread.sleep(1000000);
 
         // stop load and monitoring
         stopLoad();

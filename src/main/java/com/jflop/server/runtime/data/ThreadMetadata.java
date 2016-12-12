@@ -3,9 +3,7 @@ package com.jflop.server.runtime.data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jflop.server.persistency.ValuePair;
 import org.apache.tomcat.util.buf.HexUtils;
-import org.elasticsearch.common.hash.MessageDigests;
 
-import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.util.HashSet;
 import java.util.List;
@@ -61,22 +59,16 @@ public class ThreadMetadata extends Metadata {
     }
 
     private void calculateDumpId() {
-        MessageDigest digest = MessageDigests.sha1();
-        try {
-            digest.update(this.agentJvm.accountId.getBytes("UTF-8"));
-            digest.update(threadState.toString().getBytes("UTF-8"));
-            for (StackTraceElement element : stackTrace) {
-                String fileName = element.getFileName();
-                if (fileName != null) digest.update(fileName.getBytes("UTF-8"));
-                digest.update(String.valueOf(element.getLineNumber()).getBytes("UTF-8"));
-                digest.update(String.valueOf(element.getClassName()).getBytes("UTF-8"));
-                digest.update(String.valueOf(element.getMethodName()).getBytes("UTF-8"));
-            }
-            byte[] res = digest.digest();
-            dumpId = HexUtils.toHexString(res);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+        MessageDigest digest = initDigest();
+        addStringToDigest(threadState.toString(), digest);
+        for (StackTraceElement element : stackTrace) {
+            String fileName = element.getFileName();
+            if (fileName != null) addStringToDigest(fileName, digest);
+            addStringToDigest(String.valueOf(element.getLineNumber()), digest);
+            addStringToDigest(String.valueOf(element.getClassName()), digest);
+            addStringToDigest(String.valueOf(element.getMethodName()), digest);
         }
+        dumpId = digestToString(digest);
     }
 
 }

@@ -2,6 +2,7 @@ package com.jflop.server.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.admin.data.*;
+import com.jflop.server.persistency.PersistentData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -102,6 +103,11 @@ public class AdminDAO {
     public boolean setCommand(AgentJVM agentJVM, String featureId, FeatureCommand command) {
         verifyAccount(agentJVM.accountId, agentJVM.agentId, featureId);
         return agentJvmIndex.setCommand(agentJVM, command);
+    }
+
+    public FeatureCommand getCurrentCommand(AgentJVM agentJVM, String featureId) {
+        PersistentData<AgentJvmState> jvmState = agentJvmIndex.getAgentJvmState(agentJVM, false);
+        return jvmState == null ? null : jvmState.source.getCommand(featureId);
     }
 
     private AccountData verifyAccount(String accountId, String agentId, String featureId) {

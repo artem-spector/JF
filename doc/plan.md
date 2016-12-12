@@ -77,5 +77,16 @@ A typical life cycle of an instrumented method is like this:
 Exceptions in tests caused probably by IntegratioTest that initializes a true JFlop agent, which keeps sending pings when another test clears the indexes.
 Think of a feature that shits down an agent - explicitly in tests, and gradually in real life scenarios.
 
+Instrumentation chronological sequence:
+
+* collect instrumentable methods from the recently active thread dumps. The stacktrace elements have no method signature
+* get from the client the method signatures by sending a command of "ClassInfo" feature.
+  Since command-response is async, the data must be stored in the DB, for example in a "InstrumentationMetadata" document that
+  for a key "agentJvm * class-method" would contain all appropriate method definitions together with other information 
+  like multiple class loaders, instrumentability, etc.
+* after the method signatures are available in the instrumentation metadata, put together the instrumentation configuration, 
+  and send it via InstrumentationConfigurationFeature.
+* when last reported client configuration available via success text of last InstrumentationConfigurationFeature command 
+  is close enough to the desired configuration, send a snapshot command.
 
  

@@ -5,6 +5,7 @@ import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.persistency.ValuePair;
+import com.jflop.server.runtime.data.InstrumentationMetadata;
 import com.jflop.server.runtime.data.Metadata;
 import com.jflop.server.runtime.data.ThreadMetadata;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -28,7 +29,8 @@ public class MetadataIndex extends IndexTemplate {
 
     public MetadataIndex() {
         super(METADADATA_INDEX + "-template", METADADATA_INDEX + "*",
-                new DocType("thread", "persistency/threadMetadata.json", ThreadMetadata.class)
+                new DocType("thread", "persistency/threadMetadata.json", ThreadMetadata.class),
+                new DocType("class", "persistency/instrumentationMetadata.json", InstrumentationMetadata.class)
         );
     }
 
@@ -84,5 +86,11 @@ public class MetadataIndex extends IndexTemplate {
         }
 
         return res;
+    }
+
+    public InstrumentationMetadata getClassMetadata(AgentJVM agentJVM, String className) {
+        String id = new InstrumentationMetadata(agentJVM, className).getDocumentId();
+        PersistentData<InstrumentationMetadata> document = getDocument(new PersistentData<>(id, 0), InstrumentationMetadata.class);
+        return document == null ? null : document.source;
     }
 }
