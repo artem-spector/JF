@@ -1,8 +1,10 @@
 package com.jflop.server.runtime.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jflop.server.util.DigestUtil;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.elasticsearch.common.hash.MessageDigests;
+import org.springframework.util.DigestUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -13,27 +15,6 @@ import java.security.MessageDigest;
  * @author artem on 12/7/16.
  */
 public abstract class Metadata extends AgentData {
-
-    protected MessageDigest initDigest() {
-        MessageDigest digest = MessageDigests.sha1();
-        addStringToDigest(agentJvm.accountId, digest);
-        addStringToDigest(agentJvm.agentId, digest);
-        addStringToDigest(agentJvm.jvmId, digest);
-        return digest;
-    }
-
-    protected void addStringToDigest(String str, MessageDigest digest) {
-        try {
-            digest.update(str.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected String digestToString(MessageDigest digest) {
-        byte[] res = digest.digest();
-        return HexUtils.toHexString(res);
-    }
 
     /**
      * Get the custom document ID.

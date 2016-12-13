@@ -2,6 +2,7 @@ package com.jflop.server.background;
 
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.feature.ClassInfoFeature;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
@@ -33,6 +34,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     @Autowired
     private ClassInfoFeature classInfoFeature;
+
+    @Autowired
+    private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
 
     public JvmMonitorAnalysis() {
         super("JVMRawDataAnalysis", 60, 3, 100);
@@ -73,7 +77,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         }
 
         if (!classMethodSignatures.isEmpty()) {
-            System.out.println("Over here!!!");
             JflopConfiguration conf = new JflopConfiguration();
 
             for (Map.Entry<String, Map<String, List<String>>> entry : classMethodSignatures.entrySet()) {
@@ -83,18 +86,31 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                     List<String> signatures = methodEntry.getValue();
                     switch (signatures.size()) {
                         case 0:
-                            logger.severe("No signature found for method " + className + "#" + methodName);
+                            // the method is not instrumentable, don't add it
                             break;
                         case 1:
                             conf.addMethodConfig(new MethodConfiguration(className + "." + signatures.get(0)));
                             break;
                         default:
-                            logger.severe("More than one signatures found for method " + className + "#" + methodName + ": " + signatures);
+                            logger.warning(signatures.size() + " signatures found for method " + className + "#" + methodName + ", instrumenting all of them.");
+                            for (String signature : signatures) {
+                                conf.addMethodConfig(new MethodConfiguration(className + "." + signature));
+                            }
                             break;
                     }
                 }
-
             }
+
+            JflopConfiguration existing = instrumentationConfigurationFeature.getConfiguration(agentJvm);
+            if (existing == null)
+                return;
+
+            Set<MethodConfiguration> methodsToAdd = new HashSet<>(conf.getAllMethods());
+            methodsToAdd.removeAll(existing.getAllMethods());
+            for (MethodConfiguration methodConfig : methodsToAdd) {
+                existing.addMethodConfig(methodConfig);
+            }
+            instrumentationConfigurationFeature.setConfiguration(agentJvm, existing);
         }
     }
 }

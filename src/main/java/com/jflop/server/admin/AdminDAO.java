@@ -100,9 +100,9 @@ public class AdminDAO {
         }
     }
 
-    public boolean setCommand(AgentJVM agentJVM, String featureId, FeatureCommand command) {
-        verifyAccount(agentJVM.accountId, agentJVM.agentId, featureId);
-        return agentJvmIndex.setCommand(agentJVM, command);
+    public void setCommand(AgentJVM agentJVM, FeatureCommand command) {
+        verifyAccount(agentJVM.accountId, agentJVM.agentId, command.featureId);
+        agentJvmIndex.setCommand(agentJVM, command);
     }
 
     public FeatureCommand getCurrentCommand(AgentJVM agentJVM, String featureId) {

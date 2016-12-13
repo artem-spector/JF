@@ -1,6 +1,7 @@
 package com.jflop.server.runtime.data;
 
 import com.jflop.server.admin.data.AgentJVM;
+import com.jflop.server.util.DigestUtil;
 
 import java.security.MessageDigest;
 import java.util.List;
@@ -29,10 +30,7 @@ public class InstrumentationMetadata extends Metadata {
     public void init(String className, Map<String, List<String>> methodsSignatures) {
         this.className = className;
         this.methodSignatures = methodsSignatures;
-
-        MessageDigest digest = initDigest();
-        addStringToDigest(className, digest);
-        classId = digestToString(digest);
+        classId = DigestUtil.uniqueId(agentJvm, className);
     }
 
     @Override

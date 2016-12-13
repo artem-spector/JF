@@ -8,10 +8,9 @@ import com.jflop.server.runtime.data.AgentDataFactory;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * TODO: Document!
@@ -21,6 +20,8 @@ import java.util.List;
  */
 @Component
 public class InstrumentationConfigurationFeature extends AgentFeature {
+
+    private static final Logger logger = Logger.getLogger(InstrumentationConfigurationFeature.class.getName());
 
     public static final String FEATURE_ID = "instr-conf";
     public static final String GET_CONFIG = "get-config";
@@ -61,4 +62,22 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
         }
     }
 
+    public JflopConfiguration getConfiguration(AgentJVM agentJvm) {
+        FeatureCommand currentCommand = getCurrentCommand(agentJvm);
+        if (currentCommand != null && currentCommand.respondedAt != null) {
+            String configStr = currentCommand.successText;
+            try {
+                return new JflopConfiguration(new ByteArrayInputStream(configStr.getBytes("UTF-8")));
+            } catch (IOException e) {
+                logger.warning("Failed to read instrumentation config reported by agent.");
+            }
+        }
+
+        sendCommandIfNotInProgress(agentJvm, GET_CONFIG, null);
+        return null;
+    }
+
+    public void setConfiguration(AgentJVM agentJvm, JflopConfiguration configuration) {
+        sendCommandIfNotInProgress(agentJvm, SET_CONFIG, configuration.asJson());
+    }
 }

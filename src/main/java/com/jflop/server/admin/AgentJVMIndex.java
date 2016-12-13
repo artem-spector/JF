@@ -1,12 +1,14 @@
 package com.jflop.server.admin;
 
-import com.jflop.server.persistency.DocType;
-import com.jflop.server.persistency.IndexTemplate;
-import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.persistency.DocType;
+import com.jflop.server.persistency.IndexTemplate;
+import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.util.DigestUtil;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 
@@ -64,29 +66,32 @@ public class AgentJVMIndex extends IndexTemplate {
     }
 
     public PersistentData<AgentJvmState> getAgentJvmState(AgentJVM agentJVM, boolean createIfNotExists) {
-        PersistentData<AgentJvmState> res = findSingle(
-                QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
-                        .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
-                        .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId)),
-                AgentJvmState.class);
-
+        String id = DigestUtil.uniqueId(agentJVM);
+        PersistentData<AgentJvmState> res = getDocument(new PersistentData<>(id, 0), AgentJvmState.class);
         if (res != null)
             return res;
 
         if (createIfNotExists)
-            return createDocument(new PersistentData<>(new AgentJvmState(agentJVM)));
+            return createDocument(new PersistentData<>(id, 0, new AgentJvmState(agentJVM)));
 
         throw new RuntimeException("Invalid JVM ID");
     }
 
-    public boolean setCommand(AgentJVM agentJVM, FeatureCommand command) {
-        PersistentData<AgentJvmState> document = getAgentJvmState(agentJVM, false);
-        document.source.setCommand(command);
-        document.version = 0; // override concurrent changes from agent runtime
-
-        PersistentData<AgentJvmState> res = updateDocument(document);
-        return res.version > document.version;
+    public void setCommand(AgentJVM agentJVM, FeatureCommand command) {
+        int maxAttempts = 3;
+        for (int i = 0; i < maxAttempts; i++) {
+            PersistentData<AgentJvmState> document = getAgentJvmState(agentJVM, false);
+            document.source.setCommand(command);
+            PersistentData<AgentJvmState> res;
+            try {
+                res = updateDocument(document);
+                if (res.version > document.version)
+                    return;
+            } catch (VersionConflictEngineException e) {
+                // try again
+            }
+        }
+        throw new RuntimeException("Failed to set feature command " + command.featureId + ":" + command.commandName + " after " + maxAttempts + " attempts");
     }
 
 }

@@ -116,7 +116,7 @@ public class AdminController {
         try {
             AgentJVM agentJVM = new AgentJVM(accountId(), agentId, jvmId);
             FeatureCommand featureCommand = feature.parseCommand(agentJVM, command, data);
-            adminDAO.setCommand(agentJVM, featureId, featureCommand);
+            adminDAO.setCommand(agentJVM, featureCommand);
             return ResponseEntity.ok().build();
         } catch (ValidationException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.toResponseBody());

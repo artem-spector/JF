@@ -2,7 +2,7 @@ package com.jflop.server.runtime.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jflop.server.persistency.ValuePair;
-import org.apache.tomcat.util.buf.HexUtils;
+import com.jflop.server.util.DigestUtil;
 
 import java.security.MessageDigest;
 import java.util.HashSet;
@@ -59,16 +59,17 @@ public class ThreadMetadata extends Metadata {
     }
 
     private void calculateDumpId() {
-        MessageDigest digest = initDigest();
-        addStringToDigest(threadState.toString(), digest);
+        MessageDigest digest = DigestUtil.initDigest(agentJvm);
+        DigestUtil.addStringsToDigest(digest, threadState.toString());
         for (StackTraceElement element : stackTrace) {
             String fileName = element.getFileName();
-            if (fileName != null) addStringToDigest(fileName, digest);
-            addStringToDigest(String.valueOf(element.getLineNumber()), digest);
-            addStringToDigest(String.valueOf(element.getClassName()), digest);
-            addStringToDigest(String.valueOf(element.getMethodName()), digest);
+            if (fileName != null) DigestUtil.addStringsToDigest(digest, fileName);
+            DigestUtil.addStringsToDigest(digest,
+                    String.valueOf(element.getLineNumber()),
+                    String.valueOf(element.getClassName()),
+                    String.valueOf(element.getMethodName()));
         }
-        dumpId = digestToString(digest);
+        dumpId = DigestUtil.digestToHexString(digest);
     }
 
 }

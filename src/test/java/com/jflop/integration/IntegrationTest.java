@@ -1,6 +1,7 @@
 package com.jflop.integration;
 
 import com.jflop.HttpTestClient;
+import com.jflop.TestUtil;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AdminClient;
@@ -75,6 +76,7 @@ public class IntegrationTest {
 
     @Before
     public void activateAgent() throws Exception {
+        TestUtil.reset();
         if (adminClient != null) return;
 
         for (IndexTemplate index : allIndexes) index.deleteIndex();
@@ -222,8 +224,21 @@ public class IntegrationTest {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
         FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
         System.out.println(command.successText);
+        Thread.sleep(3000); // let collect some thread dumps
 
-        Thread.sleep(1000000);
+        long begin = System.currentTimeMillis();
+        boolean instrumentationSet = false;
+        JflopConfiguration jflopConfiguration = null;
+        int timeoutSec = 15;
+        while (System.currentTimeMillis() - begin < timeoutSec * 1000 && !instrumentationSet) {
+            System.out.print(".");
+            Thread.sleep(1000);
+            jflopConfiguration = configurationFeature.getConfiguration(agentJVM);
+            instrumentationSet = jflopConfiguration != null && !jflopConfiguration.isEmpty();
+        }
+
+        jflopConfiguration.toProperties().store(System.out, "Current configuration");
+        assertTrue("Instrumentation configuration not set in " + timeoutSec + " sec", instrumentationSet);
 
         // stop load and monitoring
         stopLoad();
