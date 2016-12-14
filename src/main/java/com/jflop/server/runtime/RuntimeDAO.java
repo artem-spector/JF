@@ -6,11 +6,9 @@ import com.jflop.server.admin.data.*;
 import com.jflop.server.feature.AgentFeature;
 import com.jflop.server.feature.FeatureManager;
 import com.jflop.server.persistency.DocType;
-import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
 import com.jflop.server.runtime.data.Metadata;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -57,9 +55,9 @@ public class RuntimeDAO implements InitializingBean {
         AccountData account = accountIndex.findByAgent(agentId);
         if (account == null) throw new RuntimeException("Invalid agent ID: " + agentId);
 
-        // update JVM - level state
         Date now = new Date();
         AgentJVM agentJvm = new AgentJVM(account.accountId, agentId, jvmId);
+        AgentJvmState jvmState = agentJVMIndex.getAgentJvmState(agentJvm, true).source;
 
         // loop by features reported by the agent, and update the command state and insert the raw data
         JFAgent agent = account.getAgent(agentId);
@@ -71,9 +69,13 @@ public class RuntimeDAO implements InitializingBean {
             validateFeature(agent, featureId);
             AgentFeature feature = featureManager.getFeature(featureId);
 
-            // create the feature command
-            FeatureCommand command = new FeatureCommand();
-            command.featureId = featureId;
+            // get or create the feature command
+            FeatureCommand command = jvmState.getCommand(featureId);
+            if (command == null) {
+                command = new FeatureCommand();
+                command.featureId = featureId;
+                jvmState.setCommand(command);
+            }
             updatedCommands.add(command);
 
             // update the command state and extract raw data
@@ -95,57 +97,36 @@ public class RuntimeDAO implements InitializingBean {
             }
         }
 
-        AgentJvmState jvmState = null;
-        boolean updated = false;
-        int maxAttempts = 3;
-        for (int i = 0; i < maxAttempts; i++) {
-            // retrieve agent jvm state
-            PersistentData<AgentJvmState> doc = agentJVMIndex.getAgentJvmState(agentJvm, true);
-            jvmState = doc.source;
-            jvmState.lastReportedAt = now;
-            jvmState.errors = (List<String>) featuresData.remove("errors");
+        agentJVMIndex.updateJvmState(agentJvm, 3, jvm -> {
+            jvm.lastReportedAt = now;
+            jvm.errors = (List<String>) featuresData.remove("errors");
+            for (FeatureCommand command : updatedCommands)
+                jvm.setCommand(command);
+        });
 
-            // update commands
-            for (FeatureCommand command : updatedCommands) {
-                FeatureCommand existing = jvmState.getCommand(command.featureId);
-                if (existing == null) {
-                    jvmState.setCommand(command);
-                } else {
-                    existing.successText = command.successText;
-                    existing.errorText = command.errorText;
-                    existing.progressPercent = command.progressPercent;
-                    existing.respondedAt = command.respondedAt;
+        return retrieveCommandsToSend(now, agentJvm);
+    }
+
+    private List<Map<String, Object>> retrieveCommandsToSend(Date now, AgentJVM agentJvm) {
+        List<Map<String, Object>> taskList = new ArrayList<>();
+        agentJVMIndex.updateJvmState(agentJvm, 3, jvm -> {
+            for (FeatureCommand command : jvm.featureCommands) {
+                if (command.sentAt == null) {
+                    command.sentAt = now;
+                    taskList.add(commandAsJson(command));
                 }
             }
-
-            // store jvm state
-            try {
-                agentJVMIndex.updateDocument(doc);
-                updated = true;
-                break;
-            } catch (VersionConflictEngineException e) {
-                // continue
-            }
-        }
-
-        if (!updated)
-            throw new RuntimeException("Failed to update JVM agent state after " + maxAttempts + " attempts.");
-
-        // collect commands to send
-        List<Map<String, Object>> taskList = new ArrayList<>();
-        for (FeatureCommand command : jvmState.featureCommands) {
-            if (command.sentAt == null) {
-                Map<String, Object> task = new HashMap<>();
-                task.put("feature", command.featureId);
-                Map<String, Object> commandJson = new HashMap<>();
-                task.put("command", commandJson);
-                commandJson.put(command.commandName, command.commandParam);
-                taskList.add(task);
-                command.sentAt = now;
-            }
-        }
-
+        });
         return taskList;
+    }
+
+    private Map<String, Object> commandAsJson(FeatureCommand command) {
+        Map<String, Object> task = new HashMap<>();
+        task.put("feature", command.featureId);
+        Map<String, Object> commandJson = new HashMap<>();
+        task.put("command", commandJson);
+        commandJson.put(command.commandName, command.commandParam);
+        return task;
     }
 
     private void validateFeature(JFAgent agent, String featureId) {

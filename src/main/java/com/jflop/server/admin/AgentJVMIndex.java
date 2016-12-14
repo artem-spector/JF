@@ -94,4 +94,24 @@ public class AgentJVMIndex extends IndexTemplate {
         throw new RuntimeException("Failed to set feature command " + command.featureId + ":" + command.commandName + " after " + maxAttempts + " attempts");
     }
 
+    public void updateJvmState(AgentJVM agentJVM, int maxAttempts, JvmStateMergeAction action) {
+        boolean success = false;
+        for (int i = 0; i < maxAttempts; i++) {
+            PersistentData<AgentJvmState> existing = getAgentJvmState(agentJVM, true);
+            action.merge(existing.source);
+            try {
+                updateDocument(existing);
+                success = true;
+                break;
+            } catch (VersionConflictEngineException e) {
+                // continue
+            }
+        }
+        if (!success)
+            throw new RuntimeException("Failed to update JVM state after " + maxAttempts + " attempts");
+    }
+
+    public interface JvmStateMergeAction {
+        void merge(AgentJvmState existing);
+    }
 }
