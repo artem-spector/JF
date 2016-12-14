@@ -176,7 +176,7 @@ public class IntegrationTest {
     @Test
     public void testThreadDumpMetadata() throws Exception {
         // 1. no flows in the beginning
-        List<ThreadMetadata> existing = metadataIndex.getMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
+        List<ThreadMetadata> existing = metadataIndex.findMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
         assertEquals(0, existing.size());
 
         // 2. enable monitor feature, and make sure there are some flows detected, and all have different stack traces
@@ -185,7 +185,7 @@ public class IntegrationTest {
         System.out.println(command.successText);
 
         metadataIndex.refreshIndex();
-        existing = metadataIndex.getMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
+        existing = metadataIndex.findMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue("No thread dump metadata found for accountId " + agentJVM.accountId, existing.size() > 0);
 
@@ -194,7 +194,7 @@ public class IntegrationTest {
         System.out.println(command.successText);
         metadataIndex.refreshIndex();
         int oldSize = existing.size();
-        existing = metadataIndex.getMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
+        existing = metadataIndex.findMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue(oldSize < 2 * existing.size());
 
@@ -208,7 +208,7 @@ public class IntegrationTest {
         System.out.println(command.successText);
         metadataIndex.refreshIndex();
         oldSize = existing.size();
-        existing = metadataIndex.getMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
+        existing = metadataIndex.findMetadata(agentJVM, ThreadMetadata.class, new Date(0L), 1000);
         System.out.println("Number of thread dumps: " + existing.size());
         assertTrue(existing.size() >= oldSize + 1);
 

@@ -134,12 +134,23 @@ public class ESClient implements InitializingBean, DisposableBean {
         }
     }
 
-    public <T> PersistentData<T> createDocumentIfNotExists(String index, String docType, PersistentData<T> doc) {
-        // TODO: think of more elegant way
+    /**
+     * Index the given document if it does not exist yet.
+     * If already exists - do nothing, and return the existing document.
+     *
+     * @param <T>     the source type
+     * @param index   index name
+     * @param docType doctype
+     * @param doc     the document (id and source)
+     * @param type    the source class
+     * @return null if the document was created, or the existing document otherwise
+     */
+    public <T> PersistentData<T> createDocumentIfNotExists(String index, String docType, PersistentData<T> doc, Class<T> type) {
         try {
-            return createDocument(index, docType, doc);
-        } catch (DocumentAlreadyExistsException e) {
+            createDocument(index, docType, doc);
             return null;
+        } catch (DocumentAlreadyExistsException e) {
+            return getDocument(index, docType, doc, type);
         }
     }
 

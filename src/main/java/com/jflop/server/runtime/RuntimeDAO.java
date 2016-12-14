@@ -60,33 +60,28 @@ public class RuntimeDAO implements InitializingBean {
         // update JVM - level state
         Date now = new Date();
         AgentJVM agentJvm = new AgentJVM(account.accountId, agentId, jvmId);
-        PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJvm, true);
-        jvmState.source.lastReportedAt = now;
-        jvmState.source.errors = (List<String>) featuresData.remove("errors");
 
         // loop by features reported by the agent, and update the command state and insert the raw data
         JFAgent agent = account.getAgent(agentId);
         AgentDataFactory agentDataFactory = new AgentDataFactory(agentJvm, now, allDocTypes);
+        List<FeatureCommand> updatedCommands = new ArrayList<>();
         for (Map.Entry<String, Object> entry : featuresData.entrySet()) {
             // make sure the reported feature is enabled for the agent
             String featureId = entry.getKey();
             validateFeature(agent, featureId);
             AgentFeature feature = featureManager.getFeature(featureId);
 
-            // get or create the feature command
-            FeatureCommand command = jvmState.source.getCommand(featureId);
-            if (command == null) {
-                command = new FeatureCommand();
-                command.featureId = featureId;
-                jvmState.source.setCommand(command);
-            }
+            // create the feature command
+            FeatureCommand command = new FeatureCommand();
+            command.featureId = featureId;
+            updatedCommands.add(command);
 
             // update the command state and extract raw data
             command.respondedAt = now;
             List<AgentData> rawData = feature.parseReportedData(entry.getValue(), command, agentDataFactory);
             if (rawData != null) {
                 List<Metadata> metadata = new ArrayList<>();
-                for (Iterator<AgentData> iterator = rawData.iterator(); iterator.hasNext();) {
+                for (Iterator<AgentData> iterator = rawData.iterator(); iterator.hasNext(); ) {
                     AgentData data = iterator.next();
                     if (data instanceof Metadata) {
                         iterator.remove();
@@ -98,12 +93,47 @@ public class RuntimeDAO implements InitializingBean {
                 rawDataIndex.addRawData(rawData);
                 metadataIndex.addMetadata(metadata);
             }
-
         }
+
+        AgentJvmState jvmState = null;
+        boolean updated = false;
+        int maxAttempts = 3;
+        for (int i = 0; i < maxAttempts; i++) {
+            // retrieve agent jvm state
+            PersistentData<AgentJvmState> doc = agentJVMIndex.getAgentJvmState(agentJvm, true);
+            jvmState = doc.source;
+            jvmState.lastReportedAt = now;
+            jvmState.errors = (List<String>) featuresData.remove("errors");
+
+            // update commands
+            for (FeatureCommand command : updatedCommands) {
+                FeatureCommand existing = jvmState.getCommand(command.featureId);
+                if (existing == null) {
+                    jvmState.setCommand(command);
+                } else {
+                    existing.successText = command.successText;
+                    existing.errorText = command.errorText;
+                    existing.progressPercent = command.progressPercent;
+                    existing.respondedAt = command.respondedAt;
+                }
+            }
+
+            // store jvm state
+            try {
+                agentJVMIndex.updateDocument(doc);
+                updated = true;
+                break;
+            } catch (VersionConflictEngineException e) {
+                // continue
+            }
+        }
+
+        if (!updated)
+            throw new RuntimeException("Failed to update JVM agent state after " + maxAttempts + " attempts.");
 
         // collect commands to send
         List<Map<String, Object>> taskList = new ArrayList<>();
-        for (FeatureCommand command : jvmState.source.featureCommands) {
+        for (FeatureCommand command : jvmState.featureCommands) {
             if (command.sentAt == null) {
                 Map<String, Object> task = new HashMap<>();
                 task.put("feature", command.featureId);
@@ -113,14 +143,6 @@ public class RuntimeDAO implements InitializingBean {
                 taskList.add(task);
                 command.sentAt = now;
             }
-        }
-
-        // update persistent state
-        try {
-            agentJVMIndex.updateDocument(jvmState);
-        } catch (VersionConflictEngineException e) {
-            // admin client has interfered, skip this time
-            taskList = new ArrayList<>();
         }
 
         return taskList;

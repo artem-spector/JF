@@ -41,11 +41,14 @@ public class MetadataIndex extends IndexTemplate {
 
     public void addMetadata(List<Metadata> list) {
         for (Metadata metadata : list) {
-            createDocumentIfNotExists(new PersistentData<>(metadata.getDocumentId(), 0, metadata));
+            PersistentData<Metadata> doc = new PersistentData<>(metadata.getDocumentId(), 0, metadata);
+            PersistentData<Metadata> existing = createDocumentIfNotExists(doc);
+            if (existing != null && metadata.mergeTo(existing.source))
+                updateDocument(existing);
         }
     }
 
-    public <T extends Metadata> List<T> getMetadata(AgentJVM agentJVM, Class<T> metadataClass, Date fromTime, int maxHits) {
+    public <T extends Metadata> List<T> findMetadata(AgentJVM agentJVM, Class<T> metadataClass, Date fromTime, int maxHits) {
         QueryBuilder query = QueryBuilders.boolQuery()
                 .must(QueryBuilders.rangeQuery("time").gte(fromTime))
                 .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))

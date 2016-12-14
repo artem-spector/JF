@@ -107,10 +107,12 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
             Set<MethodConfiguration> methodsToAdd = new HashSet<>(conf.getAllMethods());
             methodsToAdd.removeAll(existing.getAllMethods());
-            for (MethodConfiguration methodConfig : methodsToAdd) {
-                existing.addMethodConfig(methodConfig);
+            if (!methodsToAdd.isEmpty()) {
+                for (MethodConfiguration methodConfig : methodsToAdd) {
+                    existing.addMethodConfig(methodConfig);
+                }
+                instrumentationConfigurationFeature.setConfiguration(agentJvm, existing);
             }
-            instrumentationConfigurationFeature.setConfiguration(agentJvm, existing);
         }
     }
 }

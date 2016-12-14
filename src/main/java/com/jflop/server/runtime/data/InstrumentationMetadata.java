@@ -3,7 +3,6 @@ package com.jflop.server.runtime.data;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.util.DigestUtil;
 
-import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 
@@ -36,5 +35,12 @@ public class InstrumentationMetadata extends Metadata {
     @Override
     public String getDocumentId() {
         return classId;
+    }
+
+    @Override
+    public boolean mergeTo(Metadata existing) {
+        InstrumentationMetadata that = (InstrumentationMetadata) existing;
+        that.methodSignatures.putAll(methodSignatures);
+        return true;
     }
 }

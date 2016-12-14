@@ -38,18 +38,21 @@ public class RuntimeController {
             @PathVariable("jvmId") String jvmId,
             @RequestBody Map<String, Object> featuresData) {
 
-        List<Map<String, Object>> tasks = runtimeDAO.reportFeaturesData(agentId, jvmId, featuresData);
+        try {
+            List<Map<String, Object>> tasks = runtimeDAO.reportFeaturesData(agentId, jvmId, featuresData);
 
-        Map<String, Object> res = new HashMap<>();
-        if (!tasks.isEmpty()) {
-            res.put("tasks", tasks);
+            Map<String, Object> res = new HashMap<>();
+            if (!tasks.isEmpty()) {
+                res.put("tasks", tasks);
+            }
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Unexpected exception", e);
+            return ResponseEntity.ok(null);
         }
-        return ResponseEntity.ok(res);
     }
 
     @ExceptionHandler({Throwable.class})
-    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR, reason = "JF server error")
     public void unexpectedException(Throwable ex) {
-        logger.log(Level.SEVERE, "Unexpected exception", ex);
     }
 }

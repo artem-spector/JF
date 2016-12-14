@@ -62,7 +62,8 @@ public abstract class IndexTemplate implements InitializingBean {
     }
 
     public <T> PersistentData<T> createDocumentIfNotExists(PersistentData<T> doc) {
-        return esClient.createDocumentIfNotExists(indexName(), getDocType(doc.source.getClass()), doc);
+        Class<T> docClass = (Class<T>) doc.source.getClass();
+        return esClient.createDocumentIfNotExists(indexName(), getDocType(docClass), doc, docClass);
     }
 
     public boolean deleteDocument(PersistentData doc) {
