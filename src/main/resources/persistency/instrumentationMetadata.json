@@ -17,22 +17,25 @@
           }
         }
       },
-
       "time": {
         "type": "date"
       },
-
       "dataType": {
         "type": "string",
         "index": "not_analyzed"
       },
-
       "classId": {
         "type": "string",
         "index": "not_analyzed"
       },
-
       "className": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "isBlacklisted": {
+        "type": "boolean"
+      },
+      "blacklistReason": {
         "type": "string",
         "index": "not_analyzed"
       }

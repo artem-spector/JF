@@ -43,7 +43,7 @@ public class ClassInfoFeature extends AgentFeature {
         Map<String, Map<String, List<String>>> classMethodSignatures = (Map<String, Map<String, List<String>>>) dataJson;
         for (Map.Entry<String, Map<String, List<String>>> entry : classMethodSignatures.entrySet()) {
             InstrumentationMetadata metadata = agentDataFactory.createInstance(InstrumentationMetadata.class);
-            metadata.init(entry.getKey(), entry.getValue());
+            metadata.setMethodSignatures(entry.getKey(), entry.getValue());
             res.add(metadata);
         }
 

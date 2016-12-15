@@ -5,11 +5,16 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
+import com.jflop.server.runtime.data.InstrumentationMetadata;
 import org.jflop.config.JflopConfiguration;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -26,6 +31,9 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     public static final String FEATURE_ID = "instr-conf";
     public static final String GET_CONFIG = "get-config";
     public static final String SET_CONFIG = "set-config";
+
+    public static final String CONFIG = "config";
+    public static final String BLACKLIST = "blacklist";
 
     public InstrumentationConfigurationFeature() {
         super(FEATURE_ID);
@@ -51,12 +59,26 @@ public class InstrumentationConfigurationFeature extends AgentFeature {
     @Override
     public List<AgentData> parseReportedData(Object dataJson, FeatureCommand command, AgentDataFactory agentDataFactory) {
         try {
-            JflopConfiguration configuration = JflopConfiguration.fromJson(dataJson);
+            Map data = (Map) dataJson;
+            Object configJson = data.get(CONFIG);
+            JflopConfiguration configuration = JflopConfiguration.fromJson(configJson);
             StringWriter writer = new StringWriter();
             configuration.toProperties().store(writer, null);
             command.successText = writer.toString();
             command.progressPercent = 100;
-            return null;
+
+            Object blacklistJson = data.get(BLACKLIST);
+            if (blacklistJson == null)
+                return null;
+            else {
+                List<AgentData> res = new ArrayList<>();
+                for (Map.Entry<String, String> entry : ((Map<String, String>)blacklistJson).entrySet()) {
+                    InstrumentationMetadata metadata = agentDataFactory.createInstance(InstrumentationMetadata.class);
+                    metadata.blacklistClass(entry.getKey(), entry.getValue());
+                    res.add(metadata);
+                }
+                return res;
+            }
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse instrumentation configuration");
         }

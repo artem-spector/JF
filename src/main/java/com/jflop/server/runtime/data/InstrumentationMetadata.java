@@ -1,5 +1,6 @@
 package com.jflop.server.runtime.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.util.DigestUtil;
 
@@ -16,6 +17,8 @@ public class InstrumentationMetadata extends Metadata {
 
     public String classId;
     public String className;
+    public boolean isBlacklisted;
+    public String blacklistReason;
     public Map<String, List<String>> methodSignatures;
 
     public InstrumentationMetadata() {
@@ -23,12 +26,20 @@ public class InstrumentationMetadata extends Metadata {
 
     public InstrumentationMetadata(AgentJVM agentJVM, String className) {
         this.agentJvm = agentJVM;
-        init(className, null);
+        setMethodSignatures(className, null);
     }
 
-    public void init(String className, Map<String, List<String>> methodsSignatures) {
+    @JsonIgnore
+    public void setMethodSignatures(String className, Map<String, List<String>> methodsSignatures) {
         this.className = className;
         this.methodSignatures = methodsSignatures;
+        classId = DigestUtil.uniqueId(agentJvm, className);
+    }
+
+    public void blacklistClass(String className, String reason) {
+        this.className = className;
+        this.isBlacklisted = true;
+        this.blacklistReason = reason;
         classId = DigestUtil.uniqueId(agentJvm, className);
     }
 
@@ -40,7 +51,13 @@ public class InstrumentationMetadata extends Metadata {
     @Override
     public boolean mergeTo(Metadata existing) {
         InstrumentationMetadata that = (InstrumentationMetadata) existing;
-        that.methodSignatures.putAll(methodSignatures);
+        if (isBlacklisted) {
+            that.isBlacklisted = true;
+            that.methodSignatures = null;
+            that.blacklistReason = blacklistReason;
+        } else {
+            that.methodSignatures.putAll(methodSignatures);
+        }
         return true;
     }
 }
