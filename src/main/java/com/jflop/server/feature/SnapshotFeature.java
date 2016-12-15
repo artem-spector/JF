@@ -5,10 +5,14 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
+import com.jflop.server.runtime.data.FlowMetadata;
+import org.jflop.snapshot.Flow;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +27,7 @@ public class SnapshotFeature extends AgentFeature {
 
     public static final String FEATURE_ID = "snapshot";
     public static final String TAKE_SNAPSHOT = "takeSnapshot";
+    public static final String DURATION_SEC = "durationSec";
 
     public SnapshotFeature() {
         super(FEATURE_ID);
@@ -35,10 +40,9 @@ public class SnapshotFeature extends AgentFeature {
 
         try {
             Map param = mapper.readValue(paramStr, Map.class);
-            String duartionParam = "durationSec";
-            Object value = param.get(duartionParam);
+            Object value = param.get(DURATION_SEC);
             if (value instanceof String)
-                param.put(duartionParam, Integer.parseInt((String) value));
+                param.put(DURATION_SEC, Integer.parseInt((String) value));
             return new FeatureCommand(FEATURE_ID, command, param);
         } catch (IOException e) {
             throw new ValidationException("Invalid command parameter", e.toString());
@@ -50,17 +54,35 @@ public class SnapshotFeature extends AgentFeature {
         Map json = (Map) dataJson;
         Integer countdown = (Integer) json.get("countdown");
         if (countdown != null) {
-            Integer durationSec = (Integer) ((Map) command.commandParam).get("durationSec");
+            Integer durationSec = (Integer) ((Map) command.commandParam).get(DURATION_SEC);
             command.progressPercent = ((int) (((float) (durationSec - countdown) / durationSec) * 100));
         }
 
         Map<String, Object> snapshotJson = (Map<String, Object>) json.get("snapshot");
-        if (snapshotJson != null) {
-            command.successText = Snapshot.fromJson(snapshotJson).format(0, 0);
-            command.progressPercent = 100;
-        }
+        if (snapshotJson == null) return null;
 
-        return null;
+        Snapshot snapshot = Snapshot.fromJson(snapshotJson);
+        command.successText = snapshot.format(0, 0);
+        command.progressPercent = 100;
+
+        List<AgentData> res = new ArrayList<>();
+        for (Flow flow : snapshot.getFlowMap().values()) {
+            FlowMetadata metadata = agentDataFactory.createInstance(FlowMetadata.class);
+            metadata.init(flow);
+            res.add(metadata);
+        }
+        return res;
     }
 
+    public void takeSnapshot(AgentJVM agentJvm, int durationSec) {
+        Map<String, Object> param = new HashMap<>();
+        param.put(DURATION_SEC, durationSec);
+        sendCommandIfNotInProgress(agentJvm, TAKE_SNAPSHOT, param);
+    }
+
+    public String getLastSnapshot(AgentJVM agentJvm) {
+        FeatureCommand command = getCurrentCommand(agentJvm);
+        if (command != null && command.progressPercent == 100) return command.successText;
+        return null;
+    }
 }

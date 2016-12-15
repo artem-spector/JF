@@ -3,6 +3,7 @@ package com.jflop.server.background;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
@@ -37,6 +38,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     @Autowired
     private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
+
+    @Autowired
+    private SnapshotFeature snapshotFeature;
 
     public JvmMonitorAnalysis() {
         super("JVMRawDataAnalysis", 60, 3, 100);
@@ -117,7 +121,10 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                     existing.addMethodConfig(methodConfig);
                 }
                 instrumentationConfigurationFeature.setConfiguration(agentJvm, existing);
+                return;
             }
+
+            snapshotFeature.takeSnapshot(agentJvm, 1);
         }
     }
 }

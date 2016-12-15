@@ -70,6 +70,9 @@ public class IntegrationTest {
     @Autowired
     private InstrumentationConfigurationFeature configurationFeature;
 
+    @Autowired
+    private SnapshotFeature snapshotFeature;
+
     private MultipleFlowsProducer producer = new MultipleFlowsProducer();
     private boolean stopIt;
     private Thread[] loadThreads;
@@ -227,18 +230,18 @@ public class IntegrationTest {
         Thread.sleep(3000); // let collect some thread dumps
 
         long begin = System.currentTimeMillis();
-        boolean instrumentationSet = false;
-        JflopConfiguration jflopConfiguration = null;
+        boolean snapshotTaken = false;
+        String snapshotText = null;
         int timeoutSec = 15;
-        while (System.currentTimeMillis() - begin < timeoutSec * 1000 && !instrumentationSet) {
+        while (System.currentTimeMillis() - begin < timeoutSec * 1000 && !snapshotTaken) {
             System.out.print(".");
             Thread.sleep(1000);
-            jflopConfiguration = configurationFeature.getConfiguration(agentJVM);
-            instrumentationSet = jflopConfiguration != null && !jflopConfiguration.isEmpty();
+            snapshotText = snapshotFeature.getLastSnapshot(agentJVM);
+            snapshotTaken = snapshotText != null && !snapshotText.isEmpty();
         }
 
-        jflopConfiguration.toProperties().store(System.out, "Current configuration");
-        assertTrue("Instrumentation configuration not set in " + timeoutSec + " sec", instrumentationSet);
+        System.out.println(snapshotText);
+        assertTrue("Snapshot not taken in " + timeoutSec + " sec", snapshotTaken);
 
         // stop load and monitoring
         stopLoad();

@@ -5,6 +5,7 @@ import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.persistency.ValuePair;
+import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.InstrumentationMetadata;
 import com.jflop.server.runtime.data.Metadata;
 import com.jflop.server.runtime.data.ThreadMetadata;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * Index for metadata like stacktraces or flows definitions that are share by many instances of the raw data,
+ * Index for metadata like stacktraces or flow definitions that are shared by many instances of raw data,
  * and kept for long time
  *
  * @author artem
@@ -30,7 +31,8 @@ public class MetadataIndex extends IndexTemplate {
     public MetadataIndex() {
         super(METADADATA_INDEX + "-template", METADADATA_INDEX + "*",
                 new DocType("thread", "persistency/threadMetadata.json", ThreadMetadata.class),
-                new DocType("class", "persistency/instrumentationMetadata.json", InstrumentationMetadata.class)
+                new DocType("class", "persistency/instrumentationMetadata.json", InstrumentationMetadata.class),
+                new DocType("flow", "persistency/flowMetadata.json", FlowMetadata.class)
         );
     }
 
