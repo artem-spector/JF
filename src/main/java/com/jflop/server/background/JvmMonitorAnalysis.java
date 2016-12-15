@@ -54,13 +54,18 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         Set<ValuePair<String, String>> instrumentable = metadataIndex.getInstrumentableMethods(recentDumpIds);
 
         // get the method signatures, and collect the methods with missing signatures
+        Map<String, InstrumentationMetadata> classMetadataCache = new HashMap<>();
         Map<String, Map<String, List<String>>> classMethodSignatures = new HashMap<>();
         Map<String, List<String>> missingSignatures = new HashMap<>();
+
         for (ValuePair<String, String> pair : instrumentable) {
             String className = pair.value1;
             String methodName = pair.value2;
-            InstrumentationMetadata classMetadata = metadataIndex.getClassMetadata(agentJvm, className);
-            List<String> signatures = classMetadata == null ? null : classMetadata.methodSignatures.get(methodName);
+
+            InstrumentationMetadata classMetadata = classMetadataCache.computeIfAbsent(className, k -> metadataIndex.getClassMetadata(agentJvm, className));
+            List<String> signatures = classMetadata == null ? null
+                    : classMetadata.isBlacklisted ? Collections.EMPTY_LIST
+                    : classMetadata.methodSignatures.get(methodName);
             if (signatures != null) {
                 Map<String, List<String>> methodSignatures = classMethodSignatures.computeIfAbsent(className, k -> new HashMap<>());
                 methodSignatures.put(methodName, signatures);
