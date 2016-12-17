@@ -1,5 +1,18 @@
 {
-  "thread": {
+  "flow": {
+
+    "dynamic_templates": [
+      {
+        "strings": {
+          "match_mapping_type": "string",
+          "mapping": {
+            "type": "string",
+            "index": "not_analyzed"
+          }
+        }
+      }
+    ],
+
     "properties": {
       "agentJvm": {
         "properties": {
@@ -25,24 +38,6 @@
       "dataType": {
         "type": "string",
         "index": "not_analyzed"
-      },
-
-      "dumpId": {
-        "type": "string",
-        "index": "not_analyzed"
-      },
-
-      "threadState": {
-        "type": "string",
-        "index": "not_analyzed"
-      },
-
-      "count": {
-        "type": "integer"
-      },
-
-      "instrumentable": {
-        "type": "boolean"
       }
     }
   }

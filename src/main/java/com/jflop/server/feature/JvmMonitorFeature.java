@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * TODO: Document!
@@ -18,6 +20,8 @@ import java.util.*;
  */
 @Component
 public class JvmMonitorFeature extends AgentFeature {
+
+    private static final Logger logger = Logger.getLogger(JvmMonitorFeature.class.getName());
 
     public static final String FEATURE_ID = "jvmMonitor";
     public static final String ENABLE = "enable";
@@ -82,7 +86,12 @@ public class JvmMonitorFeature extends AgentFeature {
             Map<String, ThreadOccurrenceData> occurrences = new HashMap<>();
             for (Object thread : liveThreads) {
                 ThreadMetadata threadMetadata = agentDataFactory.createInstance(ThreadMetadata.class);
-                threadMetadata.read((Map<String, Object>) thread);
+                try {
+                    threadMetadata.read((Map<String, Object>) thread);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Ignore failed parsing stacktrace: " + thread);
+                    continue;
+                }
 
                 ThreadOccurrenceData occurrenceData = occurrences.get(threadMetadata.dumpId);
                 if (occurrenceData == null) {

@@ -5,6 +5,7 @@ import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.AgentData;
+import com.jflop.server.runtime.data.FlowOccurenceData;
 import com.jflop.server.runtime.data.LoadData;
 import com.jflop.server.runtime.data.ThreadOccurrenceData;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -31,7 +32,8 @@ public class RawDataIndex extends IndexTemplate {
     public RawDataIndex() {
         super(RAW_DATA_INDEX + "-template", RAW_DATA_INDEX + "*",
                 new DocType("load", "persistency/loadData.json", LoadData.class),
-                new DocType("occurrence", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class)
+                new DocType("thread", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class),
+                new DocType("flow", "persistency/flowOccurrenceData.json", FlowOccurenceData.class)
         );
     }
 

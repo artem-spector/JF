@@ -137,8 +137,8 @@ public class AdminController {
         Properties properties = new Properties();
         properties.setProperty("agent.id", agentId);
         properties.setProperty("server.url", serverUrl);
-        properties.setProperty("timeout.connectSec", "1");
-        properties.setProperty("timeout.readSec", "1");
+        properties.setProperty("timeout.connectSec", "2");
+        properties.setProperty("timeout.readSec", "2");
         properties.setProperty("report.intervalSec", "1");
         ByteArrayOutputStream propertiesBytes = new ByteArrayOutputStream();
         properties.store(propertiesBytes, "auto generated");
