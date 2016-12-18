@@ -88,13 +88,14 @@ public class IntegrationTestBase {
         agentJVM = new AgentJVM(accountId, agentId, jvmId);
     }
 
-    protected FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {
+    protected FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec, CommandValidator waitFor) throws Exception {
         long timeoutMillis = fromTime + timeoutSec * 1000;
 
         while (System.currentTimeMillis() < timeoutMillis) {
             PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, false);
             FeatureCommand command = jvmState.source.getCommand(featureId);
-            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > fromTime) {
+            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > fromTime
+                    && (waitFor == null || waitFor.validateCommand(command))) {
                 return command;
             }
             Thread.sleep(300);
@@ -188,6 +189,10 @@ public class IntegrationTestBase {
             }
         }
         return null;
+    }
+
+    protected interface CommandValidator {
+        boolean validateCommand(FeatureCommand command);
     }
 
 }

@@ -12,8 +12,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -47,19 +45,19 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
 
         // 1. submit empty configuration
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(new JflopConfiguration()));
-        FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
+        FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
 
         // 2. get configuration and make sure it's empty
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
-        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
         JflopConfiguration conf = new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
         assertTrue(conf.isEmpty());
 
         // 3. set configuration from a file
         conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
-        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
         assertEquals(conf, new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes())));
     }
@@ -69,17 +67,17 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         // 1. instrument multiple flows producer
         JflopConfiguration conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
         adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
-        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         assertNull(command.errorText);
 
         // 2. take snapshot without load and make sure there are no flows
         Map<String, Object> param = new HashMap<>();
         param.put("durationSec", "2");
         adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println("progress: " + command.progressPercent);
         assertTrue(command.progressPercent >= 50);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10, latest -> latest.successText != null);
         System.out.println(command.successText);
         assertTrue(command.successText.contains("contains no flows."));
 
@@ -87,10 +85,10 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         // 3. take snapshot under load and make sure all the flows are recorded
         startLoad(2);
         adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println("progress: " + command.progressPercent);
         assertTrue(command.progressPercent >= 50);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10, latest -> latest.successText != null);
         System.out.println(command.successText);
         assertTrue(command.successText.contains("2 distinct flows"));
 
@@ -100,17 +98,17 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
     @Test
     public void testJvmMonitorFeature() throws Exception {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
-        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
         assertTrue(command.successText.contains("process CPU load:"));
 
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
         long submitted = System.currentTimeMillis();
-        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, submitted, 10);
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, submitted, 10, null);
         System.out.println(command.successText);
         if (!command.successText.contains("OK")) {
             // the first response may come before the command was received by the client, so wait for the next change
-            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, command.respondedAt.getTime(), 10);
+            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, command.respondedAt.getTime(), 10, null);
         }
         assertTrue(command.successText.contains("OK"));
     }
@@ -123,7 +121,7 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
 
         // 2. enable monitor feature, and make sure there are some flows detected, and all have different stack traces
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
-        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
 
         metadataIndex.refreshIndex();
@@ -132,7 +130,7 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         assertTrue("No thread dump metadata found for accountId " + agentJVM.accountId, existing.size() > 0);
 
         // 3. wait for another report and make sure the number of threads was not duplicated
-        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
         metadataIndex.refreshIndex();
         int oldSize = existing.size();
@@ -146,7 +144,7 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         startLoad(5);
 
         for (int i = 0; i < 1; i++)
-            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+            command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
         metadataIndex.refreshIndex();
         oldSize = existing.size();
@@ -164,7 +162,7 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         // start load and monitoring
         startLoad(5);
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
-        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
         Thread.sleep(3000); // let collect some thread dumps
 
@@ -185,7 +183,7 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         // stop load and monitoring
         stopLoad();
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
-        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
     }
 

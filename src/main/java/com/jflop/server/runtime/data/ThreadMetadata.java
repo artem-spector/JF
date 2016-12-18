@@ -5,10 +5,7 @@ import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.util.DigestUtil;
 
 import java.security.MessageDigest;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Unique thread dump, including the thread state and stack trace.
@@ -18,6 +15,8 @@ import java.util.Set;
  *         Date: 11/26/16
  */
 public class ThreadMetadata extends Metadata {
+
+    private static Set<String> NOT_INSTRUMENTABLE_PACKAGES = new HashSet<>(Arrays.asList("java.", "org.jflop."));
 
     public String dumpId;
     public Thread.State threadState;
@@ -50,9 +49,19 @@ public class ThreadMetadata extends Metadata {
     public Set<ValuePair<String, String>> getInstrumentableMethods() {
         Set<ValuePair<String, String>> res = new HashSet<>();
         for (StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-            if (!element.isNativeMethod() && !className.startsWith("java.")) {
-                res.add(new ValuePair<>(className, element.getMethodName()));
+            boolean instrumentable = !element.isNativeMethod();
+            if (instrumentable) {
+                String className = element.getClassName();
+                for (String prefix : NOT_INSTRUMENTABLE_PACKAGES) {
+                    if (className.startsWith(prefix)) {
+                        instrumentable = false;
+                        break;
+                    }
+                }
+
+                if (instrumentable) {
+                    res.add(new ValuePair<>(className, element.getMethodName()));
+                }
             }
         }
         return res;
