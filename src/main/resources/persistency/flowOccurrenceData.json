@@ -38,6 +38,27 @@
       "dataType": {
         "type": "string",
         "index": "not_analyzed"
+      },
+
+      "rootFlow": {
+        "properties": {
+          "flowId": {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "maxTime": {
+            "type": "long"
+          },
+          "minTime": {
+            "type": "long"
+          },
+          "cumulativeTime": {
+            "type": "long"
+          }
+        }
       }
     }
   }

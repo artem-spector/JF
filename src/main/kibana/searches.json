@@ -1,9 +1,9 @@
 [
   {
-    "_id": "unique-thread-dumps",
+    "_id": "jf-unique-thread-dumps",
     "_type": "search",
     "_source": {
-      "title": "unique thread dumps",
+      "title": "jf-unique-thread-dumps",
       "description": "",
       "hits": 0,
       "columns": [
@@ -16,7 +16,7 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"jf-meta*\",\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\"}},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+        "searchSourceJSON": "{\"index\":\"jf-meta*\",\"query\":{\"query_string\":{\"query\":\"dataType:thread\",\"analyze_wildcard\":true}},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
       }
     }
   }
