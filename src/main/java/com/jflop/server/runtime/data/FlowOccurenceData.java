@@ -11,12 +11,17 @@ import java.util.List;
  * @author artem
  *         Date: 12/17/16
  */
-public class FlowOccurenceData extends AgentData {
+public class FlowOccurenceData extends OccurrenceData {
 
     public FlowElement rootFlow;
 
     public void init(Flow flow) {
         rootFlow = FlowElement.parse(flow);
+    }
+
+    @Override
+    public String getMetadataId() {
+        return rootFlow.flowId;
     }
 
     static class FlowElement {

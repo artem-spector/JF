@@ -30,6 +30,10 @@
 
       "lockedUntil": {
         "type": "date"
+      },
+
+      "processedUntil": {
+        "type": "date"
       }
     }
   }

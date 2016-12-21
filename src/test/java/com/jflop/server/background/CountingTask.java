@@ -1,5 +1,6 @@
 package com.jflop.server.background;
 
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -19,7 +20,7 @@ public class CountingTask extends BackgroundTask {
     }
 
     @Override
-    public void step(TaskLockData lock) {
+    public void step(TaskLockData lock, Date refreshThreshold) {
         hasLock = true;
         Integer num = counter.get(lock.lockId);
         counter.put(lock.lockId, num == null ? 1 : num + 1);

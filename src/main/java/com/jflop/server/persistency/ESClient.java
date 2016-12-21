@@ -7,8 +7,7 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.get.GetRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -35,9 +34,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -184,6 +181,31 @@ public class ESClient implements InitializingBean, DisposableBean {
             }
         else
             return null;
+    }
+
+    public <T> List<T> getDocuments(String indexName, String docType, Class<T> type, Set<String> ids) {
+        MultiGetRequestBuilder request = client.prepareMultiGet().add(indexName, docType, ids);
+        MultiGetResponse response;
+        try {
+            response = request.execute().actionGet();
+        } catch (IndexNotFoundException e) {
+            return null;
+        }
+
+        List<T> res = new ArrayList<T>();
+        for (Iterator<MultiGetItemResponse> iterator = response.iterator(); iterator.hasNext(); ) {
+            MultiGetItemResponse item = iterator.next();
+            GetResponse itemResponse = item.getResponse();
+            if (!item.isFailed() && itemResponse.isExists()) {
+                try {
+                    res.add(mapper.readValue(itemResponse.getSourceAsBytes(), type));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        return res;
     }
 
     public boolean deleteDocument(String indexName, String docType, PersistentData document) {

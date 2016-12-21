@@ -16,6 +16,7 @@ public class TaskLockData {
     public String lockId;
 
     public Date lockedUntil;
+    public Date processedUntil;
 
     public TaskLockData() {
     }
@@ -30,5 +31,6 @@ public class TaskLockData {
             if (agentJvm.jvmId != null) lockId += "-" + agentJvm.jvmId;
         }
         lockedUntil = new Date(0);
+        processedUntil = new Date(0);
     }
 }

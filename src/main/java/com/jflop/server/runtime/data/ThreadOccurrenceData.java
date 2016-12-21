@@ -5,10 +5,15 @@ package com.jflop.server.runtime.data;
  *
  * @author artem on 12/6/16.
  */
-public class ThreadOccurrenceData extends AgentData {
+public class ThreadOccurrenceData extends OccurrenceData {
 
     public String dumpId;
     public Thread.State threadState;
     public int count;
     public boolean instrumentable;
+
+    @Override
+    public String getMetadataId() {
+        return dumpId;
+    }
 }

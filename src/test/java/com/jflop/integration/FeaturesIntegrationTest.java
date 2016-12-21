@@ -164,7 +164,6 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
         FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println(command.successText);
-        Thread.sleep(3000); // let collect some thread dumps
 
         long begin = System.currentTimeMillis();
         boolean snapshotTaken = false;

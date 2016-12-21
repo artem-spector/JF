@@ -49,6 +49,10 @@ public abstract class IndexTemplate implements InitializingBean {
         return esClient.getDocument(indexName(), getDocType(type), doc, type);
     }
 
+    public <T> List<T> getDocuments(Class<T> type, Set<String> ids) {
+        return esClient.getDocuments(indexName(), getDocType(type), type, ids);
+    }
+
     public void deleteIndex() {
         esClient.deleteIndices(indexName());
     }

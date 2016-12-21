@@ -4,9 +4,9 @@ import com.jflop.server.admin.data.AgentJVM;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -20,8 +20,9 @@ import java.util.concurrent.ThreadFactory;
  *
  * @author artem on 12/7/16.
  */
-@Component
 public abstract class BackgroundTask implements InitializingBean, DisposableBean {
+
+    private static final int REFRESH_THRESHOLD_SEC = 2;
 
     private String taskName;
     private long lockTimeoutMillis;
@@ -70,7 +71,7 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
     private void processLock(TaskLockData lock) {
         threadPool.submit(() -> {
             if (lockIndex.obtainLock(lock, System.currentTimeMillis() + lockTimeoutMillis)) {
-                step(lock);
+                step(lock, new Date(System.currentTimeMillis() - REFRESH_THRESHOLD_SEC * 1000));
                 lockIndex.releaseLock(lock);
             }
         });
@@ -89,5 +90,5 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
         lockIndex.deleteTaskLock(new TaskLockData(taskName, key));
     }
 
-    public abstract void step(TaskLockData lock);
+    public abstract void step(TaskLockData lock, Date refreshThreshold);
 }

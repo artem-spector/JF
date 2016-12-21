@@ -88,6 +88,12 @@ public class IntegrationTestBase {
         agentJVM = new AgentJVM(accountId, agentId, jvmId);
     }
 
+    protected void refreshAll() {
+        for (IndexTemplate index : allIndexes) {
+            index.refreshIndex();
+        }
+    }
+
     protected FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec, CommandValidator waitFor) throws Exception {
         long timeoutMillis = fromTime + timeoutSec * 1000;
 

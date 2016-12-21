@@ -29,7 +29,7 @@ public class StandaloneClient {
         StandaloneClient client = new StandaloneClient();
         client.downloadAgent();
         client.activateAgent();
-        client.startLoad(2);
+        client.startLoad(12);
     }
 
     private void downloadAgent() throws Exception {

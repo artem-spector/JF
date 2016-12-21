@@ -7,7 +7,7 @@ import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
-import com.jflop.server.runtime.data.InstrumentationMetadata;
+import com.jflop.server.runtime.data.*;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.jflop.config.NameUtils;
@@ -42,16 +42,23 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     @Autowired
     private SnapshotFeature snapshotFeature;
 
+    // step-level state
+    AgentJVM agentJvm;
+    Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
+    Map<FlowMetadata, List<FlowOccurenceData>> flows;
+    Map<ThreadMetadata, List<FlowMetadata>> threadsToFlows;
+
     public JvmMonitorAnalysis() {
         super("JVMRawDataAnalysis", 60, 3, 100);
     }
 
     @Override
-    public void step(TaskLockData lock) {
-        instrumentActiveThreads(lock.agentJvm);
+    public void step(TaskLockData lock, Date refreshThreshold) {
+        agentJvm = lock.agentJvm;
+        instrumentActiveThreads();
     }
 
-    private void instrumentActiveThreads(AgentJVM agentJvm) {
+    private void instrumentActiveThreads() {
         GregorianCalendar calendar = new GregorianCalendar();
         calendar.add(Calendar.MINUTE, -5);
         Set<String> recentDumpIds = rawDataIndex.getRecentDumpIds(agentJvm, calendar.getTime());
@@ -125,6 +132,31 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             }
 
             snapshotFeature.takeSnapshot(agentJvm, 1);
+        }
+    }
+
+    void mapThreadsToFlows(Date intervalBegin, Date intervalEnd) {
+        threads = null;
+        flows = null;
+        threadsToFlows = null;
+
+        // 1. get recent threads and their metadata
+        threads = rawDataIndex.getOccurrencesAndMetadata(agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, intervalBegin, intervalEnd);
+        if (threads == null ||  threads.isEmpty()) return;
+
+        // 2. get recent snapshots and their metadata
+        threadsToFlows = new HashMap<>();
+        flows = rawDataIndex.getOccurrencesAndMetadata(agentJvm, FlowOccurenceData.class, FlowMetadata.class, intervalBegin, intervalEnd);
+        if (flows == null || flows.isEmpty()) return;
+
+        // 3. find out which thread dumps represent what flows
+        for (ThreadMetadata thread : threads.keySet()) {
+            List<FlowMetadata.FlowElement> expectedFlow = thread.getFlowElements();
+            for (FlowMetadata flow : flows.keySet()) {
+                if (flow.fitsExpectedFlow(expectedFlow)) {
+                    threadsToFlows.computeIfAbsent(thread, threadMetadata -> new ArrayList<>()).add(flow);
+                }
+            }
         }
     }
 }

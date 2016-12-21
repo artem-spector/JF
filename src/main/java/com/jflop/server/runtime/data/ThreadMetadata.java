@@ -49,20 +49,19 @@ public class ThreadMetadata extends Metadata {
     public Set<ValuePair<String, String>> getInstrumentableMethods() {
         Set<ValuePair<String, String>> res = new HashSet<>();
         for (StackTraceElement element : stackTrace) {
-            boolean instrumentable = !element.isNativeMethod();
-            if (instrumentable) {
-                String className = element.getClassName();
-                for (String prefix : NOT_INSTRUMENTABLE_PACKAGES) {
-                    if (className.startsWith(prefix)) {
-                        instrumentable = false;
-                        break;
-                    }
-                }
-
-                if (instrumentable) {
-                    res.add(new ValuePair<>(className, element.getMethodName()));
-                }
+            if (isInstrumentable(element)) {
+                res.add(new ValuePair<>(element.getClassName(), element.getMethodName()));
             }
+        }
+        return res;
+    }
+
+    public List<FlowMetadata.FlowElement> getFlowElements() {
+        List<FlowMetadata.FlowElement> res = new ArrayList<>();
+        for (int i = stackTrace.length - 1; i >= 0; i--) {
+            StackTraceElement element = stackTrace[i];
+            if (isInstrumentable(element))
+                res.add(FlowMetadata.FlowElement.expectedFlowElement(element));
         }
         return res;
     }
@@ -81,4 +80,14 @@ public class ThreadMetadata extends Metadata {
         dumpId = DigestUtil.digestToHexString(digest);
     }
 
+    private boolean isInstrumentable(StackTraceElement element) {
+        if (element.isNativeMethod()) return false;
+        String className = element.getClassName();
+        for (String prefix : NOT_INSTRUMENTABLE_PACKAGES) {
+            if (className.startsWith(prefix)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
