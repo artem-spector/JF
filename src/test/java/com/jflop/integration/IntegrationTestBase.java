@@ -30,6 +30,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static org.junit.Assert.fail;
 
@@ -59,7 +60,7 @@ public class IntegrationTestBase {
     @Autowired
     private Collection<IndexTemplate> allIndexes;
 
-    private MultipleFlowsProducer producer = new MultipleFlowsProducer();
+    private MultipleFlowsProducer producer;
     private boolean stopIt;
     private Thread[] loadThreads;
 
@@ -110,13 +111,15 @@ public class IntegrationTestBase {
     }
 
     protected void startLoad(int numThreads) {
+        Random random = new Random();
+        producer = new MultipleFlowsProducer();
         stopIt = false;
         loadThreads = new Thread[numThreads];
         for (int i = 0; i < loadThreads.length; i++) {
             loadThreads[i] = new Thread("ProcessingThread_" + i) {
                 public void run() {
                     for (int i = 1; !stopIt; i++) {
-                        String user = "usr" + i;
+                        String user = "usr" + i + random.nextInt(100);
                         for (int j = 0; j < 20; j++) {
                             try {
                                 producer.serve(user);
@@ -129,6 +132,7 @@ public class IntegrationTestBase {
             };
             loadThreads[i].start();
         }
+        System.out.println("started load " + numThreads);
     }
 
     protected void stopLoad() {
@@ -148,6 +152,7 @@ public class IntegrationTestBase {
         }
 
         loadThreads = null;
+        System.out.println("load stopped");
     }
 
     protected String configurationAsText(JflopConfiguration configuration) throws IOException {

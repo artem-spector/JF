@@ -1,6 +1,6 @@
 package com.sample;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -13,7 +13,8 @@ import java.util.Map;
  */
 public class MultipleFlowsProducer {
 
-    private Map<String, Object> cache = new HashMap<String, Object>();
+    private int maxCacheSize = 5;
+    private Map<String, Object> cache = new LinkedHashMap<>();
 
     public void serve(String user) {
         Object data = getUserData(user);
@@ -24,6 +25,7 @@ public class MultipleFlowsProducer {
         Object data = cache.get(user);
         if (data == null) {
             data = initUserData(user);
+            if (cache.size() > maxCacheSize) cache.clear();
             cache.put(user, data);
         }
         return data;
