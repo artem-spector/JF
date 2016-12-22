@@ -7,6 +7,7 @@ import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.data.FlowMetadata;
+import com.jflop.server.runtime.data.FlowOccurenceData;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.junit.Test;
@@ -30,10 +31,13 @@ public class AnalysisTest extends IntegrationTestBase {
     @Autowired
     private JvmMonitorAnalysis analysis;
 
+    @Autowired
+    private SnapshotFeature snapshotFeature;
+
     @Test
     public void testThreadsToFlows() throws Exception {
         startLoad(5);
-        monitorJvm(3).get();
+        monitorJvm(2).get();
         setConfiguration(getJflopConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
         takeSnapshot(1);
         stopLoad();
@@ -57,10 +61,9 @@ public class AnalysisTest extends IntegrationTestBase {
 
     @Test
     public void testInstrumentThreads() throws Exception {
-        Future future = monitorJvm(2);
+        Future future = monitorJvm(1);
         startLoad(15);
         future.get();
-        stopLoad();
         refreshAll();
 
         // first pass - still no class metadata, the instrumented methods not set
@@ -73,8 +76,7 @@ public class AnalysisTest extends IntegrationTestBase {
 
         // wait until the class metadata returns and try again
         awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 3, null);
-        future = monitorJvm(2);
-        startLoad(15);
+        future = monitorJvm(1);
         future.get();
         stopLoad();
         refreshAll();
@@ -86,6 +88,52 @@ public class AnalysisTest extends IntegrationTestBase {
         List<MethodConfiguration> expected = getJflopConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
         expected.removeAll(analysis.methodsToInstrument);
         assertTrue("The following methods not instrumented: " + expected, expected.isEmpty());
+    }
+
+    @Test
+    public void testAnalyze() throws Exception {
+        analyzeUntilNextSnapshot(30);
+        analyzeUntilNextSnapshot(10);
+    }
+
+    private void analyzeUntilNextSnapshot(int timeoutSec) throws Exception {
+        Date from = new Date();
+        long until = System.currentTimeMillis() + timeoutSec * 1000;
+        TaskLockData lock = new TaskLockData("analyze test", agentJVM);
+        boolean gotIt = false;
+        while (!gotIt && System.currentTimeMillis() < until) {
+            Future future = monitorJvm(2);
+            startLoad(15);
+            future.get();
+            refreshAll();
+
+            initStep(lock);
+            analysis.analyze();
+
+            if (analysis.flows != null) {
+                for (List<FlowOccurenceData> list : analysis.flows.values()) {
+                    for (FlowOccurenceData occurenceData : list) {
+                        if (occurenceData.time.after(from)) {
+                            gotIt = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!gotIt) {
+                analysis.takeSnapshot();
+                analysis.afterStep(lock);
+            }
+        }
+
+        if (gotIt) {
+            String snapshot = snapshotFeature.getLastSnapshot(agentJVM);
+            assertNotNull(snapshot);
+            System.out.println(snapshot);
+        } else {
+            fail("Did not get a snapshot in " + timeoutSec + " sec");
+        }
     }
 
     private void initStep(TaskLockData lock) {

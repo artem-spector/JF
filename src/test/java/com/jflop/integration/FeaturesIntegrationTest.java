@@ -157,33 +157,4 @@ public class FeaturesIntegrationTest extends IntegrationTestBase {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
     }
 
-    @Test
-    public void testThreadAnalysis() throws Exception {
-        // start load and monitoring
-        startLoad(5);
-        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
-        FeatureCommand command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        System.out.println(command.successText);
-
-        long begin = System.currentTimeMillis();
-        boolean snapshotTaken = false;
-        String snapshotText = null;
-        int timeoutSec = 30;
-        while (System.currentTimeMillis() - begin < timeoutSec * 1000 && !snapshotTaken) {
-            System.out.print(".");
-            Thread.sleep(1000);
-            snapshotText = snapshotFeature.getLastSnapshot(agentJVM);
-            snapshotTaken = snapshotText != null && !snapshotText.isEmpty();
-        }
-
-        System.out.println(snapshotText);
-        assertTrue("Snapshot not taken in " + timeoutSec + " sec", snapshotTaken);
-
-        // stop load and monitoring
-        stopLoad();
-        adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
-        command = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        System.out.println(command.successText);
-    }
-
 }

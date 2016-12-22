@@ -43,13 +43,14 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     private SnapshotFeature snapshotFeature;
 
     // step-level state
-    AgentJVM agentJvm;
+    private AgentJVM agentJvm;
     Date from;
     Date to;
     Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
     Map<FlowMetadata, List<FlowOccurenceData>> flows;
     Map<ThreadMetadata, List<FlowMetadata>> threadsToFlows;
     Set<MethodConfiguration> methodsToInstrument;
+    private JflopConfiguration currentInstrumentation;
 
     public JvmMonitorAnalysis() {
         super("JVMRawDataAnalysis", 60, 3, 100);
@@ -58,7 +59,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     @Override
     public void step(TaskLockData lock, Date refreshThreshold) {
         beforeStep(lock, refreshThreshold);
-        instrumentActiveThreads();
+        analyze();
+        takeSnapshot();
         afterStep(lock);
     }
 
@@ -67,6 +69,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         flows = null;
         threadsToFlows = null;
         methodsToInstrument = null;
+        currentInstrumentation = null;
 
         agentJvm = lock.agentJvm;
         from = lock.processedUntil;
@@ -77,86 +80,33 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         lock.processedUntil = to;
     }
 
-    private void instrumentActiveThreads() {
-        GregorianCalendar calendar = new GregorianCalendar();
-        calendar.add(Calendar.MINUTE, -5);
-        Set<String> recentDumpIds = rawDataIndex.getRecentDumpIds(agentJvm, calendar.getTime());
-        Set<ValuePair<String, String>> instrumentable = metadataIndex.getInstrumentableMethods(recentDumpIds);
-
-        // get the method signatures, and collect the methods with missing signatures
-        Map<String, InstrumentationMetadata> classMetadataCache = new HashMap<>();
-        Map<String, Map<String, List<String>>> classMethodSignatures = new HashMap<>();
-        Map<String, List<String>> missingSignatures = new HashMap<>();
-
-        for (ValuePair<String, String> pair : instrumentable) {
-            String className = pair.value1;
-            String methodName = pair.value2;
-
-            InstrumentationMetadata classMetadata = classMetadataCache.computeIfAbsent(className, k -> metadataIndex.getClassMetadata(agentJvm, className));
-            List<String> signatures = classMetadata == null ? null
-                    : classMetadata.isBlacklisted ? Collections.EMPTY_LIST
-                    : classMetadata.methodSignatures.get(methodName);
-            if (signatures != null) {
-                Map<String, List<String>> methodSignatures = classMethodSignatures.computeIfAbsent(className, k -> new HashMap<>());
-                methodSignatures.put(methodName, signatures);
-            } else {
-                String internalClassName = NameUtils.getInternalClassName(className); // need it because ES does not like "." in field names (map keys)
-                List<String> methods = missingSignatures.computeIfAbsent(internalClassName, k -> new ArrayList<>());
-                methods.add(methodName);
-            }
-        }
-
-        if (!missingSignatures.isEmpty()) {
-            classInfoFeature.getDeclaredMethods(agentJvm, missingSignatures);
-            return;
-        }
-
-        if (!classMethodSignatures.isEmpty()) {
-            JflopConfiguration conf = new JflopConfiguration();
-
-            for (Map.Entry<String, Map<String, List<String>>> entry : classMethodSignatures.entrySet()) {
-                String className = entry.getKey();
-                for (Map.Entry<String, List<String>> methodEntry : entry.getValue().entrySet()) {
-                    String methodName = methodEntry.getKey();
-                    List<String> signatures = methodEntry.getValue();
-                    switch (signatures.size()) {
-                        case 0:
-                            // the method is not instrumentable, don't add it
-                            break;
-                        case 1:
-                            conf.addMethodConfig(new MethodConfiguration(className + "." + signatures.get(0)));
-                            break;
-                        default:
-                            logger.warning(signatures.size() + " signatures found for method " + className + "#" + methodName + ", instrumenting all of them.");
-                            for (String signature : signatures) {
-                                conf.addMethodConfig(new MethodConfiguration(className + "." + signature));
-                            }
-                            break;
-                    }
-                }
-            }
-
-            JflopConfiguration existing = instrumentationConfigurationFeature.getConfiguration(agentJvm);
-            if (existing == null)
-                return;
-
-            Set<MethodConfiguration> methodsToAdd = new HashSet<>(conf.getAllMethods());
-            methodsToAdd.removeAll(existing.getAllMethods());
-            if (!methodsToAdd.isEmpty()) {
-                for (MethodConfiguration methodConfig : methodsToAdd) {
-                    existing.addMethodConfig(methodConfig);
-                }
-                instrumentationConfigurationFeature.setConfiguration(agentJvm, existing);
-                return;
-            }
-
-            snapshotFeature.takeSnapshot(agentJvm, 1);
-        }
-    }
-
     void analyze() {
         mapThreadsToFlows();
         instrumentUncoveredThreads();
+        adjustInstrumentation();
+    }
+
+    void takeSnapshot() {
+        if (currentInstrumentation != null)
+            snapshotFeature.takeSnapshot(agentJvm, 1);
+    }
+
+    void adjustInstrumentation() {
+        JflopConfiguration current = instrumentationConfigurationFeature.getConfiguration(agentJvm);
+        if (current == null) return;
+
+        Set<MethodConfiguration> methodsToAdd = new HashSet<>(methodsToInstrument);
+        methodsToAdd.removeAll(current.getAllMethods());
+
+        if (!methodsToAdd.isEmpty()) {
+            for (MethodConfiguration methodConfig : methodsToAdd) {
+                current.addMethodConfig(methodConfig);
+            }
+            instrumentationConfigurationFeature.setConfiguration(agentJvm, current);
+            return;
+        }
+
+        currentInstrumentation = current;
     }
 
     void instrumentUncoveredThreads() {
@@ -180,7 +130,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                         : classMetadata.methodSignatures.get(methodName);
                 if (signatures != null && !signatures.isEmpty()) {
                     if (signatures.size() > 1)
-                    logger.warning(signatures.size() + " signatures found for method " + className + "#" + methodName + ", instrumenting all of them.");
+                        logger.warning(signatures.size() + " signatures found for method " + className + "#" + methodName + ", instrumenting all of them.");
                     for (String signature : signatures) {
                         methodsToInstrument.add(new MethodConfiguration(className + "." + signature));
                     }
@@ -201,7 +151,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     void mapThreadsToFlows() {
         // 1. get recent threads and their metadata
         threads = rawDataIndex.getOccurrencesAndMetadata(agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, from, to);
-        if (threads == null ||  threads.isEmpty()) return;
+        if (threads == null || threads.isEmpty()) return;
 
         // 2. get recent snapshots and their metadata
         threadsToFlows = new HashMap<>();

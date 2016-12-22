@@ -1,6 +1,5 @@
 package com.jflop.server.runtime.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jflop.server.admin.data.AgentJVM;
 
@@ -18,7 +17,7 @@ public abstract class AgentData {
     protected AgentJVM agentJvm;
 
     @JsonProperty
-    protected Date time;
+    public Date time;
 
     @JsonProperty
     protected String dataType;

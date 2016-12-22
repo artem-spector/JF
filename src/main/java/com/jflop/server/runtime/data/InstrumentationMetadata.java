@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.util.DigestUtil;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +57,10 @@ public class InstrumentationMetadata extends Metadata {
             that.methodSignatures = null;
             that.blacklistReason = blacklistReason;
         } else {
-            that.methodSignatures.putAll(methodSignatures);
+            if (methodSignatures != null && !methodSignatures.isEmpty()) {
+                if (that.methodSignatures == null) that.methodSignatures = new HashMap<>();
+                that.methodSignatures.putAll(methodSignatures);
+            }
         }
         return true;
     }
