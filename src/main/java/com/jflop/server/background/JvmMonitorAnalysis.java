@@ -44,6 +44,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     // step-level state
     AgentJVM agentJvm;
+    Date from;
+    Date to;
     Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
     Map<FlowMetadata, List<FlowOccurenceData>> flows;
     Map<ThreadMetadata, List<FlowMetadata>> threadsToFlows;
@@ -55,6 +57,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     @Override
     public void step(TaskLockData lock, Date refreshThreshold) {
         agentJvm = lock.agentJvm;
+        from = lock.processedUntil;
+        to = refreshThreshold;
+        lock.processedUntil = to;
         instrumentActiveThreads();
     }
 
@@ -135,18 +140,18 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         }
     }
 
-    void mapThreadsToFlows(Date intervalBegin, Date intervalEnd) {
+    void mapThreadsToFlows() {
         threads = null;
         flows = null;
         threadsToFlows = null;
 
         // 1. get recent threads and their metadata
-        threads = rawDataIndex.getOccurrencesAndMetadata(agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, intervalBegin, intervalEnd);
+        threads = rawDataIndex.getOccurrencesAndMetadata(agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, from, to);
         if (threads == null ||  threads.isEmpty()) return;
 
         // 2. get recent snapshots and their metadata
         threadsToFlows = new HashMap<>();
-        flows = rawDataIndex.getOccurrencesAndMetadata(agentJvm, FlowOccurenceData.class, FlowMetadata.class, intervalBegin, intervalEnd);
+        flows = rawDataIndex.getOccurrencesAndMetadata(agentJvm, FlowOccurenceData.class, FlowMetadata.class, from, to);
         if (flows == null || flows.isEmpty()) return;
 
         // 3. find out which thread dumps represent what flows

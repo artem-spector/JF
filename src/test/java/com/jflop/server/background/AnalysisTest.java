@@ -52,10 +52,11 @@ public class AnalysisTest extends IntegrationTestBase {
 
     private void step(TaskLockData lock) {
         analysis.agentJvm = agentJVM;
+        analysis.from = lock.processedUntil;
+        analysis.to = new Date();
+        lock.processedUntil = analysis.to;
 
-        Date from = lock.processedUntil;
-        lock.processedUntil = new Date();
-        analysis.mapThreadsToFlows(from, lock.processedUntil);
+        analysis.mapThreadsToFlows();
 
         analysis.step(lock, new Date());
     }
