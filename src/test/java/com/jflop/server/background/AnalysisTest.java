@@ -1,6 +1,6 @@
 package com.jflop.server.background;
 
-import com.jflop.integration.IntegrationTestBase;
+import com.jflop.integration.FeaturesIntegrationTest;
 import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
@@ -24,18 +24,18 @@ import static org.junit.Assert.*;
  *
  * @author artem on 21/12/2016.
  */
-public class AnalysisTest extends IntegrationTestBase {
+public class AnalysisTest extends FeaturesIntegrationTest {
 
     private static final String MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES = "multipleFlowsProducer.instrumentation.properties";
-
-    @Autowired
-    private JvmMonitorAnalysis analysis;
 
     @Autowired
     private SnapshotFeature snapshotFeature;
 
     @Test
-    public void testThreadsToFlows() throws Exception {
+    public void testMapThreadsToFlows() throws Exception {
+        TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
+        lock.processedUntil = new Date();
+
         startLoad(5);
         monitorJvm(2).get();
         setConfiguration(getJflopConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
@@ -43,20 +43,19 @@ public class AnalysisTest extends IntegrationTestBase {
         stopLoad();
         refreshAll();
 
-        TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
         initStep(lock);
         analysis.mapThreadsToFlows();
 
         assertTrue((analysis.threads != null && !analysis.threads.isEmpty()));
         assertTrue(analysis.flows != null);
-        assertEquals(2, analysis.flows.size());
+        assertEquals("detected flows: " + analysis.flows.keySet(), 2, analysis.flows.keySet().size());
 
         assertTrue(analysis.threadsToFlows != null);
         Set<FlowMetadata> distinctFlows = new HashSet<>();
         for (List<FlowMetadata> list : analysis.threadsToFlows.values()) {
             distinctFlows.addAll(list);
         }
-        assertEquals(2, distinctFlows.size());
+        assertEquals("Flows mapped to threads: " + distinctFlows, 2, distinctFlows.size());
     }
 
     @Test
@@ -101,9 +100,9 @@ public class AnalysisTest extends IntegrationTestBase {
         long until = System.currentTimeMillis() + timeoutSec * 1000;
         TaskLockData lock = new TaskLockData("analyze test", agentJVM);
         boolean gotIt = false;
+        startLoad(15);
         while (!gotIt && System.currentTimeMillis() < until) {
             Future future = monitorJvm(2);
-            startLoad(15);
             future.get();
             refreshAll();
 
@@ -126,6 +125,7 @@ public class AnalysisTest extends IntegrationTestBase {
                 analysis.afterStep(lock);
             }
         }
+        stopLoad();
 
         if (gotIt) {
             String snapshot = snapshotFeature.getLastSnapshot(agentJVM);
@@ -134,6 +134,7 @@ public class AnalysisTest extends IntegrationTestBase {
         } else {
             fail("Did not get a snapshot in " + timeoutSec + " sec");
         }
+
     }
 
     private void initStep(TaskLockData lock) {
@@ -143,7 +144,6 @@ public class AnalysisTest extends IntegrationTestBase {
 
     private Future monitorJvm(int durationSec) throws Exception {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
-        analysis.stop(agentJVM);
         awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
         System.out.println("start monitoring JVM (" + durationSec + " sec)");
 

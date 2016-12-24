@@ -30,10 +30,10 @@ public class ThreadMetadata extends Metadata {
         for (int i = 0; i < stackTraceJson.size(); i++) {
             Map<String, Object> elementJson = stackTraceJson.get(i);
             stackTrace[i] = new StackTraceElement(
-                    (String) elementJson.get("className"),
-                    (String) elementJson.get("methodName"),
-                    (String) elementJson.get("fileName"),
-                    (Integer) elementJson.get("lineNumber"));
+                    getValue(elementJson, "className", "UNKNOWN"),
+                    getValue(elementJson, "methodName", "UNKNOWN"),
+                    getValue(elementJson, "fileName", "UNKNOWN"),
+                    getValue(elementJson, "lineNumber", -1));
         }
 
         calculateDumpId();
@@ -89,5 +89,10 @@ public class ThreadMetadata extends Metadata {
             }
         }
         return true;
+    }
+
+    private <T> T getValue(Map<String, Object> map, String key, T defaultValue) {
+        Object value = map.get(key);
+        return value == null ? defaultValue : (T) value;
     }
 }

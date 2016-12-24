@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -20,6 +21,8 @@ import static org.junit.Assert.assertEquals;
  *         Date: 7/2/16
  */
 public class AdminClient {
+
+    private static final Logger logger = Logger.getLogger(AdminClient.class.getName());
 
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -86,6 +89,7 @@ public class AdminClient {
     private HttpTestClient.Response sendRequestHandleAuth(HttpTestClient.Request request) throws Exception {
         if (authHeader != null)
             request.header(AdminSecurityInterceptor.AUTH_HEADER, authHeader);
+        logger.fine("Admin client sends request: " + request.toString());
 
         HttpTestClient.Response response = httpClient.send(request);
         if (response.statusCode == 401) {

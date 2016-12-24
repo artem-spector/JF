@@ -10,6 +10,7 @@ import com.jflop.server.admin.data.AccountData;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
+import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.sample.MultipleFlowsProducer;
@@ -31,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Logger;
 
 import static org.junit.Assert.fail;
 
@@ -43,13 +45,18 @@ import static org.junit.Assert.fail;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = ServerApp.class)
 @WebIntegrationTest()
-public class IntegrationTestBase {
+public abstract class IntegrationTestBase {
+
+    private static final Logger logger = Logger.getLogger(IntegrationTestBase.class.getName());
 
     private static final String AGENT_NAME = "testAgent";
 
     protected static AdminClient adminClient;
 
     protected static AgentJVM agentJVM;
+
+    @Autowired
+    protected JvmMonitorAnalysis analysis;
 
     @Autowired
     private AccountIndex accountIndex;
@@ -71,6 +78,8 @@ public class IntegrationTestBase {
 
         for (IndexTemplate index : allIndexes) index.deleteIndex();
 
+        analysis.stop(agentJVM);
+
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, "testAccount");
         String agentId = adminClient.createAgent(AGENT_NAME);
@@ -79,6 +88,7 @@ public class IntegrationTestBase {
         String accountId = account.id;
 
         byte[] bytes = adminClient.downloadAgent(agentId);
+        logger.info("Downloaded agent for agentId: " + agentId);
         File file = new File("target/jflop-agent-test.jar");
         FileOutputStream out = new FileOutputStream(file);
         out.write(bytes);

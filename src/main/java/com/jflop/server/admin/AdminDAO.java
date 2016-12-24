@@ -112,17 +112,17 @@ public class AdminDAO {
 
     private AccountData verifyAccount(String accountId, String agentId, String featureId) {
         AccountData account = accountIndex.getAccount(accountId);
-        if (account == null) throw new RuntimeException("Invalid account ID");
+        if (account == null) throw new RuntimeException("Invalid account ID: " + accountId);
         if (agentId == null) return account;
 
         JFAgent agent = account.getAgent(agentId);
-        if (agent == null) throw new RuntimeException("Invalid agent ID");
+        if (agent == null) throw new RuntimeException("Invalid agent ID: " + agentId);
         if (featureId == null) return account;
 
         for (String feature : agent.enabledFeatures) {
             if (feature.equals(featureId)) return account;
         }
-        throw new RuntimeException("Invalid feature ID");
+        throw new RuntimeException("Invalid feature ID: " + featureId);
     }
 
 }

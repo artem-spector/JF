@@ -9,6 +9,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
+import java.util.logging.Logger;
 
 /**
  * TODO: Document!
@@ -19,6 +20,7 @@ import java.util.UUID;
 @Component
 public class AccountIndex extends IndexTemplate {
 
+    private static final Logger logger = Logger.getLogger(AccountIndex.class.getName());
     private static final String ACCOUNT_INDEX = "jf-accounts";
 
     public AccountIndex() {
@@ -33,11 +35,12 @@ public class AccountIndex extends IndexTemplate {
     public AccountData createAccount(String accountName) {
         AccountData data = new AccountData(accountName, UUID.randomUUID().toString());
         createDocument(new PersistentData<>(data.accountId, 0, data));
-        refreshIndex();
-        return findByName(accountName);
+        logger.fine("Created account " + accountName + ": " + data.accountId);
+        return data;
     }
 
     public boolean deleteAccount(String accountId) {
+        logger.fine("Delete account " + accountId);
         return deleteDocument(new PersistentData<>(accountId, 0));
     }
 
@@ -52,6 +55,7 @@ public class AccountIndex extends IndexTemplate {
         account.agents.add(agent);
 
         PersistentData<Object> res = updateDocument(new PersistentData<>(document.id, document.version, account));
+        logger.fine("Account " + accountId + " added agent: " + agent.agentId);
         return res.version > document.version;
     }
 
@@ -63,6 +67,7 @@ public class AccountIndex extends IndexTemplate {
         jfAgent.agentName = agentName;
 
         PersistentData<AccountData> res = updateDocument(document);
+        logger.fine("Account " + accountId + " updated agent: " + jfAgent.agentId);
         return res.version > document.version;
     }
 
@@ -74,15 +79,18 @@ public class AccountIndex extends IndexTemplate {
             res = account.removeAgent(agentId);
         }
         updateDocument(new PersistentData<>(document.id, document.version, account));
+        logger.fine("Account " + accountId + " deleted agent: " + agentId);
         return res;
     }
 
     public AccountData findByAgent(String agentId) {
+        logger.fine("Looking for account by agent: " + agentId);
         PersistentData<AccountData> doc = findSingle(QueryBuilders.matchQuery("agents.agentId", agentId), AccountData.class);
         return doc == null ? null : doc.source;
     }
 
     public AccountData findByName(String accountName) {
+        logger.fine("Looking for account by name: " + accountName);
         PersistentData<AccountData> doc = findSingle(QueryBuilders.termQuery("accountName", accountName), AccountData.class);
         return doc == null ? null : doc.source;
     }

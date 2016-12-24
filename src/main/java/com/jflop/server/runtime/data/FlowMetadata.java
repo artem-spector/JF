@@ -45,6 +45,11 @@ public class FlowMetadata extends Metadata {
         return false;
     }
 
+    @Override
+    public String toString() {
+        return rootFlow.toString();
+    }
+
     public static class FlowElement {
 
         public String flowId;
@@ -99,6 +104,11 @@ public class FlowMetadata extends Metadata {
             }
 
             return res;
+        }
+
+        @Override
+        public String toString() {
+            return "{" + className + ":" + methodName + "->[" + subflows + "]}";
         }
     }
 }

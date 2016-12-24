@@ -143,6 +143,11 @@ public class HttpTestClient {
             }
             return str;
         }
+
+        @Override
+        public String toString() {
+            return method + " " + path + "; headers:" + headers;
+        }
     }
 
     public static class Response {

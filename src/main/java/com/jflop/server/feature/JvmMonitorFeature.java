@@ -89,7 +89,7 @@ public class JvmMonitorFeature extends AgentFeature {
                 try {
                     threadMetadata.read((Map<String, Object>) thread);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Ignore failed parsing stacktrace: " + thread);
+                    logger.log(Level.SEVERE, "Ignore failed parsing stacktrace: " + thread, e);
                     continue;
                 }
 

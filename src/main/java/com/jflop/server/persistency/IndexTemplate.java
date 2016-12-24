@@ -54,7 +54,9 @@ public abstract class IndexTemplate implements InitializingBean {
     }
 
     public void deleteIndex() {
-        esClient.deleteIndices(indexName());
+        String name = indexName();
+        logger.fine("Deleting index " + name);
+        esClient.deleteIndices(name);
     }
 
     public void refreshIndex() {
