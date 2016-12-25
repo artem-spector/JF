@@ -98,7 +98,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         for (MethodConfiguration mtd : methodsToInstrument) current.addMethodConfig(mtd);
         Set<String> blacklist = metadataIndex.getBlacklistedClasses(agentJvm);
-        for (String className : blacklist) current.removeClass(NameUtils.getInternalClassName(className));
+        for (String className : blacklist)
+            current.removeClass(NameUtils.getInternalClassName(className));
 
         if (!current.getAllMethods().equals(currentMethods)) {
             instrumentationConfigurationFeature.setConfiguration(agentJvm, current);

@@ -92,9 +92,9 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     }
 
     private void analyzeUntilNextSnapshot(int timeoutSec) throws Exception {
-        Date from = new Date();
-        long until = System.currentTimeMillis() + timeoutSec * 1000;
         TaskLockData lock = new TaskLockData("analyze test", agentJVM);
+        Date from = lock.processedUntil;
+        long until = System.currentTimeMillis() + timeoutSec * 1000;
         boolean gotIt = false;
         startLoad(15);
         while (!gotIt && System.currentTimeMillis() < until) {
