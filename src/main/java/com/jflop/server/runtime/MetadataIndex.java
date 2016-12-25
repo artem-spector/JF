@@ -4,17 +4,18 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.InstrumentationMetadata;
 import com.jflop.server.runtime.data.Metadata;
 import com.jflop.server.runtime.data.ThreadMetadata;
-import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Index for metadata like stacktraces or flow definitions that are shared by many instances of raw data,
@@ -59,43 +60,24 @@ public class MetadataIndex extends IndexTemplate {
 
         List<PersistentData<T>> found = find(query, maxHits, metadataClass);
 
-        List<T> res = new ArrayList<T>();
-        for (PersistentData<T> doc : found) {
-            res.add(doc.source);
-        }
-        return res;
-    }
-
-    public Set<ValuePair<String, String>> getInstrumentableMethods(Set<String> dumpIds) {
-        Set<ValuePair<String, String>> res = new HashSet<>();
-        BoolQueryBuilder dumps = null;
-        int termCount = 0;
-        int maxTerms = 1024;
-
-        QueryBuilder instrumentable = QueryBuilders.termQuery("instrumentable", true);
-
-        for(Iterator<String> iterator = dumpIds.iterator(); iterator.hasNext();) {
-            if (dumps == null) dumps = QueryBuilders.boolQuery();
-            dumps = dumps.should(QueryBuilders.termQuery("dumpId", iterator.next()));
-            termCount++;
-
-            if (termCount == maxTerms || !iterator.hasNext()) {
-                BoolQueryBuilder query = QueryBuilders.boolQuery().must(instrumentable).must(dumps);
-                List<PersistentData<ThreadMetadata>> found = find(query, termCount, ThreadMetadata.class);
-                for (PersistentData<ThreadMetadata> data : found) {
-                    res.addAll(data.source.getInstrumentableMethods());
-                }
-                dumps = null;
-                termCount = 0;
-            }
-        }
-
-        return res;
+        return found.stream().map(doc -> doc.source).collect(Collectors.toList());
     }
 
     public InstrumentationMetadata getClassMetadata(AgentJVM agentJVM, String className) {
         String id = new InstrumentationMetadata(agentJVM, className).getDocumentId();
         PersistentData<InstrumentationMetadata> document = getDocument(new PersistentData<>(id, 0), InstrumentationMetadata.class);
         return document == null ? null : document.source;
+    }
+
+    public Set<String> getBlacklistedClasses(AgentJVM agentJVM) {
+        QueryBuilder query = QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("isBlacklisted", true))
+                .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
+                .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
+                .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));
+
+        List<PersistentData<InstrumentationMetadata>> found = find(query, 10000, InstrumentationMetadata.class);
+
+        return found.stream().map(doc -> doc.source.className).collect(Collectors.toSet());
     }
 }

@@ -94,14 +94,13 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     void adjustInstrumentation() {
         JflopConfiguration current = instrumentationConfigurationFeature.getConfiguration(agentJvm);
         if (current == null) return;
+        ArrayList<MethodConfiguration> currentMethods = new ArrayList<>(current.getAllMethods());
 
-        Set<MethodConfiguration> methodsToAdd = new HashSet<>(methodsToInstrument);
-        methodsToAdd.removeAll(current.getAllMethods());
+        for (MethodConfiguration mtd : methodsToInstrument) current.addMethodConfig(mtd);
+        Set<String> blacklist = metadataIndex.getBlacklistedClasses(agentJvm);
+        for (String className : blacklist) current.removeClass(NameUtils.getInternalClassName(className));
 
-        if (!methodsToAdd.isEmpty()) {
-            for (MethodConfiguration methodConfig : methodsToAdd) {
-                current.addMethodConfig(methodConfig);
-            }
+        if (!current.getAllMethods().equals(currentMethods)) {
             instrumentationConfigurationFeature.setConfiguration(agentJvm, current);
             return;
         }
@@ -128,7 +127,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                 List<String> signatures = classMetadata == null ? null
                         : classMetadata.isBlacklisted ? Collections.EMPTY_LIST
                         : classMetadata.methodSignatures.get(methodName);
-                if (signatures != null && !signatures.isEmpty()) {
+                if (signatures != null) {
                     if (signatures.size() > 1)
                         logger.warning(signatures.size() + " signatures found for method " + className + "#" + methodName + ", instrumenting all of them.");
                     for (String signature : signatures) {
