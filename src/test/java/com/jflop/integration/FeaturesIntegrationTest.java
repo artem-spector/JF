@@ -13,11 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.ByteArrayInputStream;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -44,53 +43,42 @@ public abstract class FeaturesIntegrationTest extends IntegrationTestBase {
         String featureId = InstrumentationConfigurationFeature.FEATURE_ID;
 
         // 1. submit empty configuration
-        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(new JflopConfiguration()));
-        FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
-        System.out.println(command.successText);
+        JflopConfiguration conf= setConfiguration(new JflopConfiguration());
+        System.out.println(configurationAsText(conf));
 
         // 2. get configuration and make sure it's empty
         adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
-        command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
-        JflopConfiguration conf = new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
+        FeatureCommand command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
+        conf = new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
         assertTrue(conf.isEmpty());
 
         // 3. set configuration from a file
-        conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
+        JflopConfiguration expected = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES);
+        setConfiguration(expected);
+        adminClient.submitCommand(agentJVM, featureId, InstrumentationConfigurationFeature.GET_CONFIG, null);
         command = awaitFeatureResponse(featureId, System.currentTimeMillis(), 10, null);
-        System.out.println(command.successText);
-        assertEquals(conf, new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes())));
+        conf = new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
+        System.out.println(configurationAsText(conf));
+        assertEquals(expected, conf);
     }
 
     @Test
     public void testSnapshotFeature() throws Exception {
         // 1. instrument multiple flows producer
-        JflopConfiguration conf = new JflopConfiguration(getClass().getClassLoader().getResourceAsStream("multipleFlowsProducer.instrumentation.properties"));
-        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
-        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        assertNull(command.errorText);
+        setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
 
         // 2. take snapshot without load and make sure there are no flows
-        Map<String, Object> param = new HashMap<>();
-        param.put("durationSec", "2");
-        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        System.out.println("progress: " + command.progressPercent);
-        assertTrue(command.progressPercent >= 50);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10, latest -> latest.successText != null);
-        System.out.println(command.successText);
-        assertTrue(command.successText.contains("contains no flows."));
+        stopLoad();
+        String successText = takeSnapshot(2);
+        System.out.println(successText);
+        assertTrue(successText.contains("contains no flows."));
 
 
         // 3. take snapshot under load and make sure all the flows are recorded
         startLoad(2);
-        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        System.out.println("progress: " + command.progressPercent);
-        assertTrue(command.progressPercent >= 50);
-        command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, command.respondedAt.getTime(), 10, latest -> latest.successText != null);
-        System.out.println(command.successText);
-        assertTrue(command.successText.contains("2 distinct flows"));
+        successText = takeSnapshot(2);
+        System.out.println(successText);
+        assertTrue(successText.contains("2 distinct flows"));
 
         stopLoad();
     }

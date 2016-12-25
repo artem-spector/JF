@@ -37,7 +37,7 @@ public class MultipleFlowsProducer {
 
     private void doSomeProcessing(Object data ) {
         try {
-            Thread.sleep(5);
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             // ignore
         }

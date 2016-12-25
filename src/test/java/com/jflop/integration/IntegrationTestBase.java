@@ -11,6 +11,8 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.AgentJvmState;
 import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.background.JvmMonitorAnalysis;
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.sample.MultipleFlowsProducer;
@@ -23,17 +25,12 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Logger;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -48,6 +45,8 @@ import static org.junit.Assert.fail;
 public abstract class IntegrationTestBase {
 
     private static final Logger logger = Logger.getLogger(IntegrationTestBase.class.getName());
+
+    protected static final String MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES = "multipleFlowsProducer.instrumentation.properties";
 
     private static final String AGENT_NAME = "testAgent";
 
@@ -73,6 +72,7 @@ public abstract class IntegrationTestBase {
 
     @Before
     public void activateAgent() throws Exception {
+        stopLoad();
         TestUtil.reset();
         if (adminClient != null) return;
 
@@ -108,13 +108,17 @@ public abstract class IntegrationTestBase {
     protected FeatureCommand awaitFeatureResponse(String featureId, long fromTime, int timeoutSec, CommandValidator waitFor) throws Exception {
         long timeoutMillis = fromTime + timeoutSec * 1000;
 
+        PersistentData<AgentJvmState> previous = null;
         while (System.currentTimeMillis() < timeoutMillis) {
             PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJVM, false);
+            if (previous != null && previous.version == jvmState.version) continue;
+
             FeatureCommand command = jvmState.source.getCommand(featureId);
             if (command != null && command.respondedAt != null && command.respondedAt.getTime() > fromTime
                     && (waitFor == null || waitFor.validateCommand(command))) {
                 return command;
             }
+            previous = jvmState;
             Thread.sleep(300);
         }
         throw new Exception("Feature state not changed in " + timeoutSec + " sec");
@@ -166,9 +170,34 @@ public abstract class IntegrationTestBase {
     }
 
     protected String configurationAsText(JflopConfiguration configuration) throws IOException {
+        if (configuration == null) return null;
         StringWriter writer = new StringWriter();
         configuration.toProperties().store(writer, null);
         return writer.toString();
+    }
+
+    protected JflopConfiguration setConfiguration(JflopConfiguration conf) throws Exception {
+        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
+        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
+        assertNull(command.errorText);
+        return new JflopConfiguration(new ByteArrayInputStream(command.successText.getBytes()));
+    }
+
+    protected JflopConfiguration loadInstrumentationConfiguration(String configurationFile) throws java.io.IOException {
+        return new JflopConfiguration(getClass().getClassLoader().getResourceAsStream(configurationFile));
+    }
+
+    protected String takeSnapshot(int durationSec) throws Exception {
+        Map<String, Object> param = new HashMap<>();
+        param.put("durationSec", String.valueOf(durationSec));
+
+        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
+        FeatureCommand command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), durationSec + 5,
+                latest -> {
+                    System.out.println("snapshot progress " + latest.progressPercent + "%");
+                    return latest.successText != null;
+                });
+        return command.successText;
     }
 
     private void loadAgent(String path) throws Exception {

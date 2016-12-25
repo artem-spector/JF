@@ -1,14 +1,11 @@
 package com.jflop.server.background;
 
 import com.jflop.integration.FeaturesIntegrationTest;
-import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.feature.ClassInfoFeature;
-import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.FlowOccurenceData;
-import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +23,6 @@ import static org.junit.Assert.*;
  */
 public class AnalysisTest extends FeaturesIntegrationTest {
 
-    private static final String MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES = "multipleFlowsProducer.instrumentation.properties";
-
     @Autowired
     private SnapshotFeature snapshotFeature;
 
@@ -38,7 +33,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
         startLoad(5);
         monitorJvm(2).get();
-        setConfiguration(getJflopConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
+        setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
         takeSnapshot(1);
         stopLoad();
         refreshAll();
@@ -74,7 +69,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         assertTrue(analysis.methodsToInstrument == null || analysis.methodsToInstrument.isEmpty());
 
         // wait until the class metadata returns and try again
-        awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 3, null);
+        awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 5, null);
         future = monitorJvm(1);
         future.get();
         stopLoad();
@@ -84,7 +79,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();
         assertTrue(analysis.methodsToInstrument != null && !analysis.methodsToInstrument.isEmpty());
-        List<MethodConfiguration> expected = getJflopConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
+        List<MethodConfiguration> expected = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
         expected.removeAll(analysis.methodsToInstrument);
         assertTrue("The following methods not instrumented: " + expected, expected.isEmpty());
     }
@@ -160,23 +155,4 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         });
     }
 
-    private void setConfiguration(JflopConfiguration conf) throws Exception {
-        adminClient.submitCommand(agentJVM, InstrumentationConfigurationFeature.FEATURE_ID, InstrumentationConfigurationFeature.SET_CONFIG, configurationAsText(conf));
-        FeatureCommand command = awaitFeatureResponse(InstrumentationConfigurationFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        assertNull(command.errorText);
-    }
-
-    private JflopConfiguration getJflopConfiguration(String configurationFile) throws java.io.IOException {
-        return new JflopConfiguration(getClass().getClassLoader().getResourceAsStream(configurationFile));
-    }
-
-    private void takeSnapshot(int durationSec) throws Exception {
-        Map<String, Object> param = new HashMap<>();
-        param.put("durationSec", String.valueOf(durationSec));
-
-        adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
-        FeatureCommand command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(),
-                durationSec + 5, latest -> latest.successText != null);
-        System.out.println(command.successText);
-    }
 }
