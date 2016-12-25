@@ -30,7 +30,7 @@ public class TaskLockData {
             if (agentJvm.agentId != null) lockId += "-" + agentJvm.agentId;
             if (agentJvm.jvmId != null) lockId += "-" + agentJvm.jvmId;
         }
-        lockedUntil = new Date(0);
-        processedUntil = new Date(0);
+        lockedUntil = new Date(0); // unlocked
+        processedUntil = new Date(); // begin processing from now
     }
 }
