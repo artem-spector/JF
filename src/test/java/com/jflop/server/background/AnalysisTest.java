@@ -28,13 +28,15 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     @Test
     public void testMapThreadsToFlows() throws Exception {
+        System.out.println("================ testMapThreadsToFlows begin =====================");
         TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
         lock.processedUntil = new Date();
 
         startLoad(5);
         monitorJvm(2).get();
         setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
-        takeSnapshot(1);
+        String snapshot = takeSnapshot(1);
+        System.out.println(snapshot);
         stopLoad();
         refreshAll();
 
@@ -51,6 +53,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
             distinctFlows.addAll(list);
         }
         assertEquals("Flows mapped to threads: " + distinctFlows, 2, distinctFlows.size());
+        System.out.println("================ testMapThreadsToFlows end =====================");
     }
 
     @Test

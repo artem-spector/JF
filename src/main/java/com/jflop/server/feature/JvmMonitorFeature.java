@@ -42,10 +42,10 @@ public class JvmMonitorFeature extends AgentFeature {
     public FeatureCommand parseCommand(AgentJVM agentJVM, String command, String paramStr) throws ValidationException {
         switch (command) {
             case ENABLE:
-                analysisTask.start(agentJVM);
+                analysisTask.createJvmTask(agentJVM);
                 return new FeatureCommand(FEATURE_ID, ENABLE, null);
             case DISABLE:
-                analysisTask.stop(agentJVM);
+                analysisTask.removeJvmTask(agentJVM);
                 return new FeatureCommand(FEATURE_ID, DISABLE, null);
             default:
                 throw new ValidationException("Invalid command", "Feature " + FEATURE_ID + " does not support command " + command);

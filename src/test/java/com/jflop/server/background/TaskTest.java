@@ -42,12 +42,13 @@ public class TaskTest {
         Map<String, Integer> counter = new HashMap<>();
         CountingTask task = createTask(taskName, 2, counter);
 
-        task.start(agentJvm);
+        task.createJvmTask(agentJvm);
         assertNotNull(awaitForLock(3000, task));
         task.releaseLock();
-        task.stop(agentJvm);
+        task.removeJvmTask(agentJvm);
         assertNull(awaitForLock(1000, task));
         assertEquals(1, counter.get(lockId).intValue());
+        task.stop();
     }
 
     @Test
@@ -64,7 +65,7 @@ public class TaskTest {
         // 1. create and start tasks
         CountingTask tasks[] = new CountingTask[numTasks];
         for (int i = 0; i < numTasks; i++) tasks[i] = createTask(taskName, 10,counter);
-        for (CountingTask task : tasks) task.start(agentJvm);
+        for (CountingTask task : tasks) task.createJvmTask(agentJvm);
 
         // 2. on each step make sure only one task has the lock
         for (int i = 0; i < numSteps; i++) {
@@ -82,7 +83,11 @@ public class TaskTest {
         }
 
         // 3. stop the tasks
-        for (CountingTask task : tasks) task.stop(agentJvm);
+        System.out.println("stopping " + tasks.length + " tasks...");
+        for (CountingTask task : tasks) {
+            task.removeJvmTask(agentJvm);
+            task.stop();
+        }
     }
 
     private CountingTask createTask(String name, int lockTimeout, Map<String, Integer> counter) throws Exception {

@@ -33,7 +33,8 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
     @Autowired
     LockIndex lockIndex;
 
-    private boolean destroy;
+    private Thread syncThread;
+    private boolean stopSyncThread;
 
     protected BackgroundTask(String taskName, int lockTimeoutSec, int sleepIntervalSec, int maxThreads) {
         this.taskName = taskName;
@@ -50,10 +51,19 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        new Thread("jf-task-sync-" + taskName) {
+        start();
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        stop();
+    }
+
+    void start() {
+        syncThread = new Thread("jf-task-sync-" + taskName) {
             @Override
             public void run() {
-                while (!destroy) {
+                while (!stopSyncThread) {
                     try {
                         Thread.sleep(sleepIntervalMillis);
                     } catch (InterruptedException e) {
@@ -65,7 +75,14 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
                     }
                 }
             }
-        }.start();
+        };
+        syncThread.start();
+    }
+
+    public void stop() throws InterruptedException {
+        stopSyncThread = true;
+        syncThread.join();
+        syncThread = null;
     }
 
     private void processLock(TaskLockData lock) {
@@ -77,16 +94,11 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
         });
     }
 
-    @Override
-    public void destroy() throws Exception {
-        destroy = true;
-    }
-
-    public void start(AgentJVM key) {
+    public void createJvmTask(AgentJVM key) {
         lockIndex.createTaskLock(new TaskLockData(taskName, key));
     }
 
-    public void stop(AgentJVM key) {
+    public void removeJvmTask(AgentJVM key) {
         lockIndex.deleteTaskLock(new TaskLockData(taskName, key));
     }
 

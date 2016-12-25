@@ -78,7 +78,7 @@ public abstract class IntegrationTestBase {
 
         for (IndexTemplate index : allIndexes) index.deleteIndex();
 
-        analysis.stop(agentJVM);
+        analysis.stop();
 
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, "testAccount");
