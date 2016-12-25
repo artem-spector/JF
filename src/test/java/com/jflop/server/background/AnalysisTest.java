@@ -56,13 +56,13 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     @Test
     public void testInstrumentThreads() throws Exception {
-        Future future = monitorJvm(1);
+        TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
+        Future future = monitorJvm(2);
         startLoad(15);
         future.get();
         refreshAll();
 
         // first pass - still no class metadata, the instrumented methods not set
-        TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
         initStep(lock);
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();

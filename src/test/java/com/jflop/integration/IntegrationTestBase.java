@@ -18,6 +18,7 @@ import com.jflop.server.persistency.PersistentData;
 import com.sample.MultipleFlowsProducer;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.jflop.config.JflopConfiguration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +73,6 @@ public abstract class IntegrationTestBase {
 
     @Before
     public void activateAgent() throws Exception {
-        stopLoad();
         TestUtil.reset();
         if (adminClient != null) return;
 
@@ -97,6 +97,11 @@ public abstract class IntegrationTestBase {
 
         String jvmId = awaitJvmStateChange(System.currentTimeMillis(), 3).getKey();
         agentJVM = new AgentJVM(accountId, agentId, jvmId);
+    }
+
+    @After
+    public void clean() {
+        stopLoad();
     }
 
     protected void refreshAll() {
