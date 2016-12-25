@@ -28,7 +28,6 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     @Test
     public void testMapThreadsToFlows() throws Exception {
-        System.out.println("================ testMapThreadsToFlows begin =====================");
         TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
         lock.processedUntil = new Date();
 
@@ -53,7 +52,6 @@ public class AnalysisTest extends FeaturesIntegrationTest {
             distinctFlows.addAll(list);
         }
         assertEquals("Flows mapped to threads: " + distinctFlows, 2, distinctFlows.size());
-        System.out.println("================ testMapThreadsToFlows end =====================");
     }
 
     @Test
