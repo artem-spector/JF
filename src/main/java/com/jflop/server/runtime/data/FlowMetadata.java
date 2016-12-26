@@ -1,5 +1,6 @@
 package com.jflop.server.runtime.data;
 
+import org.jflop.config.NameUtils;
 import org.jflop.snapshot.Flow;
 
 import java.util.ArrayList;
@@ -83,7 +84,7 @@ public class FlowMetadata extends Metadata {
         public boolean fits(StackTraceElement traceElement) {
             boolean res = Arrays.equals(
                     new Object[] {className, methodName, fileName},
-                    new Object[] {traceElement.getClassName(), traceElement.getMethodName(), traceElement.getFileName()});
+                    new Object[] {NameUtils.getInternalClassName(traceElement.getClassName()), traceElement.getMethodName(), traceElement.getFileName()});
 
             if (res) {
                 int flowFirst = Integer.parseInt(firstLine);
