@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * TODO: Document!
  *
@@ -22,14 +25,38 @@ public class ThreadToFlowTest {
         MethodImpl m3 = new MethodImpl("MyClass", "m3", "MyClass.java", 300);
         MethodImpl m4 = new MethodImpl("MyClass", "m4", "MyClass.java", 400);
 
-        MethodCall rootCall1 = new MethodCall(m1).call(110, m2).returnFrom(210).call(120, m3).returnFrom(310);
-        rootCall1.returnFrom(199);
-        FlowMetadata.FlowElement flow1 = rootCall1.getFlow();
+        // m1 -> m2
+        //    -> m3
+        MethodCall f1m1 = new MethodCall(m1);
+        MethodCall f1m2 = f1m1.call(110, m2);
+        f1m2.returnFrom(210);
+        MethodCall f1m3 = f1m1.call(120, m3);
+        f1m3.returnFrom(310);
+        f1m1.returnFrom(199);
+        FlowMetadata f1 = new FlowMetadata();
+        f1.rootFlow = f1m1.getFlowElement();
 
-        MethodCall rootCall2 = new MethodCall(m1).call(120, m3).returnFrom(310);
-        rootCall2.returnFrom(199);
-        FlowMetadata.FlowElement flow2 = rootCall2.getFlow();
+        assertTrue(f1.fitsStacktrace(f1m1.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f1m2.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f1m3.getStackTrace()));
 
+        // m1 -> m3
+        MethodCall f2m1 = new MethodCall(m1);
+        MethodCall f2m3 = f2m1.call(120, m3);
+        f2m3.returnFrom(310);
+        f2m1.returnFrom(199);
+        FlowMetadata f2 = new FlowMetadata();
+        f2.rootFlow = f2m1.getFlowElement();
+
+        assertTrue(f2.fitsStacktrace(f2m1.getStackTrace()));
+        assertTrue(f2.fitsStacktrace(f2m3.getStackTrace()));
+
+        assertTrue(f1.fitsStacktrace(f2m1.getStackTrace()));
+        assertTrue(f2.fitsStacktrace(f1m1.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f2m3.getStackTrace()));
+        assertTrue(f2.fitsStacktrace(f1m3.getStackTrace()));
+
+        assertFalse(f2.fitsStacktrace(f1m2.getStackTrace()));
     }
 
 
@@ -88,7 +115,7 @@ public class ThreadToFlowTest {
             return res.toArray(new StackTraceElement[res.size()]);
         }
 
-        FlowMetadata.FlowElement getFlow() {
+        public FlowMetadata.FlowElement getFlowElement() {
             FlowMetadata.FlowElement root = new FlowMetadata.FlowElement();
             root.className = impl.className;
             root.methodName = impl.method;
@@ -96,8 +123,14 @@ public class ThreadToFlowTest {
             root.firstLine = String.valueOf(impl.firstLine);
             root.returnLine = String.valueOf(returnLine);
 
-            root.subflows = nestedCalls.stream().map(MethodCall::getFlow).collect(Collectors.toList());
+            root.subflows = nestedCalls.stream().map(MethodCall::getFlowElement).collect(Collectors.toList());
             return root;
+        }
+
+        public FlowMetadata asFlow() {
+            FlowMetadata res = new FlowMetadata();
+            res.rootFlow = getFlowElement();
+            return res;
         }
     }
 }

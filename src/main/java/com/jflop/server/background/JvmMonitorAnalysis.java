@@ -160,9 +160,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         // 3. find out which thread dumps represent what flows
         for (ThreadMetadata thread : threads.keySet()) {
-            List<FlowMetadata.FlowElement> expectedFlow = thread.getFlowElements();
             for (FlowMetadata flow : flows.keySet()) {
-                if (flow.fitsExpectedFlow(expectedFlow)) {
+                if (flow.fitsStacktrace(thread.stackTrace)) {
                     threadsToFlows.computeIfAbsent(thread, threadMetadata -> new ArrayList<>()).add(flow);
                 }
             }

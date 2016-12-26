@@ -1,12 +1,12 @@
 package com.jflop.server.runtime.data;
 
-import org.jflop.config.NameUtils;
 import org.jflop.snapshot.Flow;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Unique flow metadata
@@ -26,18 +26,18 @@ public class FlowMetadata extends Metadata {
         return rootFlow.flowId;
     }
 
-    public boolean fitsExpectedFlow(List<FlowElement> expectedFlow) {
-        return fitsSubflow(rootFlow, expectedFlow, 0);
+    public boolean fitsStacktrace(StackTraceElement[] stacktrace) {
+        return flowFitsStacktrace(rootFlow, stacktrace, stacktrace.length - 1);
     }
 
-    private boolean fitsSubflow(FlowElement flow, List<FlowElement> expectedFlow, int pos) {
-        for (int i = pos; i < expectedFlow.size(); i++) {
-            FlowElement expectedElement = expectedFlow.get(i);
-            if (flow.fitsExpected(expectedElement)) {
-                if (flow.subflows == null)
+    private static boolean flowFitsStacktrace(FlowElement flowElement, StackTraceElement[] stacktrace, int pos) {
+        for (int i = pos; i >= 0; i--) {
+            StackTraceElement traceElement = stacktrace[i];
+            if (flowElement.fits(traceElement)) {
+                if (flowElement.subflows == null || flowElement.subflows.isEmpty() || i == 0)
                     return true;
-                for (FlowElement subflow : flow.subflows) {
-                    if (fitsSubflow(subflow, expectedFlow, i + 1))
+                for (FlowElement subflow : flowElement.subflows) {
+                    if (flowFitsStacktrace(subflow, stacktrace, i - 1))
                         return true;
                 }
             }
@@ -75,31 +75,20 @@ public class FlowMetadata extends Metadata {
             Collection<Flow> subflows = flow.getSubflows();
             if (subflows != null) {
                 res.subflows = new ArrayList<>(subflows.size());
-                for (Flow nested : subflows) {
-                    res.subflows.add(parse(nested));
-                }
+                res.subflows.addAll(subflows.stream().map(FlowElement::parse).collect(Collectors.toList()));
             }
             return res;
         }
 
-        public static FlowElement expectedFlowElement(StackTraceElement element) {
-            FlowElement res = new FlowElement();
-            res.fileName = element.getFileName();
-            res.firstLine = String.valueOf(element.getLineNumber());
-            res.className = NameUtils.getInternalClassName(element.getClassName());
-            res.methodName = element.getMethodName();
-            return res;
-        }
-
-        public boolean fitsExpected(FlowElement expected) {
+        public boolean fits(StackTraceElement traceElement) {
             boolean res = Arrays.equals(
                     new Object[] {className, methodName, fileName},
-                    new Object[] {expected.className, expected.methodName, expected.fileName});
+                    new Object[] {traceElement.getClassName(), traceElement.getMethodName(), traceElement.getFileName()});
 
             if (res) {
                 int flowFirst = Integer.parseInt(firstLine);
                 int flowLast = Integer.parseInt(returnLine);
-                int actual = Integer.parseInt(expected.firstLine);
+                int actual = traceElement.getLineNumber();
                 res = actual <= 0 || (actual >= flowFirst && actual <= flowLast);
             }
 

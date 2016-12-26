@@ -56,16 +56,6 @@ public class ThreadMetadata extends Metadata {
         return res;
     }
 
-    public List<FlowMetadata.FlowElement> getFlowElements() {
-        List<FlowMetadata.FlowElement> res = new ArrayList<>();
-        for (int i = stackTrace.length - 1; i >= 0; i--) {
-            StackTraceElement element = stackTrace[i];
-            if (isInstrumentable(element))
-                res.add(FlowMetadata.FlowElement.expectedFlowElement(element));
-        }
-        return res;
-    }
-
     private void calculateDumpId() {
         MessageDigest digest = DigestUtil.initDigest(agentJvm);
         DigestUtil.addStringsToDigest(digest, threadState.toString());
