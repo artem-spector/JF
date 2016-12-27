@@ -3,10 +3,7 @@ package com.jflop.server.runtime.data;
 import org.jflop.config.NameUtils;
 import org.jflop.snapshot.Flow;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -27,22 +24,34 @@ public class FlowMetadata extends Metadata {
         return rootFlow.flowId;
     }
 
-    public boolean fitsStacktrace(StackTraceElement[] stacktrace) {
-        return flowFitsStacktrace(rootFlow, stacktrace, stacktrace.length - 1);
+    public boolean fitsStacktrace(StackTraceElement[] stacktrace, Set<StackTraceElement> instrumentedTraceElements) {
+        return flowFitsStacktrace(rootFlow, stacktrace, stacktrace.length - 1, instrumentedTraceElements);
     }
 
-    private static boolean flowFitsStacktrace(FlowElement flowElement, StackTraceElement[] stacktrace, int pos) {
-        for (int i = pos; i >= 0; i--) {
-            StackTraceElement traceElement = stacktrace[i];
-            if (flowElement.fits(traceElement)) {
-                if (flowElement.subflows == null || flowElement.subflows.isEmpty() || i == 0)
-                    return true;
-                for (FlowElement subflow : flowElement.subflows) {
-                    if (flowFitsStacktrace(subflow, stacktrace, i - 1))
-                        return true;
-                }
-            }
+    private static boolean flowFitsStacktrace(FlowElement flowElement, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements) {
+        // skip not fitting trace elements if they are not instrumented
+        boolean fit = false;
+        while (tracePos >= 0) {
+            fit = flowElement.fits(stacktrace[tracePos]);
+            if (!fit && !instrumentedTraceElements.contains(stacktrace[tracePos]))
+                tracePos--;
+            else
+                break;
         }
+
+        // if no fitting element found in the stacktrace, it's not fit
+        if (!fit) return false;
+
+        // if we've reached the the flow end or trace end, it's a fit
+        if (flowElement.subflows == null || flowElement.subflows.isEmpty() || tracePos == 0) return true;
+
+        // if one of subflows fits the rest of the trace, it's a fit
+        for (FlowElement subflow : flowElement.subflows) {
+            if (flowFitsStacktrace(subflow, stacktrace, tracePos - 1, instrumentedTraceElements))
+                return true;
+        }
+
+        // if none of subflows fit, it's not fit
         return false;
     }
 

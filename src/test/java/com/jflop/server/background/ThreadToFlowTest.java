@@ -5,9 +5,7 @@ import org.jflop.config.NameUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
@@ -65,23 +63,23 @@ public class ThreadToFlowTest {
         assertTrue(flows != null && flows.size() == 1);
         FlowMetadata f2 = flows.get(0);
 
-        assertTrue(f1.fitsStacktrace(f1m1.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m2.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m3.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m4.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f1m1.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m2.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
 
-        assertTrue(f2.fitsStacktrace(f2m1.getStackTrace()));
-        assertTrue(f2.fitsStacktrace(f2m3.getStackTrace()));
-        assertTrue(f2.fitsStacktrace(f2m4.getStackTrace()));
+        assertTrue(f2.fitsStacktrace(f2m1.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f2.fitsStacktrace(f2m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f2.fitsStacktrace(f2m4.getStackTrace(), getInstrumentedMethods()));
 
-        assertTrue(f1.fitsStacktrace(f2m1.getStackTrace()));
-        assertTrue(f2.fitsStacktrace(f1m1.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f2m3.getStackTrace()));
-        assertTrue(f2.fitsStacktrace(f1m3.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f2m4.getStackTrace()));
-        assertTrue(f2.fitsStacktrace(f1m4.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f2m1.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f2.fitsStacktrace(f1m1.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f2m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f2.fitsStacktrace(f1m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f2m4.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f2.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
 
-        assertFalse(f2.fitsStacktrace(f1m2.getStackTrace()));
+        assertFalse(f2.fitsStacktrace(f1m2.getStackTrace(), getInstrumentedMethods()));
     }
 
     @Test
@@ -94,17 +92,17 @@ public class ThreadToFlowTest {
         FlowMetadata f11 = flows.get(0);
         FlowMetadata f12 = flows.get(1);
 
-        assertFalse(f11.fitsStacktrace(f1m1.getStackTrace()));
-        assertFalse(f12.fitsStacktrace(f1m1.getStackTrace()));
+        assertFalse(f11.fitsStacktrace(f1m1.getStackTrace(), getInstrumentedMethods()));
+        assertFalse(f12.fitsStacktrace(f1m1.getStackTrace(), getInstrumentedMethods()));
 
-        assertTrue(f11.fitsStacktrace(f1m2.getStackTrace()));
-        assertFalse(f12.fitsStacktrace(f1m2.getStackTrace()));
+        assertTrue(f11.fitsStacktrace(f1m2.getStackTrace(), getInstrumentedMethods()));
+        assertFalse(f12.fitsStacktrace(f1m2.getStackTrace(), getInstrumentedMethods()));
 
-        assertFalse(f11.fitsStacktrace(f1m3.getStackTrace()));
-        assertTrue(f12.fitsStacktrace(f1m3.getStackTrace()));
+        assertFalse(f11.fitsStacktrace(f1m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f12.fitsStacktrace(f1m3.getStackTrace(), getInstrumentedMethods()));
 
-        assertFalse(f11.fitsStacktrace(f1m4.getStackTrace()));
-        assertTrue(f12.fitsStacktrace(f1m4.getStackTrace()));
+        assertFalse(f11.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f12.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
 
         // last method not instrumented
         m1.instrumented = true;
@@ -113,11 +111,12 @@ public class ThreadToFlowTest {
         assertTrue(flows != null && flows.size() == 1);
         FlowMetadata f1 = flows.get(0);
 
-        assertTrue(f1.fitsStacktrace(f1m1.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m2.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m3.getStackTrace()));
-        assertTrue(f1.fitsStacktrace(f1m4.getStackTrace()));
+        assertTrue(f1.fitsStacktrace(f1m1.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m2.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m3.getStackTrace(), getInstrumentedMethods()));
+        assertTrue(f1.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
     }
+
 
     private List<FlowMetadata> getFlows(MethodCall mc) {
         return mc.getFlowElements().stream().map(flowElement -> {
@@ -125,6 +124,15 @@ public class ThreadToFlowTest {
             metadata.rootFlow = flowElement;
             return metadata;
         }).collect(Collectors.toList());
+    }
+
+    private Set<StackTraceElement> getInstrumentedMethods() {
+        Set<StackTraceElement> res = new HashSet<>();
+        MethodImpl[] allmethods = {m1, m2, m3, m4};
+        for (MethodImpl method : allmethods) {
+            if (method.instrumented) res.add(method.getStackTraceElement());
+        }
+        return res;
     }
 
     private static class MethodImpl {
@@ -140,6 +148,10 @@ public class ThreadToFlowTest {
             this.method = method;
             this.file = file;
             this.firstLine = firstLine;
+        }
+
+        public StackTraceElement getStackTraceElement() {
+            return new StackTraceElement(className, method, file, firstLine + 1);
         }
     }
 
@@ -172,7 +184,7 @@ public class ThreadToFlowTest {
 
         public StackTraceElement[] getStackTrace() {
             List<StackTraceElement> res = new ArrayList<>();
-            res.add(new StackTraceElement(impl.className, impl.method, impl.file, impl.firstLine + 1));
+            res.add(impl.getStackTraceElement());
 
             MethodCall curr = this;
             while (curr.caller != null) {

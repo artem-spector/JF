@@ -92,21 +92,19 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     void adjustInstrumentation() {
-        JflopConfiguration current = instrumentationConfigurationFeature.getConfiguration(agentJvm);
-        if (current == null) return;
-        ArrayList<MethodConfiguration> currentMethods = new ArrayList<>(current.getAllMethods());
+        currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(agentJvm);
+        if (currentInstrumentation == null) return;
 
-        for (MethodConfiguration mtd : methodsToInstrument) current.addMethodConfig(mtd);
+        JflopConfiguration conf = new JflopConfiguration();
+        currentInstrumentation.getAllMethods().forEach(conf::addMethodConfig);
+        methodsToInstrument.forEach(conf::addMethodConfig);
+
         Set<String> blacklist = metadataIndex.getBlacklistedClasses(agentJvm);
         for (String className : blacklist)
-            current.removeClass(NameUtils.getInternalClassName(className));
+            conf.removeClass(NameUtils.getInternalClassName(className));
 
-        if (!current.getAllMethods().equals(currentMethods)) {
-            instrumentationConfigurationFeature.setConfiguration(agentJvm, current);
-            return;
-        }
-
-        currentInstrumentation = current;
+        if (!conf.equals(currentInstrumentation))
+            instrumentationConfigurationFeature.setConfiguration(agentJvm, conf);
     }
 
     void instrumentUncoveredThreads() {
@@ -158,10 +156,29 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         flows = rawDataIndex.getOccurrencesAndMetadata(agentJvm, FlowOccurenceData.class, FlowMetadata.class, from, to);
         if (flows == null || flows.isEmpty()) return;
 
-        // 3. find out which thread dumps represent what flows
+        // 3. get currently instrumented methods, and init instrumented trace elements cache
+        currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(agentJvm);
+        Set<StackTraceElement> instrumentedTraceElements = new HashSet<>();
+
+        // 4. loop by threads and find corresponding flows
         for (ThreadMetadata thread : threads.keySet()) {
+            // make sure for each trace element we know whether it's instrumented
+            for (StackTraceElement traceElement : thread.stackTrace) {
+                if (!instrumentedTraceElements.contains(traceElement)) {
+                    Set<MethodConfiguration> methods = currentInstrumentation.getMethods(NameUtils.getInternalClassName(traceElement.getClassName()));
+                    if (methods != null)
+                        for (MethodConfiguration method : methods) {
+                            if (method.methodName.equals(traceElement.getMethodName())) {
+                                instrumentedTraceElements.add(traceElement);
+                                break;
+                            }
+                        }
+                }
+            }
+
+            // find out which flows fit the current trace
             for (FlowMetadata flow : flows.keySet()) {
-                if (flow.fitsStacktrace(thread.stackTrace)) {
+                if (flow.fitsStacktrace(thread.stackTrace, instrumentedTraceElements)) {
                     threadsToFlows.computeIfAbsent(thread, threadMetadata -> new ArrayList<>()).add(flow);
                 }
             }
