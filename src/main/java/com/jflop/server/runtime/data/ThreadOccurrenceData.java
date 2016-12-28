@@ -10,7 +10,6 @@ public class ThreadOccurrenceData extends OccurrenceData {
     public String dumpId;
     public Thread.State threadState;
     public int count;
-    public boolean instrumentable;
 
     @Override
     public String getMetadataId() {

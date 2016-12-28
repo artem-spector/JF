@@ -41,13 +41,13 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         initStep(lock);
         analysis.mapThreadsToFlows();
 
-        assertTrue((analysis.threads != null && !analysis.threads.isEmpty()));
-        assertTrue(analysis.flows != null);
-        assertEquals("detected flows: " + analysis.flows.keySet(), 2, analysis.flows.keySet().size());
+        assertTrue((analysis.step.get().threads != null && !analysis.step.get().threads.isEmpty()));
+        assertTrue(analysis.step.get().flows != null);
+        assertEquals("detected flows: " + analysis.step.get().flows.keySet(), 2, analysis.step.get().flows.keySet().size());
 
-        assertTrue(analysis.threadsToFlows != null);
+        assertTrue(analysis.step.get().threadsToFlows != null);
         Set<FlowMetadata> distinctFlows = new HashSet<>();
-        analysis.threadsToFlows.values().forEach(distinctFlows::addAll);
+        analysis.step.get().threadsToFlows.values().forEach(distinctFlows::addAll);
         assertEquals("Flows mapped to threads: " + distinctFlows, 2, distinctFlows.size());
     }
 
@@ -63,8 +63,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         initStep(lock);
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();
+        assertTrue(analysis.step.get().methodsToInstrument == null || analysis.step.get().methodsToInstrument.isEmpty());
         analysis.afterStep(lock);
-        assertTrue(analysis.methodsToInstrument == null || analysis.methodsToInstrument.isEmpty());
 
         // wait until the class metadata returns and try again
         awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 5, null);
@@ -76,9 +76,9 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         initStep(lock);
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();
-        assertTrue(analysis.methodsToInstrument != null && !analysis.methodsToInstrument.isEmpty());
+        assertTrue(analysis.step.get().methodsToInstrument != null && !analysis.step.get().methodsToInstrument.isEmpty());
         List<MethodConfiguration> expected = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
-        expected.removeAll(analysis.methodsToInstrument);
+        expected.removeAll(analysis.step.get().methodsToInstrument);
         assertTrue("The following methods not instrumented: " + expected, expected.isEmpty());
     }
 
@@ -102,8 +102,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
             initStep(lock);
             analysis.analyze();
 
-            if (analysis.flows != null) {
-                for (List<FlowOccurenceData> list : analysis.flows.values()) {
+            if (analysis.step.get().flows != null) {
+                for (List<FlowOccurenceData> list : analysis.step.get().flows.values()) {
                     for (FlowOccurenceData occurenceData : list) {
                         if (occurenceData.time.after(from)) {
                             gotIt = true;
@@ -132,7 +132,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     private void initStep(TaskLockData lock) {
         analysis.beforeStep(lock, new Date());
-        System.out.println("Analyzing interval from " + analysis.from + " to " + analysis.to);
+        System.out.println("Analyzing interval from " + analysis.step.get().from + " to " + analysis.step.get().to);
     }
 
     private Future monitorJvm(int durationSec) throws Exception {

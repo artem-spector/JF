@@ -10,6 +10,8 @@ import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Base class for a background processing task.
@@ -21,6 +23,8 @@ import java.util.concurrent.ThreadFactory;
  * @author artem on 12/7/16.
  */
 public abstract class BackgroundTask implements InitializingBean, DisposableBean {
+
+    private static final Logger logger = Logger.getLogger(BackgroundTask.class.getName());
 
     private static final int REFRESH_THRESHOLD_SEC = 2;
 
@@ -88,7 +92,11 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
     private void processLock(TaskLockData lock) {
         threadPool.submit(() -> {
             if (lockIndex.obtainLock(lock, System.currentTimeMillis() + lockTimeoutMillis)) {
-                step(lock, new Date(System.currentTimeMillis() - REFRESH_THRESHOLD_SEC * 1000));
+                try {
+                    step(lock, new Date(System.currentTimeMillis() - REFRESH_THRESHOLD_SEC * 1000));
+                } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Background task's step failed.", e);
+                }
                 lockIndex.releaseLock(lock);
             }
         });

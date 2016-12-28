@@ -57,7 +57,7 @@ public class FlowMetadata extends Metadata {
 
     @Override
     public String toString() {
-        return rootFlow.toString();
+        return rootFlow.toString(0);
     }
 
     public static class FlowElement {
@@ -92,8 +92,8 @@ public class FlowMetadata extends Metadata {
 
         public boolean fits(StackTraceElement traceElement) {
             boolean res = Arrays.equals(
-                    new Object[] {className, methodName, fileName},
-                    new Object[] {NameUtils.getInternalClassName(traceElement.getClassName()), traceElement.getMethodName(), traceElement.getFileName()});
+                    new Object[]{className, methodName, fileName},
+                    new Object[]{NameUtils.getInternalClassName(traceElement.getClassName()), traceElement.getMethodName(), traceElement.getFileName()});
 
             if (res) {
                 int flowFirst = Integer.parseInt(firstLine);
@@ -105,9 +105,16 @@ public class FlowMetadata extends Metadata {
             return res;
         }
 
-        @Override
-        public String toString() {
-            return "{" + className + ":" + methodName + "->[" + subflows + "]}";
+        public String toString(int indent) {
+            String res = "\n";
+            for (int i = 0; i < indent; i++) res += "\t";
+            res += "(" + flowId + ") ";
+            res += NameUtils.getExternalClassName(className) + "." + methodName + "(" + fileName + firstLine + ".." + returnLine + ")";
+            if (subflows != null && !subflows.isEmpty())
+                for (FlowElement subflow : subflows) {
+                    res += subflow.toString(indent + 1);
+                }
+            return res;
         }
     }
 }

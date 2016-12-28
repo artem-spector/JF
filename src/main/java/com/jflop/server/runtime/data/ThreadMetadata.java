@@ -1,7 +1,5 @@
 package com.jflop.server.runtime.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.util.DigestUtil;
 
 import java.security.MessageDigest;
@@ -21,7 +19,6 @@ public class ThreadMetadata extends Metadata {
     public String dumpId;
     public Thread.State threadState;
     public StackTraceElement[] stackTrace;
-    public boolean instrumentable;
 
     public void read(Map<String, Object> json) {
         threadState = Thread.State.valueOf((String) json.get("threadState"));
@@ -37,23 +34,11 @@ public class ThreadMetadata extends Metadata {
         }
 
         calculateDumpId();
-        instrumentable = !getInstrumentableMethods().isEmpty();
     }
 
     @Override
     public String getDocumentId() {
         return dumpId;
-    }
-
-    @JsonIgnore
-    public Set<ValuePair<String, String>> getInstrumentableMethods() {
-        Set<ValuePair<String, String>> res = new HashSet<>();
-        for (StackTraceElement element : stackTrace) {
-            if (isInstrumentable(element)) {
-                res.add(new ValuePair<>(element.getClassName(), element.getMethodName()));
-            }
-        }
-        return res;
     }
 
     private void calculateDumpId() {
@@ -70,7 +55,7 @@ public class ThreadMetadata extends Metadata {
         dumpId = DigestUtil.digestToHexString(digest);
     }
 
-    private boolean isInstrumentable(StackTraceElement element) {
+    public boolean isInstrumentable(StackTraceElement element) {
         if (element.isNativeMethod()) return false;
         String className = element.getClassName();
         for (String prefix : NOT_INSTRUMENTABLE_PACKAGES) {
