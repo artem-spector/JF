@@ -28,8 +28,12 @@ public class TaskTest {
     @Autowired
     private LockIndex lockIndex;
 
+    @Autowired
+    private JvmMonitorAnalysis analysis;
+
     @Before
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
+        analysis.stop();
         lockIndex.deleteIndex();
     }
 

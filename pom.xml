@@ -107,16 +107,11 @@
                                         verbose="true"
                                 />
                             </target>
-<!--
-                            <target>
-                                <get src="https://db.tt/am4F3JmQ"
-                                     dest="src/main/resources/jflop-agent.jar"/>
-                            </target>
--->
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 

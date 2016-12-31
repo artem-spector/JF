@@ -4,6 +4,7 @@ import com.jflop.HttpTestClient;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.JFAgent;
+import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.feature.FeatureManager;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.RuntimeClient;
@@ -53,11 +54,16 @@ public class AdminTest {
     @Autowired
     private AdminDAO adminDAO;
 
+    @Autowired
+    private JvmMonitorAnalysis analysis;
+
     private HttpTestClient testClient;
     private AdminClient adminClient;
 
     @Before
     public void setUp() throws Exception {
+        analysis.stop();
+
         accountIndex.deleteIndex();
         agentJVMIndex.deleteIndex();
         testClient = new HttpTestClient(MockMvcBuilders.webAppContextSetup(wac).build());

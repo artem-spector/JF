@@ -154,11 +154,13 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         // 1. get recent threads and their metadata
         step.get().threads = rawDataIndex.getOccurrencesAndMetadata(step.get().agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, step.get().from, step.get().to);
         if (step.get().threads == null || step.get().threads.isEmpty()) return;
+        logger.fine("Found " + step.get().threads.size() + " distinct threads");
 
         // 2. get recent snapshots and their metadata
         step.get().threadsToFlows = new HashMap<>();
         step.get().flows = rawDataIndex.getOccurrencesAndMetadata(step.get().agentJvm, FlowOccurenceData.class, FlowMetadata.class, step.get().from, step.get().to);
         if (step.get().flows == null || step.get().flows.isEmpty()) return;
+        logger.fine("Found " + step.get().flows.size() + " distinct flows");
 
         // 3. loop by threads and find corresponding flows
         for (ThreadMetadata thread : step.get().threads.keySet()) {

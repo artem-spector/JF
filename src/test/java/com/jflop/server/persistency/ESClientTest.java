@@ -2,6 +2,7 @@ package com.jflop.server.persistency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.ServerApp;
+import com.jflop.server.background.JvmMonitorAnalysis;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,8 +33,12 @@ public class ESClientTest {
     @Autowired
     private ESClient esClient;
 
+    @Autowired
+    private JvmMonitorAnalysis analysis;
+
     @Before
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
+        analysis.stop();
         esClient.deleteIndices("test*");
         esClient.deleteTemplates("test*");
     }

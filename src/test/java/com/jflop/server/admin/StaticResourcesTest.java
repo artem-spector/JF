@@ -1,6 +1,7 @@
 package com.jflop.server.admin;
 
 import com.jflop.server.ServerApp;
+import com.jflop.server.background.JvmMonitorAnalysis;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,10 +32,14 @@ public class StaticResourcesTest {
     @Autowired
     private WebApplicationContext wac;
 
+    @Autowired
+    private JvmMonitorAnalysis analysis;
+
     private MockMvc mockMvc;
 
     @Before
-    public void init() {
+    public void init() throws InterruptedException {
+        analysis.stop();
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
 

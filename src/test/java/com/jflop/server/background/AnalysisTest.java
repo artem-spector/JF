@@ -28,6 +28,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     @Test
     public void testMapThreadsToFlows() throws Exception {
+        System.out.println("================== testMapThreadsToFlows ==================");
         TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
 
         startLoad(5);

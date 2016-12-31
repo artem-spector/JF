@@ -83,10 +83,12 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
         syncThread.start();
     }
 
-    public void stop() throws InterruptedException {
+    public synchronized void stop() throws InterruptedException {
         stopSyncThread = true;
-        syncThread.join();
-        syncThread = null;
+        if (syncThread != null) {
+            syncThread.join();
+            syncThread = null;
+        }
     }
 
     private void processLock(TaskLockData lock) {
