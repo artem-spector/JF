@@ -28,14 +28,14 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     @Test
     public void testMapThreadsToFlows() throws Exception {
-        System.out.println("================== testMapThreadsToFlows ==================");
+        logger.fine("================== testMapThreadsToFlows ==================");
         TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
 
         startLoad(5);
         monitorJvm(2).get();
         setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
         String snapshot = takeSnapshot(1);
-        System.out.println(snapshot);
+        logger.fine(snapshot);
         stopLoad();
         refreshAll();
 
@@ -124,7 +124,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         if (gotIt) {
             String snapshot = snapshotFeature.getLastSnapshot(agentJVM);
             assertNotNull(snapshot);
-            System.out.println(snapshot);
+            logger.fine(snapshot);
         } else {
             fail("Did not get a snapshot in " + timeoutSec + " sec");
         }
@@ -133,13 +133,13 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     private void initStep(TaskLockData lock) {
         analysis.beforeStep(lock, new Date());
-        System.out.println("Analyzing interval from " + analysis.step.get().from + " to " + analysis.step.get().to);
+        logger.fine("Analyzing interval from " + analysis.step.get().from + " to " + analysis.step.get().to);
     }
 
     private Future monitorJvm(int durationSec) throws Exception {
         adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
         awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-        System.out.println("start monitoring JVM (" + durationSec + " sec)");
+        logger.fine("start monitoring JVM (" + durationSec + " sec)");
 
         return Executors.newSingleThreadExecutor().submit(() -> {
             try {
@@ -147,7 +147,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
                 adminClient.submitCommand(agentJVM, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
                 awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10, null);
-                System.out.println("stop monitoring JVM");
+                logger.fine("stop monitoring JVM");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

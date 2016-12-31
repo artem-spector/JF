@@ -45,7 +45,7 @@ import static org.junit.Assert.fail;
 @WebIntegrationTest()
 public abstract class IntegrationTestBase {
 
-    private static final Logger logger = Logger.getLogger(IntegrationTestBase.class.getName());
+    protected static final Logger logger = Logger.getLogger(IntegrationTestBase.class.getName());
 
     protected static final String MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES = "multipleFlowsProducer.instrumentation.properties";
 
@@ -151,7 +151,7 @@ public abstract class IntegrationTestBase {
             };
             loadThreads[i].start();
         }
-        System.out.println("started load " + numThreads);
+        logger.fine("started load " + numThreads);
     }
 
     protected void stopLoad() {
@@ -171,7 +171,7 @@ public abstract class IntegrationTestBase {
         }
 
         loadThreads = null;
-        System.out.println("load stopped");
+        logger.fine("load stopped");
     }
 
     protected String configurationAsText(JflopConfiguration configuration) throws IOException {
@@ -199,7 +199,7 @@ public abstract class IntegrationTestBase {
         adminClient.submitCommand(agentJVM, SnapshotFeature.FEATURE_ID, SnapshotFeature.TAKE_SNAPSHOT, param);
         FeatureCommand command = awaitFeatureResponse(SnapshotFeature.FEATURE_ID, System.currentTimeMillis(), durationSec + 5,
                 latest -> {
-                    System.out.println("snapshot progress " + latest.progressPercent + "%");
+                    logger.fine("snapshot progress " + latest.progressPercent + "%");
                     return latest.successText != null;
                 });
         return command.successText;

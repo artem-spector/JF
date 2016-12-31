@@ -92,6 +92,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     void takeSnapshot() {
+        logger.fine("Taking snapshot");
         snapshotFeature.takeSnapshot(step.get().agentJvm, 1);
     }
 
@@ -197,7 +198,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         String res = "\n-------- threads to flows ---------";
         for (Map.Entry<ThreadMetadata, List<FlowMetadata>> entry : step.get().threadsToFlows.entrySet()) {
             ThreadMetadata threadMetadata = entry.getKey();
-            res += "\n(" + threadMetadata.dumpId + ") " + Arrays.toString(threadMetadata.stackTrace);
+            res += "\n\nthread(" + threadMetadata.dumpId + ") " + Arrays.toString(threadMetadata.stackTrace);
             for (FlowMetadata metadata : entry.getValue()) {
                 res += "\n\t" + metadata.toString();
             }

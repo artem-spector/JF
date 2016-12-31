@@ -56,7 +56,6 @@ public class RawDataIndex extends IndexTemplate {
                 .must(QueryBuilders.rangeQuery("time").from(from).to(to));
 
         List<PersistentData<O>> found = find(query, 10000, occurrenceType);
-        logger.fine("Found " + found.size() + " occurrences of type " + occurrenceType.getSimpleName() + " by query " + query);
 
         Map<String, List<O>> id2occurrences = new HashMap<>();
         for (PersistentData<O> persistentData : found) {
@@ -66,7 +65,7 @@ public class RawDataIndex extends IndexTemplate {
         if (id2occurrences.isEmpty()) return null;
 
         List<M> metadata = metadataIndex.getDocuments(metadataType, id2occurrences.keySet());
-        logger.fine("Retrieved " + metadata.size() + " metadata objects of type " + metadataType.getSimpleName());
+        logger.fine("Retrieved " + metadata.size() + " metadata objects of type " + metadataType.getSimpleName() + " for " + found.size() + " occurrences of type " + occurrenceType.getSimpleName());
         if (metadata.size() != id2occurrences.size()) {
             throw new RuntimeException("Metadata not found for some occurrence IDs");
         }
