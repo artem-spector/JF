@@ -117,6 +117,25 @@ public class ThreadToFlowTest {
         assertTrue(f1.fitsStacktrace(f1m4.getStackTrace(), getInstrumentedMethods()));
     }
 
+    @Test
+    public void testShortFlow() {
+        // f1m1:
+        // m1 -> m2
+        //    -> m3 -> m4
+
+        // f2m1:
+        // m1 -> m2 -> m4
+        f2m1 = new MethodCall(m1);
+        MethodCall f2m2 = f2m1.call(120, m2);
+        f2m4 = f2m2.call(210, m4);
+        f2m4.returnFrom(410);
+        f2m2.returnFrom(220);
+        f2m1.returnFrom(199);
+
+        FlowMetadata f1 = getFlows(f1m1).get(0);
+        assertFalse(f1.fitsStacktrace(f2m4.getStackTrace(), getInstrumentedMethods()));
+    }
+
 
     private List<FlowMetadata> getFlows(MethodCall mc) {
         return mc.getFlowElements().stream().map(flowElement -> {

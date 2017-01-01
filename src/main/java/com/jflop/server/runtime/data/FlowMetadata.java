@@ -42,8 +42,16 @@ public class FlowMetadata extends Metadata {
         // if no fitting element found in the stacktrace, it's not fit
         if (!fit) return false;
 
-        // if we've reached the the flow end or trace end, it's a fit
-        if (flowElement.subflows == null || flowElement.subflows.isEmpty() || tracePos == 0) return true;
+        // if we've reached the trace end, it's a fit
+        if (tracePos == 0) return true;
+
+        // if we've reached the flow end, its's a fit only if all the remaining methods are not instrumented
+        if (flowElement.subflows == null || flowElement.subflows.isEmpty()) {
+            while (--tracePos >= 0) {
+                if (instrumentedTraceElements.contains(stacktrace[tracePos])) return false;
+            }
+            return true;
+        }
 
         // if one of subflows fits the rest of the trace, it's a fit
         for (FlowElement subflow : flowElement.subflows) {
