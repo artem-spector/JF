@@ -63,9 +63,8 @@ public class FlowMetadata extends Metadata {
         return false;
     }
 
-    @Override
-    public String toString() {
-        return rootFlow.toString(0);
+    public String toString(List<FlowOccurenceData> occurrences) {
+        return rootFlow.toString("", occurrences.stream().map(occurrence -> occurrence.rootFlow).collect(Collectors.toList()));
     }
 
     public static class FlowElement {
@@ -113,14 +112,24 @@ public class FlowMetadata extends Metadata {
             return res;
         }
 
-        public String toString(int indent) {
-            String res = "\n";
-            for (int i = 0; i < indent; i++) res += "\t";
+        public String toString(String indent, List<FlowOccurenceData.FlowElement> occurrences) {
+            String res = "\n" + indent;
             res += "(" + flowId + ") ";
             res += NameUtils.getExternalClassName(className) + "." + methodName + "(" + fileName + firstLine + ".." + returnLine + ")";
+            res += "\n" + indent + "occurrences: ";
+            res += occurrences.stream().map(flow ->
+                    String.format("{count: %,d; min: %,d; max: %,d; avg: %,d}", flow.count, flow.minTime / 1000000, flow.maxTime / 1000000, flow.cumulativeTime / flow.count / 1000000))
+                    .collect(Collectors.joining(",", "[", "]"));
+
             if (subflows != null && !subflows.isEmpty())
                 for (FlowElement subflow : subflows) {
-                    res += subflow.toString(indent + 1);
+                    List<FlowOccurenceData.FlowElement> subOccurrences = new ArrayList<>();
+                    for (FlowOccurenceData.FlowElement occurrence : occurrences) {
+                        for (FlowOccurenceData.FlowElement subElement : occurrence.subflows) {
+                            if (subElement.flowId.equals(subflow.flowId)) subOccurrences.add(subElement);
+                        }
+                    }
+                    res += subflow.toString(indent + "\t", subOccurrences);
                 }
             return res;
         }

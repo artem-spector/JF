@@ -24,7 +24,7 @@ public class FlowOccurenceData extends OccurrenceData {
         return rootFlow.flowId;
     }
 
-    static class FlowElement {
+    public static class FlowElement {
 
         public String flowId;
         public int count;

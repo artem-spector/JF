@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Analyze raw data produced by {@link com.jflop.server.feature.JvmMonitorFeature}
@@ -198,12 +199,23 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         String res = "\n-------- threads to flows ---------";
         for (Map.Entry<ThreadMetadata, List<FlowMetadata>> entry : step.get().threadsToFlows.entrySet()) {
             ThreadMetadata threadMetadata = entry.getKey();
-            res += "\n\nthread(" + threadMetadata.dumpId + ") " + Arrays.toString(threadMetadata.stackTrace);
+            res += "\n\n" + threadMetadataAndStatistics(threadMetadata);
             for (FlowMetadata metadata : entry.getValue()) {
-                res += "\n\t" + metadata.toString();
+                res += "\n" + flowMetadataAndStatistics(metadata, "\t");
             }
         }
         return res + "\n-----------------------------------\n";
+    }
+
+    private String threadMetadataAndStatistics(ThreadMetadata metadata) {
+        String res = "thread(" + metadata.dumpId + ") " + metadata.threadState + ": " + Arrays.toString(metadata.stackTrace);
+        res += "\noccurrences: ";
+        res += step.get().threads.get(metadata).stream().map(occurrence -> String.valueOf(occurrence.count)).collect(Collectors.joining(",", "[", "]"));
+        return res;
+    }
+
+    private String flowMetadataAndStatistics(FlowMetadata flowMetadata, String indent) {
+        return indent + flowMetadata.toString(step.get().flows.get(flowMetadata));
     }
 
 }
