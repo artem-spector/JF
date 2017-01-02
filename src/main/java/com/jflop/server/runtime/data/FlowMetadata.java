@@ -29,11 +29,15 @@ public class FlowMetadata extends Metadata {
     }
 
     private static boolean flowFitsStacktrace(FlowElement flowElement, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements) {
-        // skip not fitting trace elements if they are not instrumented
+        // it's ok to skip instrumented elements, if they are in the beginning of the stack
+        // this is because the outmost methods might not return yet, and the registered flow may be partial.
+        boolean skipInstrumented = tracePos == stacktrace.length - 1;
+
+        // skip not fitting trace elements if they are not instrumented, or if we are in the beginning of the stack trace
         boolean fit = false;
         while (tracePos >= 0) {
             fit = flowElement.fits(stacktrace[tracePos]);
-            if (!fit && !instrumentedTraceElements.contains(stacktrace[tracePos]))
+            if (!fit && (skipInstrumented || !instrumentedTraceElements.contains(stacktrace[tracePos])))
                 tracePos--;
             else
                 break;
@@ -114,7 +118,6 @@ public class FlowMetadata extends Metadata {
 
         public String toString(String indent, List<FlowOccurenceData.FlowElement> occurrences) {
             String res = "\n" + indent;
-            res += "(" + flowId + ") ";
             res += NameUtils.getExternalClassName(className) + "." + methodName + "(" + fileName + firstLine + ".." + returnLine + ")";
             res += "\n" + indent + "occurrences: ";
             res += occurrences.stream().map(flow ->

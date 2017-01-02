@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -156,13 +157,13 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         // 1. get recent threads and their metadata
         step.get().threads = rawDataIndex.getOccurrencesAndMetadata(step.get().agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, step.get().from, step.get().to);
         if (step.get().threads == null || step.get().threads.isEmpty()) return;
-        logger.fine("Found " + step.get().threads.size() + " distinct threads");
+        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + step.get().threads.size() + " distinct threads");
 
         // 2. get recent snapshots and their metadata
         step.get().threadsToFlows = new HashMap<>();
         step.get().flows = rawDataIndex.getOccurrencesAndMetadata(step.get().agentJvm, FlowOccurenceData.class, FlowMetadata.class, step.get().from, step.get().to);
         if (step.get().flows == null || step.get().flows.isEmpty()) return;
-        logger.fine("Found " + step.get().flows.size() + " distinct flows");
+        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + step.get().flows.size() + " distinct flows");
 
         // 3. loop by threads and find corresponding flows
         for (ThreadMetadata thread : step.get().threads.keySet()) {
@@ -177,7 +178,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             }
         }
 
-        logger.fine(printThreadToFlows());
+        if (logger.isLoggable(Level.FINE)) logger.fine(printThreadToFlows());
     }
 
     private boolean isInstrumented(StackTraceElement traceElement) {
@@ -208,7 +209,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     private String threadMetadataAndStatistics(ThreadMetadata metadata) {
-        String res = "thread(" + metadata.dumpId + ") " + metadata.threadState + ": " + Arrays.toString(metadata.stackTrace);
+        String res = metadata.threadState + ": " + Arrays.toString(metadata.stackTrace);
         res += "\noccurrences: ";
         res += step.get().threads.get(metadata).stream().map(occurrence -> String.valueOf(occurrence.count)).collect(Collectors.joining(",", "[", "]"));
         return res;
