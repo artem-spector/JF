@@ -1,13 +1,6 @@
 package com.jflop.server.runtime.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.jflop.server.util.DigestUtil;
-import org.apache.tomcat.util.buf.HexUtils;
-import org.elasticsearch.common.hash.MessageDigests;
-import org.springframework.util.DigestUtils;
-
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
 
 /**
  * Base class for "metadata" objects, which define their own unique IDs.
@@ -37,7 +30,7 @@ public abstract class Metadata extends AgentData {
     @Override
     public boolean equals(Object obj) {
         if (obj == this) return true;
-        if (obj == null || !(obj instanceof ThreadMetadata)) return false;
-        return getDocumentId().equals(((ThreadMetadata)obj).dumpId);
+        if (obj == null || obj.getClass() != getClass()) return false;
+        return getDocumentId().equals(((Metadata)obj).getDocumentId());
     }
 }
