@@ -5,7 +5,7 @@ import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.data.FlowMetadata;
-import com.jflop.server.runtime.data.FlowOccurenceData;
+import com.jflop.server.runtime.data.FlowOccurrenceData;
 import org.jflop.config.MethodConfiguration;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,8 +104,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
             analysis.analyze();
 
             if (analysis.step.get().flows != null) {
-                for (List<FlowOccurenceData> list : analysis.step.get().flows.values()) {
-                    for (FlowOccurenceData occurenceData : list) {
+                for (List<FlowOccurrenceData> list : analysis.step.get().flows.values()) {
+                    for (FlowOccurrenceData occurenceData : list) {
                         if (occurenceData.time.after(from)) {
                             gotIt = true;
                             break;

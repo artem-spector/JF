@@ -6,7 +6,7 @@ import com.jflop.server.admin.data.FeatureCommand;
 import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
 import com.jflop.server.runtime.data.FlowMetadata;
-import com.jflop.server.runtime.data.FlowOccurenceData;
+import com.jflop.server.runtime.data.FlowOccurrenceData;
 import org.jflop.snapshot.Flow;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
@@ -71,7 +71,7 @@ public class SnapshotFeature extends AgentFeature {
             FlowMetadata metadata = agentDataFactory.createInstance(FlowMetadata.class);
             metadata.init(flow);
             res.add(metadata);
-            FlowOccurenceData occurrence = agentDataFactory.createInstance(FlowOccurenceData.class);
+            FlowOccurrenceData occurrence = agentDataFactory.createInstance(FlowOccurrenceData.class);
             occurrence.init(flow);
             res.add(occurrence);
         }

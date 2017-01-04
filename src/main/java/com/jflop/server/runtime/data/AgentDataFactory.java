@@ -19,7 +19,7 @@ public class AgentDataFactory {
     private AgentJVM agentJVM;
     private Date time;
 
-    public AgentDataFactory(AgentJVM agentJVM, Date time, Collection<DocType> docTypes) {
+    public AgentDataFactory(AgentJVM agentJVM, Date time, Collection<? extends DocType> docTypes) {
         this.agentJVM = agentJVM;
         this.time = time;
         dataTypes = new HashMap<>();

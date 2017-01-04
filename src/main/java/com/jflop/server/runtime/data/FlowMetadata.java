@@ -25,10 +25,15 @@ public class FlowMetadata extends Metadata {
     }
 
     public boolean fitsStacktrace(StackTraceElement[] stacktrace, Set<StackTraceElement> instrumentedTraceElements) {
-        return flowFitsStacktrace(rootFlow, stacktrace, stacktrace.length - 1, instrumentedTraceElements);
+        return getThreadPath(stacktrace, instrumentedTraceElements) != null;
     }
 
-    private static boolean flowFitsStacktrace(FlowElement flowElement, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements) {
+    public List<String> getThreadPath(StackTraceElement[] stacktrace, Set<StackTraceElement> instrumentedTraceElements) {
+        List<String> path = new ArrayList<>();
+        return findPath(rootFlow, stacktrace, stacktrace.length - 1, instrumentedTraceElements, path) ? path : null;
+    }
+
+    private static boolean findPath(FlowElement flowElement, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements, List<String> path) {
         // it's ok to skip instrumented elements, if they are in the beginning of the stack
         // this is because the outmost methods might not return yet, and the registered flow may be partial.
         boolean skipInstrumented = tracePos == stacktrace.length - 1;
@@ -46,6 +51,9 @@ public class FlowMetadata extends Metadata {
         // if no fitting element found in the stacktrace, it's not fit
         if (!fit) return false;
 
+        // if the flow element fits the stacktrace element, add the flow ID to the path
+        path.add(flowElement.flowId);
+
         // if we've reached the trace end, it's a fit
         if (tracePos == 0) return true;
 
@@ -59,16 +67,12 @@ public class FlowMetadata extends Metadata {
 
         // if one of subflows fits the rest of the trace, it's a fit
         for (FlowElement subflow : flowElement.subflows) {
-            if (flowFitsStacktrace(subflow, stacktrace, tracePos - 1, instrumentedTraceElements))
+            if (findPath(subflow, stacktrace, tracePos - 1, instrumentedTraceElements, path))
                 return true;
         }
 
         // if none of subflows fit, it's not fit
         return false;
-    }
-
-    public String toString(List<FlowOccurenceData> occurrences) {
-        return rootFlow.toString("", occurrences.stream().map(occurrence -> occurrence.rootFlow).collect(Collectors.toList()));
     }
 
     public static class FlowElement {
@@ -116,25 +120,5 @@ public class FlowMetadata extends Metadata {
             return res;
         }
 
-        public String toString(String indent, List<FlowOccurenceData.FlowElement> occurrences) {
-            String res = "\n" + indent;
-            res += NameUtils.getExternalClassName(className) + "." + methodName + "(" + fileName + firstLine + ".." + returnLine + ")";
-            res += "\n" + indent + "occurrences: ";
-            res += occurrences.stream().map(flow ->
-                    String.format("{count: %,d; min: %,d; max: %,d; avg: %,d}", flow.count, flow.minTime / 1000000, flow.maxTime / 1000000, flow.cumulativeTime / flow.count / 1000000))
-                    .collect(Collectors.joining(",", "[", "]"));
-
-            if (subflows != null && !subflows.isEmpty())
-                for (FlowElement subflow : subflows) {
-                    List<FlowOccurenceData.FlowElement> subOccurrences = new ArrayList<>();
-                    for (FlowOccurenceData.FlowElement occurrence : occurrences) {
-                        for (FlowOccurenceData.FlowElement subElement : occurrence.subflows) {
-                            if (subElement.flowId.equals(subflow.flowId)) subOccurrences.add(subElement);
-                        }
-                    }
-                    res += subflow.toString(indent + "\t", subOccurrences);
-                }
-            return res;
-        }
     }
 }

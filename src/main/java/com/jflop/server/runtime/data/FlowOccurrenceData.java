@@ -11,7 +11,7 @@ import java.util.List;
  * @author artem
  *         Date: 12/17/16
  */
-public class FlowOccurenceData extends OccurrenceData {
+public class FlowOccurrenceData extends OccurrenceData {
 
     public FlowElement rootFlow;
 
