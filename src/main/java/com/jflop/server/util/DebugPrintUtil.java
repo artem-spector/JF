@@ -26,11 +26,6 @@ public class DebugPrintUtil {
         return flowMetadataAndOccurrencesStr("", metadata.rootFlow, occurrences.stream().map(occurrence -> occurrence.rootFlow).collect(Collectors.toList()));
     }
 
-    public static String tracedFlowMetadataAndOccurrencesStr(TracedFlowMetadata metadata, List<TracedFlowOccurrence> occurrences) {
-        String res = "\n\n" + metadata.threadState + " numThreads: " + occurrences.stream().map(occurrence -> String.valueOf(occurrence.numThreads)).collect(Collectors.joining(",", "[", "]"));
-        return res + flowMetadataAndOccurrencesStr("", metadata.rootFlow, occurrences.stream().map(occurrence -> occurrence.rootFlow).collect(Collectors.toList()));
-    }
-
     private static String flowMetadataAndOccurrencesStr(String indent, FlowMetadata.FlowElement flowElement, List<FlowOccurrenceData.FlowElement> occurrences) {
         String res = "\n" + indent;
         res += NameUtils.getExternalClassName(flowElement.className) + "." + flowElement.methodName + "(" + flowElement.fileName + flowElement.firstLine + ".." + flowElement.returnLine + ")";

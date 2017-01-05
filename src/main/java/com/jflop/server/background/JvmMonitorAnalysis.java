@@ -183,36 +183,11 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         if (logger.isLoggable(Level.FINE)) logger.fine(printThreadToFlows());
 
-        // build traced flows
-        Map<TracedFlowMetadata, List<TracedFlowOccurrence>> tracedFlows = new HashMap<>();
-        for (Map.Entry<ThreadMetadata, List<ThreadOccurrenceData>> threadEntry : current.threads.entrySet()) {
-            ThreadMetadata threadMetadata = threadEntry.getKey();
-            List<ThreadOccurrenceData> threadOccurrences = threadEntry.getValue();
-            List<FlowOccurrenceData> flowOccurrences = new ArrayList<>();
-            TracedFlowMetadata tracedFlowMetadata = null;
-
-            for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> flowsEntry : current.flows.entrySet()) {
-                FlowMetadata flowMetadata = flowsEntry.getKey();
-                TracedFlowMetadata tracedFlow = TracedFlowMetadata.getTracedFlow(flowMetadata, threadMetadata, current.instrumentedTraceElements);
-                if (tracedFlow != null) {
-                    flowOccurrences.addAll(flowsEntry.getValue());
-                    if (tracedFlowMetadata == null) tracedFlowMetadata = tracedFlow;
-                    assert tracedFlow.equals(tracedFlowMetadata);
-                }
-            }
-
-            if (tracedFlowMetadata != null) {
-                tracedFlows.computeIfAbsent(tracedFlowMetadata, key -> new ArrayList<>())
-                        .add(new TracedFlowOccurrence(tracedFlowMetadata, flowOccurrences, threadOccurrences));
-            }
-        }
-        if (logger.isLoggable(Level.FINE)) logger.fine(printTracedFlows(tracedFlows));
-
         // build aggregated flows
         Map<FlowMetadata, AggregatedFlowOccurrence> aggregatedFlows = AggregatedFlowOccurrence.aggregate(current.flows, current.threads,
                 current.agentDataFactory, current.instrumentedTraceElements, current.to.getTime() - current.from.getTime());
         if (logger.isLoggable(Level.FINE)) logger.fine(printAggregatedFlows(aggregatedFlows));
-
+        rawDataIndex.addRawData(aggregatedFlows.values());
     }
 
     private boolean isInstrumented(StackTraceElement traceElement) {
@@ -238,14 +213,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             for (FlowMetadata metadata : entry.getValue()) {
                 res += "\n\t" + DebugPrintUtil.flowMetadataAndOccurrencesStr(metadata, step.get().flows.get(metadata));
             }
-        }
-        return res + "\n-----------------------------------\n";
-    }
-
-    private String printTracedFlows(Map<TracedFlowMetadata, List<TracedFlowOccurrence>> tracedFlows) {
-        String res = "\n-------- traced flows ---------";
-        for (Map.Entry<TracedFlowMetadata, List<TracedFlowOccurrence>> entry : tracedFlows.entrySet()) {
-            res += DebugPrintUtil.tracedFlowMetadataAndOccurrencesStr(entry.getKey(), entry.getValue());
         }
         return res + "\n-----------------------------------\n";
     }

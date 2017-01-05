@@ -44,7 +44,7 @@ public class RawDataIndex extends IndexTemplate {
         return RAW_DATA_INDEX;
     }
 
-    public void addRawData(List<AgentData> dataList) {
+    public void addRawData(Collection<? extends AgentData> dataList) {
         // TODO: use bulk update instead of inserting one by one
         for (AgentData rawData : dataList) {
             createDocument(new PersistentData<>(rawData));
