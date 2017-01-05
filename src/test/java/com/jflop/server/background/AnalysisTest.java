@@ -55,21 +55,24 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     @Test
     public void testInstrumentThreads() throws Exception {
         TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
-        Future future = monitorJvm(2);
-        startLoad(15);
+        Future future = monitorJvm(3);
+        startLoad(20);
         future.get();
+        stopLoad();
         refreshAll();
 
         // first pass - still no class metadata, the instrumented methods not set
         initStep(lock);
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();
-        assertTrue(analysis.step.get().methodsToInstrument == null || analysis.step.get().methodsToInstrument.isEmpty());
+        JvmMonitorAnalysis.StepState currentState = JvmMonitorAnalysis.step.get();
         analysis.afterStep(lock);
+        assertTrue(currentState.methodsToInstrument == null || currentState.methodsToInstrument.isEmpty());
 
         // wait until the class metadata returns and try again
         awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 5, null);
-        future = monitorJvm(1);
+        future = monitorJvm(3);
+        startLoad(20);
         future.get();
         stopLoad();
         refreshAll();
@@ -77,9 +80,11 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         initStep(lock);
         analysis.mapThreadsToFlows();
         analysis.instrumentUncoveredThreads();
-        assertTrue(analysis.step.get().methodsToInstrument != null && !analysis.step.get().methodsToInstrument.isEmpty());
+        currentState = JvmMonitorAnalysis.step.get();
+        analysis.afterStep(lock);
+        assertTrue(currentState.methodsToInstrument != null && !currentState.methodsToInstrument.isEmpty());
         List<MethodConfiguration> expected = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
-        expected.removeAll(analysis.step.get().methodsToInstrument);
+        expected.removeAll(currentState.methodsToInstrument);
         assertTrue("The following methods not instrumented: " + expected, expected.isEmpty());
     }
 

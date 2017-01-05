@@ -75,7 +75,7 @@ public abstract class FeaturesIntegrationTest extends IntegrationTestBase {
 
 
         // 3. take snapshot under load and make sure all the flows are recorded
-        startLoad(2);
+        startLoad(10);
         successText = takeSnapshot(2);
         System.out.println(successText);
         assertTrue(successText.contains("2 distinct flows"));

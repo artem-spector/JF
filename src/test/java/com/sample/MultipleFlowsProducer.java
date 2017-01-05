@@ -49,7 +49,7 @@ public class MultipleFlowsProducer {
                 httpGet("http://www.google.com");
                 break;
             case 2:
-                busyLoop(1000000);
+                busyLoop(1000);
                 break;
             default:
                 throw new RuntimeException("unsupported processing choice");

@@ -118,7 +118,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         if (step.get().threads == null) return;
 
         Map<String, InstrumentationMetadata> classMetadataCache = new HashMap<>();
-        Map<String, List<String>> missingSignatures = new HashMap<>();
+        Map<String, Set<String>> missingSignatures = new HashMap<>();
 
         // find all instrumentable and not instrumented methods
         for (ThreadMetadata thread : step.get().threads.keySet()) {
@@ -139,7 +139,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                         }
                     } else {
                         String internalClassName = NameUtils.getInternalClassName(className); // need it because ES does not like "." in field names (map keys)
-                        List<String> methods = missingSignatures.computeIfAbsent(internalClassName, k -> new ArrayList<>());
+                        Set<String> methods = missingSignatures.computeIfAbsent(internalClassName, k -> new HashSet<>());
                         methods.add(methodName);
                     }
                 }

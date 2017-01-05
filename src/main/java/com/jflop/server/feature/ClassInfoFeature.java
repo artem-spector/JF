@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides access to the information about loaded classes
@@ -27,7 +28,7 @@ public class ClassInfoFeature extends AgentFeature {
         super(FEATURE_NAME);
     }
 
-    public void getDeclaredMethods(AgentJVM agentJVM, Map<String, List<String>> classMethods) {
+    public void getDeclaredMethods(AgentJVM agentJVM, Map<String, Set<String>> classMethods) {
         sendCommandIfNotInProgress(agentJVM, GET_DECLARED_METHODS, classMethods);
     }
 
