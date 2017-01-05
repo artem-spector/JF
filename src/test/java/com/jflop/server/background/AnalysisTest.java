@@ -55,8 +55,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     @Test
     public void testInstrumentThreads() throws Exception {
         TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
-        Future future = monitorJvm(3);
-        startLoad(20);
+        Future future = monitorJvm(2);
+        startLoad(5);
         future.get();
         stopLoad();
         refreshAll();
@@ -71,8 +71,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
         // wait until the class metadata returns and try again
         awaitFeatureResponse(ClassInfoFeature.FEATURE_NAME, System.currentTimeMillis(), 5, null);
-        future = monitorJvm(3);
-        startLoad(20);
+        future = monitorJvm(2);
+        startLoad(5);
         future.get();
         stopLoad();
         refreshAll();
@@ -83,7 +83,10 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         currentState = JvmMonitorAnalysis.step.get();
         analysis.afterStep(lock);
         assertTrue(currentState.methodsToInstrument != null && !currentState.methodsToInstrument.isEmpty());
-        List<MethodConfiguration> expected = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES).getAllMethods();
+        List<MethodConfiguration> expected = new ArrayList<>();
+        expected.add(new MethodConfiguration("com/sample/MultipleFlowsProducer", "serve", "(Ljava/lang/String;)V"));
+        expected.add(new MethodConfiguration("com/sample/MultipleFlowsProducer", "doSomeProcessing", "(Ljava/lang/Object;)V"));
+
         expected.removeAll(currentState.methodsToInstrument);
         assertTrue("The following methods not instrumented: " + expected, expected.isEmpty());
     }

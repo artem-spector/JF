@@ -158,6 +158,8 @@ public abstract class IntegrationTestBase {
         stopIt = true;
         if (loadThreads == null) return;
 
+        for (Thread thread : loadThreads)
+            thread.interrupt();
         for (Thread thread : loadThreads) {
             try {
                 thread.join(5000);
