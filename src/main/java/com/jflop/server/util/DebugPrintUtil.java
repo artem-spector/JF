@@ -62,8 +62,11 @@ public class DebugPrintUtil {
         res += "\n" + indent;
         res += String.format("{throughput: %,.2f per sec; min: %,d; max: %,d; avg: %,d}", occurrenceElement.throughputPerSec, occurrenceElement.minTime / 1000000, occurrenceElement.maxTime / 1000000, occurrenceElement.averageTime / 1000000);
         res += "\n" + indent;
-        if (occurrenceElement.threadStatistics != null)
+        if (occurrenceElement.threadStatistics != null) {
             res += String.format("thread state: %s; thread concurrency: %.2f", occurrenceElement.threadStatistics.threadState, occurrenceElement.threadStatistics.threadCount);
+        } else {
+            res += "not covered by thread dump";
+        }
 
         if (metadataElement.subflows != null && !metadataElement.subflows.isEmpty()) {
             for (FlowMetadata.FlowElement subflow : metadataElement.subflows) {
