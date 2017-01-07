@@ -7,6 +7,8 @@ import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
 import com.jflop.server.runtime.data.*;
+import com.jflop.server.runtime.data.processed.FlowSummary;
+import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.util.DebugPrintUtil;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
@@ -188,6 +190,11 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                 current.agentDataFactory, current.instrumentedTraceElements, current.to.getTime() - current.from.getTime());
         if (logger.isLoggable(Level.FINE)) logger.fine(printAggregatedFlows(aggregatedFlows));
         rawDataIndex.addRawData(aggregatedFlows.values());
+
+        // build flow summary
+        FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
+        flowSummary.aggregateFlows(current.flows, current.to.getTime() - current.from.getTime());
+        if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
     }
 
     private boolean isInstrumented(StackTraceElement traceElement) {
@@ -222,6 +229,15 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         for (Map.Entry<FlowMetadata, AggregatedFlowOccurrence> entry : aggregatedFlows.entrySet()) {
             res += DebugPrintUtil.aggregatedFlowMetadataAndOccurrenceStr(entry.getKey(), entry.getValue());
         }
+        return res + "\n-----------------------------------\n";
+    }
+
+    private String printFlowSummary(FlowSummary flowSummary) {
+        String res = "\n-------- Flow summary ---------";
+        for (MethodCall root : flowSummary.roots) {
+            res += "\n" + DebugPrintUtil.methodCallSummaryStr("", root);
+        }
+
         return res + "\n-----------------------------------\n";
     }
 

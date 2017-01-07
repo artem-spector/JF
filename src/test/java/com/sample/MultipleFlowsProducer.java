@@ -43,7 +43,7 @@ public class MultipleFlowsProducer {
     private void doSomeProcessing(Object data) {
         switch (random.nextInt(3)) {
             case 0:
-                sleep(10);
+                sleep(8);
                 break;
             case 1:
                 httpGet("http://www.google.com");
@@ -61,7 +61,7 @@ public class MultipleFlowsProducer {
         double v = random.nextDouble();
         double res = 0;
         for (int i = 0; i < count; i++) {
-            res += Math.pow(v, count);
+            res += Math.pow(v, i);
         }
         long duration = System.currentTimeMillis() - begin;
         return res;
