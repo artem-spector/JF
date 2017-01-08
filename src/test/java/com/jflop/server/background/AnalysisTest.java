@@ -34,7 +34,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         startLoad(5);
         monitorJvm(2).get();
         setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
-        String snapshot = takeSnapshot(1);
+        String snapshot = takeSnapshot(2);
         logger.fine(snapshot);
         stopLoad();
         refreshAll();
