@@ -1,6 +1,9 @@
 package com.jflop.server.util;
 
-import com.jflop.server.runtime.data.*;
+import com.jflop.server.runtime.data.FlowMetadata;
+import com.jflop.server.runtime.data.FlowOccurrenceData;
+import com.jflop.server.runtime.data.ThreadMetadata;
+import com.jflop.server.runtime.data.ThreadOccurrenceData;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
 import com.jflop.server.runtime.data.processed.MethodFlowStatistics;
@@ -53,34 +56,6 @@ public class DebugPrintUtil {
                 }
                 res += flowMetadataAndOccurrencesStr(indent + "\t", subflow, subOccurrences);
             }
-        return res;
-    }
-
-    public static String aggregatedFlowMetadataAndOccurrenceStr(FlowMetadata metadata, AggregatedFlowOccurrence occurrence) {
-        return "\n" + aggregatedFlowMetadataAndOccurrenceStr("", metadata.rootFlow, occurrence.rootFlow);
-    }
-
-    private static String aggregatedFlowMetadataAndOccurrenceStr(String indent, FlowMetadata.FlowElement metadataElement, AggregatedFlowOccurrence.AggregatedFlowElement occurrenceElement) {
-        String res = "\n" + indent;
-        res += NameUtils.getExternalClassName(metadataElement.className) + "." + metadataElement.methodName + "(" + metadataElement.fileName + metadataElement.firstLine + ".." + metadataElement.returnLine + ")";
-        res += "\n" + indent;
-        res += String.format("{throughput: %,.2f per sec; min: %,d; max: %,d; avg: %,d}", occurrenceElement.throughputPerSec, occurrenceElement.minTime / 1000000, occurrenceElement.maxTime / 1000000, occurrenceElement.averageTime / 1000000);
-        res += "\n" + indent;
-        if (occurrenceElement.threadStatistics != null) {
-            res += String.format("thread state: %s; thread concurrency: %.2f", occurrenceElement.threadStatistics.threadState, occurrenceElement.threadStatistics.threadCount);
-        } else {
-            res += "not covered by thread dump";
-        }
-
-        if (metadataElement.subflows != null && !metadataElement.subflows.isEmpty()) {
-            for (FlowMetadata.FlowElement subflow : metadataElement.subflows) {
-                for (AggregatedFlowOccurrence.AggregatedFlowElement subOccurrence : occurrenceElement.subflows) {
-                    if (subOccurrence.flowId.equals(subflow.flowId))
-                        res += aggregatedFlowMetadataAndOccurrenceStr(indent + "\t", subflow, subOccurrence);
-                }
-            }
-        }
-
         return res;
     }
 

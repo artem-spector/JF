@@ -96,7 +96,7 @@ public class ESClient implements InitializingBean, DisposableBean {
         try {
             client.admin().indices().prepareDelete(names).get();
         } catch (IndexNotFoundException e) {
-            logger.warning("Failed to delete " + Arrays.toString(names) + ". " + e);
+            logger.warning("Failed to delete " + Arrays.toString(names) + ": " + e);
         }
         awaitClusterAvailable(5);
     }
@@ -264,7 +264,11 @@ public class ESClient implements InitializingBean, DisposableBean {
     }
 
     public void refreshIndices(String indexName) {
-        client.admin().indices().prepareRefresh(indexName).execute().actionGet();
+        try {
+            client.admin().indices().prepareRefresh(indexName).execute().actionGet();
+        } catch (IndexNotFoundException e) {
+            logger.warning("Failed to refresh index. " + e);
+        }
     }
 
     public void awaitClusterAvailable(int timeoutSec) {

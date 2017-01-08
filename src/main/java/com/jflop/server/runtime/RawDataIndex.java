@@ -5,7 +5,6 @@ import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.*;
-import com.jflop.server.runtime.data.processed.FlowSummary;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,9 +33,7 @@ public class RawDataIndex extends IndexTemplate {
         super(RAW_DATA_INDEX + "-template", RAW_DATA_INDEX + "*",
                 new DocType("load", "persistency/loadData.json", LoadData.class),
                 new DocType("thread", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class),
-                new DocType("flow", "persistency/flowOccurrenceData.json", FlowOccurrenceData.class),
-                new DocType("aggregatedFlow", "persistency/aggregatedFlowOccurrenceData.json", AggregatedFlowOccurrence.class),
-                new DocType("flowSummary", "persistency/flowSummary.json", FlowSummary.class)
+                new DocType("flow", "persistency/flowOccurrenceData.json", FlowOccurrenceData.class)
         );
     }
 

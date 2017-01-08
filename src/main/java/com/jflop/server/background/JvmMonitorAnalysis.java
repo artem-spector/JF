@@ -5,6 +5,7 @@ import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.MetadataIndex;
+import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.RawDataIndex;
 import com.jflop.server.runtime.data.*;
 import com.jflop.server.runtime.data.processed.FlowSummary;
@@ -35,6 +36,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     @Autowired
     private MetadataIndex metadataIndex;
+
+    @Autowired
+    private ProcessedDataIndex processedDataIndex;
 
     @Autowired
     private ClassInfoFeature classInfoFeature;
@@ -79,7 +83,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         step.get().agentJvm = lock.agentJvm;
         step.get().from = lock.processedUntil;
         step.get().to = refreshThreshold;
-        step.get().agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, rawDataIndex.getDocTypes());
+        step.get().agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
 
         step.get().currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(step.get().agentJvm);
         step.get().instrumentedTraceElements = new HashSet<>();
@@ -185,18 +189,13 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         if (logger.isLoggable(Level.FINE)) logger.fine(printThreadToFlows());
 
-        // build aggregated flows
-        Map<FlowMetadata, AggregatedFlowOccurrence> aggregatedFlows = AggregatedFlowOccurrence.aggregate(current.flows, current.threads,
-                current.agentDataFactory, current.instrumentedTraceElements, current.to.getTime() - current.from.getTime());
-//        if (logger.isLoggable(Level.FINE)) logger.fine(printAggregatedFlows(aggregatedFlows));
-        rawDataIndex.addRawData(aggregatedFlows.values());
-
         // build flow summary
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
         long intervalLengthMillis = current.to.getTime() - current.from.getTime();
         flowSummary.aggregateFlows(current.flows, intervalLengthMillis);
         flowSummary.aggregateThreads(current.threads, current.instrumentedTraceElements);
         if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
+        processedDataIndex.addFlowSummary(flowSummary);
     }
 
     private boolean isInstrumented(StackTraceElement traceElement) {
@@ -222,14 +221,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             for (FlowMetadata metadata : entry.getValue()) {
                 res += "\n\t" + DebugPrintUtil.flowMetadataAndOccurrencesStr(metadata, step.get().flows.get(metadata));
             }
-        }
-        return res + "\n-----------------------------------\n";
-    }
-
-    private String printAggregatedFlows(Map<FlowMetadata, AggregatedFlowOccurrence> aggregatedFlows) {
-        String res = "\n-------- aggregated flows ---------";
-        for (Map.Entry<FlowMetadata, AggregatedFlowOccurrence> entry : aggregatedFlows.entrySet()) {
-            res += DebugPrintUtil.aggregatedFlowMetadataAndOccurrenceStr(entry.getKey(), entry.getValue());
         }
         return res + "\n-----------------------------------\n";
     }
