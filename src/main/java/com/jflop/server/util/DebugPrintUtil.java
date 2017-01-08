@@ -4,6 +4,7 @@ import com.jflop.server.runtime.data.*;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
 import com.jflop.server.runtime.data.processed.MethodFlowStatistics;
+import com.jflop.server.runtime.data.processed.ThreadHotspot;
 import org.jflop.config.NameUtils;
 
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 public class DebugPrintUtil {
 
     public static String threadMetadataAndOccurrencesStr(ThreadMetadata metadata, List<ThreadOccurrenceData> occurrences) {
-        String res = metadata.threadState + ": " + Arrays.toString(metadata.stackTrace);
+        String res = "thread: " + metadata.dumpId + " " + metadata.threadState + ": " + Arrays.toString(metadata.stackTrace);
         res += "\noccurrences: ";
         res += occurrences.stream().map(occurrence -> String.valueOf(occurrence.count)).collect(Collectors.joining(",", "[", "]"));
         return res;
@@ -92,7 +93,12 @@ public class DebugPrintUtil {
                 MethodFlowStatistics stat = flow.statistics;
                 res += String.format(" stat: {throughput: %,.2f per sec; min: %,d; max: %,d; avg: %,d}", stat.throughputPerSec, stat.minTime / 1000000, stat.maxTime / 1000000, stat.averageTime / 1000000);
             }
-
+        }
+        if (call.hotspots != null) {
+            res += "\n" + indent + "hotspots:";
+            for (ThreadHotspot hotspot : call.hotspots) {
+                res += "\n" + indent + "\t" + "thread: " + hotspot.threadId + " " + hotspot.threadState + "; line: " + hotspot.line + "; concurrency: " + hotspot.concurrentThreadsAvg;
+            }
         }
 
         if (call.nestedCalls != null) {

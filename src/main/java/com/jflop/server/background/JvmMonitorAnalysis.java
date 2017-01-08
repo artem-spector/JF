@@ -188,12 +188,14 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         // build aggregated flows
         Map<FlowMetadata, AggregatedFlowOccurrence> aggregatedFlows = AggregatedFlowOccurrence.aggregate(current.flows, current.threads,
                 current.agentDataFactory, current.instrumentedTraceElements, current.to.getTime() - current.from.getTime());
-        if (logger.isLoggable(Level.FINE)) logger.fine(printAggregatedFlows(aggregatedFlows));
+//        if (logger.isLoggable(Level.FINE)) logger.fine(printAggregatedFlows(aggregatedFlows));
         rawDataIndex.addRawData(aggregatedFlows.values());
 
         // build flow summary
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
-        flowSummary.aggregateFlows(current.flows, current.to.getTime() - current.from.getTime());
+        long intervalLengthMillis = current.to.getTime() - current.from.getTime();
+        flowSummary.aggregateFlows(current.flows, intervalLengthMillis);
+        flowSummary.aggregateThreads(current.threads, current.instrumentedTraceElements);
         if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
     }
 

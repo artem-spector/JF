@@ -8,8 +8,18 @@ package com.jflop.server.runtime.data.processed;
  */
 public class ThreadHotspot {
 
+    public String threadId;
     public String line;
     public Thread.State threadState;
-    public int concurrentThreadsAvg;
+    public float concurrentThreadsAvg;
 
+    public ThreadHotspot() {
+    }
+
+    public ThreadHotspot(String threadId, String line, Thread.State threadState, float concurrentThreadsAvg) {
+        this.threadId = threadId;
+        this.line = line;
+        this.threadState = threadState;
+        this.concurrentThreadsAvg = concurrentThreadsAvg;
+    }
 }
