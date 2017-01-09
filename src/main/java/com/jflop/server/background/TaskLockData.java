@@ -23,7 +23,6 @@ public class TaskLockData {
     public String lockId;
 
     public Date lockedUntil;
-    public Date processedUntil;
 
     @JsonProperty
     private String customStateJson;
@@ -41,7 +40,6 @@ public class TaskLockData {
             if (agentJvm.jvmId != null) lockId += "-" + agentJvm.jvmId;
         }
         lockedUntil = new Date(0); // unlocked
-        processedUntil = new Date(); // begin processing from now
     }
 
     @JsonIgnore

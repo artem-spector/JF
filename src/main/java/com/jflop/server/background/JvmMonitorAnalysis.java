@@ -53,6 +53,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     // step-level state
     static class StepState {
         private AgentJVM agentJvm;
+        AnalysisState taskState;
         Date from;
         Date to;
         Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
@@ -79,20 +80,25 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     void beforeStep(TaskLockData lock, Date refreshThreshold) {
-        step.set(new StepState());
+        StepState current = new StepState();
+        current.agentJvm = lock.agentJvm;
+        current.taskState = lock.getCustomState(AnalysisState.class);
+        if (current.taskState == null) current.taskState = new AnalysisState(new Date());
+        current.from = current.taskState.processedUntil;
+        current.to = refreshThreshold;
+        current.agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
 
-        step.get().agentJvm = lock.agentJvm;
-        step.get().from = lock.processedUntil;
-        step.get().to = refreshThreshold;
-        step.get().agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
+        current.currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(current.agentJvm);
+        current.instrumentedTraceElements = new HashSet<>();
+        current.methodsToInstrument = new HashSet<>();
 
-        step.get().currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(step.get().agentJvm);
-        step.get().instrumentedTraceElements = new HashSet<>();
-        step.get().methodsToInstrument = new HashSet<>();
+        step.set(current);
     }
 
     void afterStep(TaskLockData lock) {
-        lock.processedUntil = step.get().to;
+        StepState current = step.get();
+        current.taskState.processedUntil = current.to;
+        lock.setCustomState(current.taskState);
         step.remove();
     }
 

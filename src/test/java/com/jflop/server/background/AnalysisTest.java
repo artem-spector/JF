@@ -32,6 +32,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     public void testMapThreadsToFlows() throws Exception {
         logger.fine("================== testMapThreadsToFlows ==================");
         TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
+        lock.setCustomState(new AnalysisState(new Date()));
 
         startLoad(5);
         monitorJvm(2).get();
@@ -58,6 +59,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     @Test
     public void testInstrumentThreads() throws Exception {
         TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
+        lock.setCustomState(new AnalysisState(new Date()));
+
         Future future = monitorJvm(2);
         startLoad(5);
         future.get();
@@ -102,7 +105,10 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     private void analyzeUntilNextSnapshot(int timeoutSec) throws Exception {
         TaskLockData lock = new TaskLockData("analyze test", agentJVM);
-        Date from = lock.processedUntil;
+        AnalysisState state = new AnalysisState(new Date());
+        lock.setCustomState(state);
+        Date from = state.processedUntil;
+
         long until = System.currentTimeMillis() + timeoutSec * 1000;
         boolean gotIt = false;
         startLoad(15);
