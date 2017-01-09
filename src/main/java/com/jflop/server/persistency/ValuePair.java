@@ -10,8 +10,11 @@ import java.util.Arrays;
  */
 public class ValuePair<T1, T2> {
 
-    public final T1 value1;
-    public final T2 value2;
+    public T1 value1;
+    public T2 value2;
+
+    public ValuePair() {
+    }
 
     public ValuePair(T1 value1, T2 value2) {
         this.value1 = value1;
