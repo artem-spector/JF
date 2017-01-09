@@ -82,12 +82,13 @@ public class SnapshotFeature extends AgentFeature {
         return res;
     }
 
-    public void takeSnapshot(AgentJVM agentJvm, int durationSec) {
+    public boolean takeSnapshot(AgentJVM agentJvm, int durationSec) {
         Map<String, Object> param = new HashMap<>();
         param.put(DURATION_SEC, durationSec);
         boolean commandSent = sendCommandIfNotInProgress(agentJvm, TAKE_SNAPSHOT, param);
         if (commandSent)
             logger.fine("Taking snapshot (" + durationSec + ")");
+        return commandSent;
     }
 
     public String getLastSnapshot(AgentJVM agentJvm) {

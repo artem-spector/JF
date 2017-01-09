@@ -10,11 +10,15 @@ import java.util.Date;
 public class AnalysisState {
 
     public Date processedUntil;
+    public int snapshotDuration;
 
     public AnalysisState() {
     }
 
-    public AnalysisState(Date processedUntil) {
-        this.processedUntil = processedUntil;
+    public static AnalysisState createState() {
+        AnalysisState state = new AnalysisState();
+        state.processedUntil = new Date();
+        state.snapshotDuration = 1;
+        return state;
     }
 }

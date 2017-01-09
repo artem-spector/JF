@@ -14,22 +14,15 @@ import java.util.*;
  */
 public class FlowSummary extends AgentData {
 
-    public long intervalLengthMillis;
-    public int snapshotDurationSec;
-
     public List<MethodCall> roots;
 
     public void aggregateFlows(Map<FlowMetadata, List<FlowOccurrenceData>> flows, long intervalLengthMillis) {
-        this.intervalLengthMillis = intervalLengthMillis;
-
         roots = new ArrayList<>();
         for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : flows.entrySet()) {
             FlowMetadata flowMetadata = entry.getKey();
             List<FlowOccurrenceData> occurrences = entry.getValue();
             MethodCall call = MethodCall.getOrCreateCall(roots, flowMetadata.rootFlow);
             call.addFlow(flowMetadata, occurrences, intervalLengthMillis);
-
-            snapshotDurationSec = Math.max(snapshotDurationSec, occurrences.stream().mapToInt(occ -> occ.snapshotDurationSec).max().getAsInt());
         }
     }
 

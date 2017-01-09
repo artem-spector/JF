@@ -83,7 +83,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         StepState current = new StepState();
         current.agentJvm = lock.agentJvm;
         current.taskState = lock.getCustomState(AnalysisState.class);
-        if (current.taskState == null) current.taskState = new AnalysisState(new Date());
+        if (current.taskState == null) current.taskState = AnalysisState.createState();
         current.from = current.taskState.processedUntil;
         current.to = refreshThreshold;
         current.agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
@@ -97,34 +97,36 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     void afterStep(TaskLockData lock) {
         StepState current = step.get();
-        current.taskState.processedUntil = current.to;
         lock.setCustomState(current.taskState);
         step.remove();
     }
 
     void analyze() {
         mapThreadsToFlows();
-        instrumentUncoveredThreads();
+        findMethodsToInstrumentInThreadDump();
         adjustInstrumentation();
     }
 
     void takeSnapshot() {
-        // start with minimal snapshot duration, it will be increased if necessary and possible
-        int snapshotDuration = 1;
-
         StepState current = step.get();
+        AnalysisState taskState = current.taskState;
+
+        int duration = taskState.snapshotDuration;
         if (current.flowSummary != null && current.threads != null) {
-            snapshotDuration = current.flowSummary.snapshotDurationSec;
-            if (snapshotDuration < 5 && needToIncreaseSnapshotDuration(snapshotDuration)) {
-                snapshotDuration++;
-                logger.fine("Snapshot duration increased to " + snapshotDuration + " sec.");
-            } else if (snapshotDuration > 1 && needToDecreaseSnapshotDuration(snapshotDuration)) {
-                snapshotDuration--;
-                logger.fine("Snapshot duration decreased to " + snapshotDuration + " sec.");
+            if (duration < 5 && needToIncreaseSnapshotDuration(duration)) {
+                duration++;
+                logger.fine("Snapshot duration increased to " + duration + " sec.");
+            } else if (duration > 1 && needToDecreaseSnapshotDuration(duration)) {
+                duration--;
+                logger.fine("Snapshot duration decreased to " + duration + " sec.");
             }
         }
 
-        snapshotFeature.takeSnapshot(step.get().agentJvm, snapshotDuration);
+        boolean snapshotRequested = snapshotFeature.takeSnapshot(step.get().agentJvm, duration);
+        if (snapshotRequested) {
+            taskState.snapshotDuration = duration;
+            taskState.processedUntil = current.to;
+        }
     }
 
     private boolean needToDecreaseSnapshotDuration(float duration) {
@@ -161,7 +163,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         return res;
     }
 
-    void adjustInstrumentation() {
+    private void adjustInstrumentation() {
         JflopConfiguration conf = new JflopConfiguration();
         if (step.get().currentInstrumentation != null)
             step.get().currentInstrumentation.getAllMethods().forEach(conf::addMethodConfig);
@@ -175,7 +177,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             instrumentationConfigurationFeature.setConfiguration(step.get().agentJvm, conf);
     }
 
-    void instrumentUncoveredThreads() {
+    void findMethodsToInstrumentInThreadDump() {
         if (step.get().threads == null) return;
 
         Map<String, InstrumentationMetadata> classMetadataCache = new HashMap<>();
@@ -220,13 +222,15 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         // 1. get recent threads and their metadata
         StepState current = step.get();
         current.threads = rawDataIndex.getOccurrencesAndMetadata(current.agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, current.from, current.to);
-        if (current.threads == null || current.threads.isEmpty()) return;
-        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + current.threads.size() + " distinct threads");
+        boolean noThreads = current.threads == null || current.threads.isEmpty();
+        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + (noThreads ? "no threads" : current.threads.size() + " distinct threads"));
+        if (noThreads) return;
 
         // 2. get recent snapshots and their metadata
         current.flows = rawDataIndex.getOccurrencesAndMetadata(current.agentJvm, FlowOccurrenceData.class, FlowMetadata.class, current.from, current.to);
-        if (current.flows == null || current.flows.isEmpty()) return;
-        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + current.flows.size() + " distinct flows");
+        boolean noFlows = current.flows == null || current.flows.isEmpty();
+        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + (noFlows ? "no flows" : current.flows.size() + " distinct flows"));
+        if (noFlows) return;
 
         // 3. build flow summary
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);

@@ -31,11 +31,11 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     @Test
     public void testMapThreadsToFlows() throws Exception {
         logger.fine("================== testMapThreadsToFlows ==================");
-        TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
-        lock.setCustomState(new AnalysisState(new Date()));
-
         startLoad(5);
+        TaskLockData lock = new TaskLockData("threads to flow test", agentJVM);
+        lock.setCustomState(AnalysisState.createState());
         monitorJvm(2).get();
+
         setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
         String snapshot = takeSnapshot(2);
         logger.fine(snapshot);
@@ -59,7 +59,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
     @Test
     public void testInstrumentThreads() throws Exception {
         TaskLockData lock = new TaskLockData("instrument threads test", agentJVM);
-        lock.setCustomState(new AnalysisState(new Date()));
+        lock.setCustomState(AnalysisState.createState());
 
         Future future = monitorJvm(2);
         startLoad(5);
@@ -70,7 +70,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         // first pass - still no class metadata, the instrumented methods not set
         initStep(lock);
         analysis.mapThreadsToFlows();
-        analysis.instrumentUncoveredThreads();
+        analysis.findMethodsToInstrumentInThreadDump();
         JvmMonitorAnalysis.StepState currentState = JvmMonitorAnalysis.step.get();
         analysis.afterStep(lock);
         assertTrue(currentState.methodsToInstrument == null || currentState.methodsToInstrument.isEmpty());
@@ -85,7 +85,7 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
         initStep(lock);
         analysis.mapThreadsToFlows();
-        analysis.instrumentUncoveredThreads();
+        analysis.findMethodsToInstrumentInThreadDump();
         currentState = JvmMonitorAnalysis.step.get();
         analysis.afterStep(lock);
         assertTrue(currentState.methodsToInstrument != null && !currentState.methodsToInstrument.isEmpty());
@@ -105,13 +105,14 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
     private void analyzeUntilNextSnapshot(int timeoutSec) throws Exception {
         TaskLockData lock = new TaskLockData("analyze test", agentJVM);
-        AnalysisState state = new AnalysisState(new Date());
+        AnalysisState state = AnalysisState.createState();
         lock.setCustomState(state);
         Date from = state.processedUntil;
 
         long until = System.currentTimeMillis() + timeoutSec * 1000;
         boolean gotIt = false;
         startLoad(15);
+        String snapshot = null;
         while (!gotIt && System.currentTimeMillis() < until) {
             Future future = monitorJvm(2);
             future.get();
@@ -131,13 +132,13 @@ public class AnalysisTest extends FeaturesIntegrationTest {
                 }
             }
 
+            snapshot = snapshotFeature.getLastSnapshot(agentJVM);
             analysis.takeSnapshot();
             analysis.afterStep(lock);
         }
         stopLoad();
 
         if (gotIt) {
-            String snapshot = snapshotFeature.getLastSnapshot(agentJVM);
             assertNotNull(snapshot);
             logger.fine(snapshot);
         } else {
