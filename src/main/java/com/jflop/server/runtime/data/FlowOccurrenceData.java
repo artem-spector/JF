@@ -13,9 +13,11 @@ import java.util.List;
  */
 public class FlowOccurrenceData extends OccurrenceData {
 
+    public int snapshotDurationSec;
     public FlowElement rootFlow;
 
-    public void init(Flow flow) {
+    public void init(int durationSec, Flow flow) {
+        snapshotDurationSec = durationSec;
         rootFlow = FlowElement.parse(flow);
     }
 

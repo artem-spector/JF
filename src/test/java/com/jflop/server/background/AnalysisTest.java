@@ -4,13 +4,15 @@ import com.jflop.integration.FeaturesIntegrationTest;
 import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
-import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.FlowOccurrenceData;
+import com.jflop.server.runtime.data.processed.FlowSummary;
 import org.jflop.config.MethodConfiguration;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -46,10 +48,11 @@ public class AnalysisTest extends FeaturesIntegrationTest {
         assertTrue(analysis.step.get().flows != null);
         assertEquals("detected flows: " + analysis.step.get().flows.keySet(), 2, analysis.step.get().flows.keySet().size());
 
-        assertTrue(analysis.step.get().threadsToFlows != null);
-        Set<FlowMetadata> distinctFlows = new HashSet<>();
-        analysis.step.get().threadsToFlows.values().forEach(distinctFlows::addAll);
-        assertEquals("Flows mapped to threads: " + distinctFlows, 2, distinctFlows.size());
+        FlowSummary flowSummary = analysis.step.get().flowSummary;
+        assertTrue(flowSummary != null);
+        assertEquals("Expected single flow root ", 1, flowSummary.roots.size());
+        assertEquals("Expected 2 distinct flows", 2, flowSummary.roots.get(0).flows.size());
+        assertTrue("Expected threads mapped to the flows", flowSummary.roots.get(0).hotspots.size() > 0);
     }
 
     @Test
@@ -113,8 +116,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
 
             if (analysis.step.get().flows != null) {
                 for (List<FlowOccurrenceData> list : analysis.step.get().flows.values()) {
-                    for (FlowOccurrenceData occurenceData : list) {
-                        if (occurenceData.time.after(from)) {
+                    for (FlowOccurrenceData occurrenceData : list) {
+                        if (occurrenceData.time.after(from)) {
                             gotIt = true;
                             break;
                         }
@@ -122,10 +125,8 @@ public class AnalysisTest extends FeaturesIntegrationTest {
                 }
             }
 
-            if (!gotIt) {
-                analysis.takeSnapshot();
-                analysis.afterStep(lock);
-            }
+            analysis.takeSnapshot();
+            analysis.afterStep(lock);
         }
         stopLoad();
 

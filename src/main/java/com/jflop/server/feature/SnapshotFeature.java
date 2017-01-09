@@ -63,6 +63,7 @@ public class SnapshotFeature extends AgentFeature {
         if (snapshotJson == null) return null;
 
         Snapshot snapshot = Snapshot.fromJson(snapshotJson);
+        int durationSec = Math.round((float)(snapshot.getEndTime() - snapshot.getStartTime()) / 1000);
         command.successText = snapshot.format(0, 0);
         command.progressPercent = 100;
 
@@ -72,7 +73,7 @@ public class SnapshotFeature extends AgentFeature {
             metadata.init(flow);
             res.add(metadata);
             FlowOccurrenceData occurrence = agentDataFactory.createInstance(FlowOccurrenceData.class);
-            occurrence.init(flow);
+            occurrence.init(durationSec, flow);
             res.add(occurrence);
         }
         return res;

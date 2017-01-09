@@ -15,6 +15,7 @@ import java.util.*;
 public class FlowSummary extends AgentData {
 
     public long intervalLengthMillis;
+    public int snapshotDurationSec;
 
     public List<MethodCall> roots;
 
@@ -22,9 +23,13 @@ public class FlowSummary extends AgentData {
         this.intervalLengthMillis = intervalLengthMillis;
 
         roots = new ArrayList<>();
-        for (FlowMetadata flowMetadata : flows.keySet()) {
+        for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : flows.entrySet()) {
+            FlowMetadata flowMetadata = entry.getKey();
+            List<FlowOccurrenceData> occurrences = entry.getValue();
             MethodCall call = MethodCall.getOrCreateCall(roots, flowMetadata.rootFlow);
-            call.addFlow(flowMetadata, flows.get(flowMetadata), intervalLengthMillis);
+            call.addFlow(flowMetadata, occurrences, intervalLengthMillis);
+
+            snapshotDurationSec = Math.max(snapshotDurationSec, occurrences.stream().mapToInt(occ -> occ.snapshotDurationSec).max().getAsInt());
         }
     }
 
@@ -44,7 +49,18 @@ public class FlowSummary extends AgentData {
         }
     }
 
-    private static boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements, List<ValuePair<MethodCall, Integer>> path) {
+    public boolean coversThread(String threadId) {
+        for (MethodCall root : roots) {
+            if (root.hotspots != null) {
+                for (ThreadHotspot hotspot : root.hotspots) {
+                    if (hotspot.threadId.equals(threadId)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements, List<ValuePair<MethodCall, Integer>> path) {
         // it's ok to skip instrumented elements, if they are in the beginning of the stack
         // this is because the outmost methods might not return yet, and the registered flow may be partial.
         boolean skipInstrumented = tracePos == stacktrace.length - 1;
@@ -85,5 +101,4 @@ public class FlowSummary extends AgentData {
         // if none of subflows fit, it's not fit
         return false;
     }
-
 }

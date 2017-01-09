@@ -10,6 +10,7 @@ import com.jflop.server.runtime.RawDataIndex;
 import com.jflop.server.runtime.data.*;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
+import com.jflop.server.runtime.data.processed.MethodFlow;
 import com.jflop.server.util.DebugPrintUtil;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
@@ -56,7 +57,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         Date to;
         Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
         Map<FlowMetadata, List<FlowOccurrenceData>> flows;
-        Map<ThreadMetadata, List<FlowMetadata>> threadsToFlows;
+        FlowSummary flowSummary;
         Set<MethodConfiguration> methodsToInstrument;
         private JflopConfiguration currentInstrumentation;
         private Set<StackTraceElement> instrumentedTraceElements;
@@ -102,8 +103,57 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     void takeSnapshot() {
-        logger.fine("Taking snapshot");
-        snapshotFeature.takeSnapshot(step.get().agentJvm, 1);
+        // start with minimal snapshot duration, it will be increased if necessary and possible
+        int snapshotDuration = 1;
+
+        StepState current = step.get();
+        if (current.flowSummary != null && current.threads != null) {
+            snapshotDuration = current.flowSummary.snapshotDurationSec;
+            if (snapshotDuration < 5 && needToIncreaseSnapshotDuration(snapshotDuration)) {
+                snapshotDuration++;
+                logger.fine("Snapshot duration increased to " + snapshotDuration + " sec.");
+            } else if (snapshotDuration > 1 && needToDecreaseSnapshotDuration(snapshotDuration)) {
+                snapshotDuration--;
+                logger.fine("Snapshot duration decreased to " + snapshotDuration + " sec.");
+            }
+        }
+
+        logger.fine("Taking snapshot (" + snapshotDuration + ")");
+        snapshotFeature.takeSnapshot(step.get().agentJvm, snapshotDuration);
+    }
+
+    private boolean needToDecreaseSnapshotDuration(float duration) {
+        // if all flows happen more than 10 times in a snapshot, may decrease the duration
+        return minFlowThroughput() * duration > 10;
+    }
+
+    private boolean needToIncreaseSnapshotDuration(float duration) {
+        StepState current = step.get();
+
+        // if there are instrumented threads without flows, try to increase the duration
+        for (ThreadMetadata thread : current.threads.keySet()) {
+            if (current.flowSummary.coversThread(thread.dumpId))
+                continue;
+
+            for (StackTraceElement traceElement : thread.stackTrace) {
+                if (isInstrumented(traceElement))
+                    return true;
+            }
+        }
+
+        // if some flows happen less than twice in a snapshot - increase the duration
+        return minFlowThroughput() * duration < 2;
+
+    }
+
+    private float minFlowThroughput() {
+        float res = Float.MAX_VALUE;
+        for (MethodCall root : step.get().flowSummary.roots) {
+            for (MethodFlow flow : root.flows) {
+                res = Math.min(res, flow.statistics.throughputPerSec);
+            }
+        }
+        return res;
     }
 
     void adjustInstrumentation() {
@@ -169,32 +219,17 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         if (logger.isLoggable(Level.FINE)) logger.fine("Found " + current.threads.size() + " distinct threads");
 
         // 2. get recent snapshots and their metadata
-        current.threadsToFlows = new HashMap<>();
         current.flows = rawDataIndex.getOccurrencesAndMetadata(current.agentJvm, FlowOccurrenceData.class, FlowMetadata.class, current.from, current.to);
         if (current.flows == null || current.flows.isEmpty()) return;
         if (logger.isLoggable(Level.FINE)) logger.fine("Found " + current.flows.size() + " distinct flows");
 
-        // 3. loop by threads and find corresponding flows
-        for (ThreadMetadata thread : current.threads.keySet()) {
-            // make sure for each trace element we know whether it's instrumented
-            for (StackTraceElement traceElement : thread.stackTrace) isInstrumented(traceElement);
-
-            // find out which flows fit the current trace
-            for (FlowMetadata flow : current.flows.keySet()) {
-                if (flow.fitsStacktrace(thread.stackTrace, current.instrumentedTraceElements)) {
-                    current.threadsToFlows.computeIfAbsent(thread, threadMetadata -> new ArrayList<>()).add(flow);
-                }
-            }
-        }
-
-        if (logger.isLoggable(Level.FINE)) logger.fine(printThreadToFlows());
-
-        // build flow summary
+        // 3. build flow summary
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
         long intervalLengthMillis = current.to.getTime() - current.from.getTime();
         flowSummary.aggregateFlows(current.flows, intervalLengthMillis);
         flowSummary.aggregateThreads(current.threads, current.instrumentedTraceElements);
         if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
+        current.flowSummary = flowSummary;
         processedDataIndex.addFlowSummary(flowSummary);
     }
 
@@ -211,18 +246,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                 }
             }
         return false;
-    }
-
-    private String printThreadToFlows() {
-        String res = "\n-------- threads to flows ---------";
-        for (Map.Entry<ThreadMetadata, List<FlowMetadata>> entry : step.get().threadsToFlows.entrySet()) {
-            ThreadMetadata threadMetadata = entry.getKey();
-            res += "\n\n" + DebugPrintUtil.threadMetadataAndOccurrencesStr(threadMetadata, step.get().threads.get(threadMetadata));
-            for (FlowMetadata metadata : entry.getValue()) {
-                res += "\n\t" + DebugPrintUtil.flowMetadataAndOccurrencesStr(metadata, step.get().flows.get(metadata));
-            }
-        }
-        return res + "\n-----------------------------------\n";
     }
 
     private String printFlowSummary(FlowSummary flowSummary) {
