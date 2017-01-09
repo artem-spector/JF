@@ -118,7 +118,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             }
         }
 
-        logger.fine("Taking snapshot (" + snapshotDuration + ")");
         snapshotFeature.takeSnapshot(step.get().agentJvm, snapshotDuration);
     }
 

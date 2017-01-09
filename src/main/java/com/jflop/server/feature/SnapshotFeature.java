@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * TODO: Document!
@@ -25,6 +26,8 @@ import java.util.Map;
  */
 @Component
 public class SnapshotFeature extends AgentFeature {
+
+    private static final Logger logger = Logger.getLogger(SnapshotFeature.class.getName());
 
     public static final String FEATURE_ID = "snapshot";
     public static final String TAKE_SNAPSHOT = "takeSnapshot";
@@ -82,7 +85,9 @@ public class SnapshotFeature extends AgentFeature {
     public void takeSnapshot(AgentJVM agentJvm, int durationSec) {
         Map<String, Object> param = new HashMap<>();
         param.put(DURATION_SEC, durationSec);
-        sendCommandIfNotInProgress(agentJvm, TAKE_SNAPSHOT, param);
+        boolean commandSent = sendCommandIfNotInProgress(agentJvm, TAKE_SNAPSHOT, param);
+        if (commandSent)
+            logger.fine("Taking snapshot (" + durationSec + ")");
     }
 
     public String getLastSnapshot(AgentJVM agentJvm) {

@@ -44,16 +44,18 @@ public abstract class AgentFeature {
      * @param agentJvm     agent JVM
      * @param commandName  command name
      * @param commandParam command parameters
+     * @return true if the command was set, false if there already is a command in progress
      */
-    protected void sendCommandIfNotInProgress(AgentJVM agentJvm, String commandName, Object commandParam) {
+    protected boolean sendCommandIfNotInProgress(AgentJVM agentJvm, String commandName, Object commandParam) {
         // if there already is a command in progress - return
         FeatureCommand currentCommand = getCurrentCommand(agentJvm);
-        if (currentCommand != null && currentCommand.respondedAt == null)
-            return;
+        if (currentCommand != null && (currentCommand.respondedAt == null || currentCommand.progressPercent < 100))
+            return false;
 
         // create and set command
         FeatureCommand command = new FeatureCommand(featureId, commandName, commandParam);
         adminDAO.setCommand(agentJvm, command);
+        return true;
     }
 
 }
