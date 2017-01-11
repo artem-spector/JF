@@ -20,20 +20,20 @@ public class LoadRunner {
 
     private Map<String, ValuePair<FlowMockup, Float>> flows = new HashMap<>();
 
-    private ExecutorService threadPool;
+    private ThreadPoolExecutor threadPool;
     private long startedAt;
     private long stoppedAt;
     private boolean stopIt;
     private List<Thread> producers;
     private final ConcurrentMap<String, Integer> fireCount = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Integer> executeCount = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ValuePair<Integer, Long>> executeCount = new ConcurrentHashMap<>();
 
     public void addFlow(FlowMockup flowMockup, float throughput) {
         flows.put(flowMockup.getId(), new ValuePair<>(flowMockup, throughput));
     }
 
     public void startLoad(int numThreads) {
-        threadPool = Executors.newFixedThreadPool(numThreads);
+        threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
         fireCount.clear();
         executeCount.clear();
 
@@ -43,7 +43,7 @@ public class LoadRunner {
             FlowMockup flow = pair.value1;
             float throughput = pair.value2;
             fireCount.put(flow.getId(), 0);
-            executeCount.put(flow.getId(), 0);
+            executeCount.put(flow.getId(), new ValuePair<>(0, 0L));
             maxThroughput = Math.max(maxThroughput, throughput);
         }
         int numProducers = Math.max(1, (int) (maxThroughput / 500));
@@ -59,24 +59,23 @@ public class LoadRunner {
 
     private void fireFlows() {
         while (!stopIt) {
-            float durationSec = durationSec(System.currentTimeMillis());
             for (ValuePair<FlowMockup, Float> pair : flows.values()) {
                 if (stopIt) break;
 
                 String id = pair.value1.getId();
                 Float plannedThroughput = pair.value2;
-                if (fireCount.get(id) + 1 <= plannedThroughput * durationSec) {
-                    threadPool.submit(() -> {
-                        flows.get(id).value1.go();
-                        synchronized (executeCount) {
-                            Integer current = executeCount.get(id);
-                            if (!executeCount.replace(id, current, current + 1))
-                                logger.severe("Failed to update execute count for flow " + id);
-                        }
-                    });
-                    synchronized (fireCount) {
-                        Integer current = fireCount.get(id);
-                        if (!fireCount.replace(id, current, current + 1))
+                synchronized (fireCount) {
+                    int fired = fireCount.get(id);
+                    if (fired + 1 <= Math.round(plannedThroughput * durationSec(System.currentTimeMillis()))) {
+                        threadPool.submit(() -> {
+                            long begin = System.currentTimeMillis();
+                            flows.get(id).value1.go();
+                            synchronized (executeCount) {
+                                ValuePair<Integer, Long> countDuration = executeCount.get(id);
+                                executeCount.put(id, new ValuePair<>(countDuration.value1 + 1, countDuration.value2 + System.currentTimeMillis() - begin));
+                            }
+                        });
+                        if (!fireCount.replace(id, fired, fired + 1))
                             logger.severe("Failed to update fire count for flow " + id);
                     }
                 }
@@ -95,7 +94,7 @@ public class LoadRunner {
     public void stopLoad(int timeoutSec) {
         stoppedAt = System.currentTimeMillis();
         stopIt = true;
-
+        System.out.println("Thread pool: activeTasks=" + threadPool.getActiveCount() + "; queueLength=" + threadPool.getQueue().size());
         producers.forEach(Thread::interrupt);
         producers.forEach((thread) -> {
             try {
@@ -116,9 +115,10 @@ public class LoadRunner {
         }
     }
 
-    public ValuePair<Float, Float> getExpectedAndActualThroughput(String flowId) {
+    public int[] getExpectedFiredExecutedCountDuration(String flowId) {
         assert stoppedAt > 0;
-        return new ValuePair<>(flows.get(flowId).value2, (float) executeCount.get(flowId) / getLoadDuration());
+        ValuePair<Integer, Long> countDuration = executeCount.get(flowId);
+        return new int[] {Math.round(flows.get(flowId).value2 * getLoadDuration()), fireCount.get(flowId), countDuration.value1, Math.toIntExact(countDuration.value2)};
     }
 
     public float getLoadDuration() {

@@ -25,7 +25,7 @@ public class GeneratedFlow implements FlowMockup {
 
     private FlowElement root;
     private String id;
-    private Stack<FlowElement> current;
+    private static ThreadLocal<Stack<FlowElement>> current = new ThreadLocal<>();
 
     public void m1() {
         generatedMethodImpl();
@@ -60,11 +60,11 @@ public class GeneratedFlow implements FlowMockup {
     }
 
     private void generatedMethodImpl() {
-        FlowElement element = current.peek();
+        FlowElement element = current.get().peek();
         element.process();
         if (element.nested != null) {
             for (FlowElement subFlow : element.nested) {
-                current.push(subFlow);
+                current.get().push(subFlow);
                 callCurrent();
             }
         }
@@ -159,15 +159,15 @@ public class GeneratedFlow implements FlowMockup {
 
     @Override
     public void go() {
-        current = new Stack<>();
-        current.push(root);
+        current.set(new Stack<>());
+        current.get().push(root);
         callCurrent();
     }
 
     private void callCurrent() {
-        FlowElement element = current.peek();
+        FlowElement element = current.get().peek();
         element.call(this);
-        current.pop();
+        current.get().pop();
     }
 
     private static class FlowElement {

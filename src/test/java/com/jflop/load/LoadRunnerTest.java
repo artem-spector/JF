@@ -1,9 +1,9 @@
 package com.jflop.load;
 
-import com.jflop.server.persistency.ValuePair;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
@@ -14,7 +14,9 @@ import static org.junit.Assert.assertEquals;
  */
 public class LoadRunnerTest {
 
-    private static final int OVERHEAD_MILLIS = 10;
+    private static final int OVERHEAD_MILLIS = 3;
+
+    private static Random random = new Random();
 
     @Test
     public void testSingleFlow() {
@@ -33,12 +35,29 @@ public class LoadRunnerTest {
 
     @Test
     public void testGeneratedFlows() {
-        GeneratedFlow f1 = GeneratedFlow.generate(3, 3, 10);
-        String f1str = f1.toString();
-        System.out.println(f1str);
-        assertEquals(f1, GeneratedFlow.fromString(f1str));
+        int numFlows = 20;
+        int minThroughput = 10;
+        int maxThroughput = 100;
+        Object[][] flowsThroughputs = new Object[numFlows][];
+        for (int i = 0; i < numFlows; i++) {
+            GeneratedFlow flow = GeneratedFlow.generate(4, 4, 10);
+            String flowStr = flow.toString();
+            System.out.println(flow.getId() + ": " + flowStr);
+            assertEquals(flow, GeneratedFlow.fromString(flowStr));
 
-        runLoad(1000, new Object[] {f1, 10f});
+            flowsThroughputs[i] = new Object[]{flow, (float) random.nextInt(maxThroughput - minThroughput) + minThroughput};
+        }
+
+
+        runLoad(1000, flowsThroughputs);
+    }
+
+    @Test
+    public void testProblematicFlows() {
+        GeneratedFlow flow = GeneratedFlow.fromString("{\"name\":\"m5\",\"duration\":8,\"nested\":[{\"name\":\"m1\",\"duration\":1,\"nested\":[{\"name\":\"m8\",\"duration\":1,\"nested\":[{\"name\":\"m7\",\"duration\":0,\"nested\":[{\"name\":\"m4\",\"duration\":0},{\"name\":\"m6\",\"duration\":0},{\"name\":\"m3\",\"duration\":0}]},{\"name\":\"m2\",\"duration\":0}]}]}]}");
+        System.out.println(flow.toString());
+
+        runLoad(100, new Object[]{flow, 10f});
     }
 
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
@@ -59,17 +78,20 @@ public class LoadRunnerTest {
         } catch (InterruptedException e) {
             // ignore
         }
-        runner.stopLoad(1);
-        float duration = runner.getLoadDuration();
+        runner.stopLoad(10);
 
         int finalNumThreads = numThreads;
         Arrays.stream(flowsThroughput).forEach(pair -> {
-            String flowId = ((FlowMockup) pair[0]).getId();
-            ValuePair<Float, Float> expectedAndActual= runner.getExpectedAndActualThroughput(flowId);
-            Float expected = expectedAndActual.value1;
-            Float actual = expectedAndActual.value2;
-            System.out.println(flowId + " in " + finalNumThreads + " threads: expected=" + expected + "; actual=" + actual);
-            assertEquals(expected * duration, actual * duration, 1);
+            FlowMockup flow = (FlowMockup) pair[0];
+            String flowId = flow.getId();
+            int[] expectedFiredExecutedDuration = runner.getExpectedFiredExecutedCountDuration(flowId);
+            int expected = expectedFiredExecutedDuration[0];
+            int fired = expectedFiredExecutedDuration[1];
+            int executed = expectedFiredExecutedDuration[2];
+            float avgDuration = (float) expectedFiredExecutedDuration[3] / executed;
+            System.out.println(flowId + " in " + finalNumThreads + " threads: expected=" + expected + "; fired=" + fired + "; executed=" + executed
+                    + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + avgDuration);
+            assertEquals(expected, executed, 1);
         });
     }
 }
