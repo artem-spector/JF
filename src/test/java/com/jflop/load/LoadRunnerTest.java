@@ -31,6 +31,16 @@ public class LoadRunnerTest {
         runLoad(1200, new Object[]{f1, 1000f});
     }
 
+    @Test
+    public void testGeneratedFlows() {
+        GeneratedFlow f1 = GeneratedFlow.generate(3, 3, 10);
+        String f1str = f1.toString();
+        System.out.println(f1str);
+        assertEquals(f1, GeneratedFlow.fromString(f1str));
+
+        runLoad(1000, new Object[] {f1, 10f});
+    }
+
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
         LoadRunner runner = new LoadRunner();
         int numThreads = 1;
