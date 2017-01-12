@@ -25,11 +25,9 @@ import java.io.FileOutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -56,7 +54,7 @@ public class LoadAnalysisTest {
     private String accountId;
 
     private Map<String, ValuePair<String, String>> agentName2IdPath;
-    private Process currentProccess;
+    private LoadRunnerProcess.Proxy loadRunnerProxy;
     private AgentJVM currentJvm;
 
     @Before
@@ -69,31 +67,25 @@ public class LoadAnalysisTest {
 
     @After
     public void stopClient() {
-        if (currentProccess == null) return;
+        if (loadRunnerProxy == null) return;
         String jvmStr = currentJvm == null ? "unknown agent JVM" : currentJvm.toString();
 
-        currentProccess.destroyForcibly();
-        int timeout = 5;
-        try {
-            currentProccess.waitFor(timeout, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            // ignore
-        }
-        if (!currentProccess.isAlive()) {
+        int timeoutSec = 5;
+        if (loadRunnerProxy.exit(timeoutSec)) {
             logger.info("Agent JVM has stopped: " + jvmStr);
-            currentProccess = null;
+            loadRunnerProxy = null;
             currentJvm = null;
         } else
-            logger.severe("The client process has not stopped in " + timeout + " sec. for " + jvmStr);
+            logger.severe("The client process has not stopped in " + timeoutSec + " sec. for " + jvmStr);
     }
 
     @Test
     public void testStartLoadClient() throws Exception {
         String agentName = "reusableAgent";
-        int numIterations = 3;
+        int numIterations = 1;
 
         for (int i = 0; i < numIterations; i++) {
-            startLoadClient(agentName);
+            startClient(agentName);
             assertNotNull(currentJvm);
             logger.info("Started JVM for agent " + agentName + "->" + currentJvm.jvmId);
             Thread.sleep(2000);
@@ -132,17 +124,15 @@ public class LoadAnalysisTest {
         return idPath;
     }
 
-    private void startLoadClient(String agentName) throws Exception {
-        assert currentProccess == null;
+    private void startClient(String agentName) throws Exception {
+        assert loadRunnerProxy == null;
 
         ValuePair<String, String> pair = getOrCreateAgent(agentName);
         String agentId = pair.value1;
         String agentPath = pair.value2;
-
         Map<AgentJVM, Date> jvmsBefore = getAgentJVMsLastReported(agentId);
 
-        currentProccess = LoadProcess.start(agentPath);
-        assertTrue(currentProccess.isAlive());
+        loadRunnerProxy = LoadRunnerProcess.start(agentPath);
         Date startedAt = new Date();
 
         AgentJVM found = null;
@@ -165,7 +155,6 @@ public class LoadAnalysisTest {
     }
 
     private Map<AgentJVM, Date> getAgentJVMsLastReported(String agentId) {
-        agentJVMIndex.refreshIndex();
         Map<AgentJVM, Date> res = new HashMap<>();
         for (AgentJvmState jvmState : agentJVMIndex.getAgentJvms(accountId)) {
             if (jvmState.agentJvm.agentId.equals(agentId)) {
