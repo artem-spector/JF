@@ -36,4 +36,9 @@ public class AgentJVM {
         AgentJVM that = (AgentJVM) obj;
         return Arrays.equals(new Object[]{accountId, agentId, jvmId}, new Object[]{that.accountId, that.agentId, that.jvmId});
     }
+
+    @Override
+    public String toString() {
+        return "agentJVM: {accountId:" + accountId + ", agentId:" + agentId + ", jvmId:" + jvmId + "}";
+    }
 }
