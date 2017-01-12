@@ -103,6 +103,7 @@ public class LoadRunnerProcess {
                     if (pair == null)
                         System.out.println(line);
                     else {
+                        System.out.println();
                         commandsOutput.put(pair.value1, pair.value2);
                     }
                 }
@@ -125,6 +126,14 @@ public class LoadRunnerProcess {
             process.destroyForcibly();
             try {
                 process.waitFor(timeoutSec, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+
+            stopScanning = true;
+            scannerThread.interrupt();
+            try {
+                scannerThread.join(timeoutSec * 1000 / 5);
             } catch (InterruptedException e) {
                 // ignore
             }
