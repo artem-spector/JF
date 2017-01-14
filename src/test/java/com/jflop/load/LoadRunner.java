@@ -17,10 +17,11 @@ import java.util.logging.Logger;
 public class LoadRunner {
 
     private static final Logger logger = Logger.getLogger(LoadRunner.class.getName());
+    private static final int OVERHEAD_MILLIS = 3;
 
-    private Map<String, ValuePair<FlowMockup, Float>> flows = new HashMap<>();
-
+    private Map<String, ValuePair<FlowMockup, Float>> flows;
     private ThreadPoolExecutor threadPool;
+
     private long startedAt;
     private long stoppedAt;
     private boolean stopIt;
@@ -28,12 +29,21 @@ public class LoadRunner {
     private final ConcurrentMap<String, Integer> fireCount = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ValuePair<Integer, Long>> executeCount = new ConcurrentHashMap<>();
 
-    public void addFlow(FlowMockup flowMockup, float throughput) {
-        flows.put(flowMockup.getId(), new ValuePair<>(flowMockup, throughput));
+
+    public LoadRunner(Object[][] flowsAndThroughput) {
+        flows = new HashMap<>();
+        int numThreads = 1;
+        for (Object[] pair : flowsAndThroughput) {
+            FlowMockup flow = (FlowMockup) pair[0];
+            float throughput = (float) pair[1];
+            flows.put(flow.getId(), new ValuePair<>(flow, throughput));
+            int requiredThreads = (int) ((throughput * (flow.getExpectedDurationMillis() + OVERHEAD_MILLIS)) / 1000) + 1;
+            numThreads = Math.max(numThreads, requiredThreads);
+        }
+        threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
     }
 
-    public void startLoad(int numThreads) {
-        threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+    public void startLoad() {
         fireCount.clear();
         executeCount.clear();
 
@@ -91,7 +101,7 @@ public class LoadRunner {
         }
     }
 
-    public void stopLoad(int timeoutSec) {
+    public Map<String, Object[]> stopLoad(int timeoutSec) {
         stoppedAt = System.currentTimeMillis();
         stopIt = true;
         System.out.println("Thread pool: activeTasks=" + threadPool.getActiveCount() + "; queueLength=" + threadPool.getQueue().size());
@@ -113,12 +123,19 @@ public class LoadRunner {
         } catch (InterruptedException e) {
             // ignore
         }
-    }
 
-    public int[] getExpectedFiredExecutedCountDuration(String flowId) {
-        assert stoppedAt > 0;
-        ValuePair<Integer, Long> countDuration = executeCount.get(flowId);
-        return new int[] {Math.round(flows.get(flowId).value2 * getLoadDuration()), fireCount.get(flowId), countDuration.value1, Math.toIntExact(countDuration.value2)};
+        float loadDuration = getLoadDuration();
+        Map<String, Object[]> expectedFiredCountDuration = new HashMap<>();
+        for (Map.Entry<String, ValuePair<Integer, Long>> entry : executeCount.entrySet()) {
+            String flowId = entry.getKey();
+            int executed = entry.getValue().value1;
+            long duration = entry.getValue().value2;
+            int fired = fireCount.get(flowId);
+            int expected = Math.round(flows.get(flowId).value2 * loadDuration);
+            expectedFiredCountDuration.put(flowId, new Object[]{expected, fired, executed, duration});
+        }
+
+        return expectedFiredCountDuration;
     }
 
     public float getLoadDuration() {
@@ -127,6 +144,10 @@ public class LoadRunner {
 
     public boolean isRunning() {
         return startedAt > 0 && stoppedAt == 0;
+    }
+
+    public int getNumThreads() {
+        return threadPool.getMaximumPoolSize();
     }
 
     private float durationSec(long to) {

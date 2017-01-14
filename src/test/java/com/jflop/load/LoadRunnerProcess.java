@@ -1,14 +1,14 @@
 package com.jflop.load;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.persistency.ValuePair;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -23,11 +23,14 @@ import java.util.logging.Logger;
 public class LoadRunnerProcess {
 
     private static final Logger logger = Logger.getLogger(LoadRunnerProcess.class.getName());
+    private static ObjectMapper mapper = new ObjectMapper();
 
     private static final String COMMAND_SEPARATOR = "<-name|value->";
+    private static final String FLOW_SEPARATOR = "|";
     private static final String EXIT = "exit";
     private static final String SET_FLOWS = "flows";
-    private static final String FLOW_SEPARATOR = "|";
+    private static final String START_LOAD = "start-load";
+    private static final String STOP_LOAD = "stop-load";
 
     private LoadRunner loadRunner;
 
@@ -71,10 +74,11 @@ public class LoadRunnerProcess {
         switch (name) {
             case EXIT:
                 return "OK";
+
             case SET_FLOWS:
                 if (loadRunner != null && loadRunner.isRunning()) return "Illegal state: load is running.";
 
-                loadRunner = new LoadRunner();
+                List<Object[]> flowsThroughput = new ArrayList<>();
                 StringTokenizer tokenizer = new StringTokenizer(value, FLOW_SEPARATOR);
                 while (tokenizer.hasMoreTokens()) {
                     String token = tokenizer.nextToken();
@@ -83,9 +87,29 @@ public class LoadRunnerProcess {
                     GeneratedFlow flow = GeneratedFlow.fromString(flowStr);
                     String throughputStr = token.substring(flowEnd);
                     float throughput = Float.parseFloat(throughputStr);
-                    loadRunner.addFlow(flow, throughput);
+                    flowsThroughput.add(new Object[]{flow, throughput});
                 }
+                loadRunner = new LoadRunner(flowsThroughput.toArray(new Object[flowsThroughput.size()][]));
                 return "OK";
+
+            case START_LOAD:
+                if (loadRunner == null || loadRunner.isRunning())
+                    return "Illegal state: load " + (loadRunner == null ? "runner not set" : "is running");
+                loadRunner.startLoad();
+                return "OK";
+
+            case STOP_LOAD:
+                if (loadRunner == null || !loadRunner.isRunning())
+                    return "Illegal state: load " + (loadRunner == null ? "runner not set" : "is not running");
+                Map<String, Object[]> res = loadRunner.stopLoad(Integer.parseInt(value));
+                try {
+                    return mapper.writeValueAsString(res);
+                } catch (JsonProcessingException e) {
+                    String msg = "Failed writing load result";
+                    logger.log(Level.SEVERE, msg, e);
+                    return msg;
+                }
+
             default:
                 return "command not recognized";
         }
@@ -176,6 +200,20 @@ public class LoadRunnerProcess {
             }
             String res = sendCommand(SET_FLOWS, value, 1000);
             return res.equals("OK");
+        }
+
+        public boolean startLoad() {
+            String res = sendCommand(START_LOAD, "", 100);
+            return res.equals("OK");
+        }
+
+        public Map<String, List<Object>> stopLoad(int timeoutSec) {
+            String res = sendCommand(STOP_LOAD, String.valueOf(timeoutSec), 3000);
+            try {
+                return mapper.readValue(res, Map.class);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         private String sendCommand(String name, String value, int timeoutMillis) {

@@ -2,7 +2,7 @@ package com.jflop.load;
 
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -12,8 +12,6 @@ import static org.junit.Assert.assertEquals;
  * @author artem on 10/01/2017.
  */
 public class LoadRunnerTest {
-
-    private static final int OVERHEAD_MILLIS = 3;
 
     @Test
     public void testSingleFlow() {
@@ -50,37 +48,28 @@ public class LoadRunnerTest {
     }
 
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
-        LoadRunner runner = new LoadRunner();
-        int numThreads = 1;
-        for (Object[] pair : flowsThroughput) {
-            FlowMockup flow = (FlowMockup) pair[0];
-            float throughput = (float) pair[1];
-            runner.addFlow(flow, throughput);
-            int requiredThreads = (int) ((throughput * (flow.getExpectedDurationMillis() + OVERHEAD_MILLIS)) / 1000) + 1;
-            numThreads = Math.max(numThreads, requiredThreads);
-        }
-
-
-        runner.startLoad(numThreads);
+        LoadRunner runner = new LoadRunner(flowsThroughput);
+        runner.startLoad();
         try {
             Thread.sleep(testDurationMillis);
         } catch (InterruptedException e) {
             // ignore
         }
-        runner.stopLoad(10);
+        Map<String, Object[]> loadRes = runner.stopLoad(10);
 
-        int finalNumThreads = numThreads;
-        Arrays.stream(flowsThroughput).forEach(pair -> {
+        int numThreads = runner.getNumThreads();
+        for (Object[] pair : flowsThroughput) {
             FlowMockup flow = (FlowMockup) pair[0];
             String flowId = flow.getId();
-            int[] expectedFiredExecutedDuration = runner.getExpectedFiredExecutedCountDuration(flowId);
-            int expected = expectedFiredExecutedDuration[0];
-            int fired = expectedFiredExecutedDuration[1];
-            int executed = expectedFiredExecutedDuration[2];
-            float avgDuration = (float) expectedFiredExecutedDuration[3] / executed;
-            System.out.println(flowId + " in " + finalNumThreads + " threads: expected=" + expected + "; fired=" + fired + "; executed=" + executed
+            Object[] expectedFiredExecutedDuration = loadRes.get(flowId);
+            int expected = (int) expectedFiredExecutedDuration[0];
+            int fired = (int) expectedFiredExecutedDuration[1];
+            int executed = (int) expectedFiredExecutedDuration[2];
+            long duration = (long) expectedFiredExecutedDuration[3];
+            float avgDuration = (float) duration / executed;
+            System.out.println(flowId + " in " + numThreads + " threads: expected=" + expected + "; fired=" + fired + "; executed=" + executed
                     + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + avgDuration);
             assertEquals(expected, executed, 1);
-        });
+        }
     }
 }

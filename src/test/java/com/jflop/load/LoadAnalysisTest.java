@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.util.*;
 import java.util.logging.Logger;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -96,14 +97,34 @@ public class LoadAnalysisTest {
     public void testSetLoad() throws Exception {
         startClient("loadAgent");
 
-        int numFlows = 1;
+        int numFlows = 3;
         int minThroughput = 10;
         int maxThroughput = 100;
         int maxDepth = 4;
         int maxLength = 4;
         int maxDuration = 10;
-        boolean ok = loadRunnerProxy.setFlows(GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput));
+        Object[][] flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput);
+
+        boolean ok = loadRunnerProxy.setFlows(flowsAndThroughput);
         assertTrue(ok);
+        ok = loadRunnerProxy.startLoad();
+        assertTrue(ok);
+        Thread.sleep(2000);
+        Map<String, List<Object>> expectedFiredExecutedDuration = loadRunnerProxy.stopLoad(3);
+        assertNotNull(expectedFiredExecutedDuration);
+
+        for (Object[] pair : flowsAndThroughput) {
+            FlowMockup flow = (FlowMockup) pair[0];
+            float expectedThroughput = (float) pair[1];
+            String flowId = flow.getId();
+            List<Object> res = (List<Object>) expectedFiredExecutedDuration.get(flowId);
+            int expectedCount = (int) res.get(0);
+            int firedCount = (int) res.get(1);
+            int executedCount = (int) res.get(2);
+            int duration = (int) res.get(3);
+
+            assertEquals(expectedCount, executedCount);
+        }
     }
 
     private void initAccount(String accountName) throws Exception {
