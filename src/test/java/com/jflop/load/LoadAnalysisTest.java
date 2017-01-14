@@ -109,11 +109,12 @@ public class LoadAnalysisTest {
     private void initAccount(String accountName) throws Exception {
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, accountName);
+        List<JFAgent> agents = adminClient.getAgents(); // make sure the account exists
         accountIndex.refreshIndex();
         accountId = accountIndex.findSingle(QueryBuilders.termQuery("accountName", accountName), AccountData.class).id;
 
         // delete existing agents
-        for (JFAgent agent : adminClient.getAgents()) {
+        for (JFAgent agent : agents) {
             adminClient.deleteAgent(agent.agentId);
         }
         agentName2IdPath = new HashMap<>();
