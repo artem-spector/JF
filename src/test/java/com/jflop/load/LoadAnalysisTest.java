@@ -22,12 +22,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -82,7 +81,7 @@ public class LoadAnalysisTest {
     @Test
     public void testStartLoadClient() throws Exception {
         String agentName = "reusableAgent";
-        int numIterations = 1;
+        int numIterations = 3;
 
         for (int i = 0; i < numIterations; i++) {
             startClient(agentName);
@@ -91,6 +90,20 @@ public class LoadAnalysisTest {
             Thread.sleep(2000);
             stopClient();
         }
+    }
+
+    @Test
+    public void testSetLoad() throws Exception {
+        startClient("loadAgent");
+
+        int numFlows = 1;
+        int minThroughput = 10;
+        int maxThroughput = 100;
+        int maxDepth = 4;
+        int maxLength = 4;
+        int maxDuration = 10;
+        boolean ok = loadRunnerProxy.setFlows(GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput));
+        assertTrue(ok);
     }
 
     private void initAccount(String accountName) throws Exception {

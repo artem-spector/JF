@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -22,8 +23,13 @@ import java.util.logging.Logger;
 public class LoadRunnerProcess {
 
     private static final Logger logger = Logger.getLogger(LoadRunnerProcess.class.getName());
-    public static final String EXIT = "exit";
-    public static final String COMMAND_SEPARATOR = "<-name|value->";
+
+    private static final String COMMAND_SEPARATOR = "<-name|value->";
+    private static final String EXIT = "exit";
+    private static final String SET_FLOWS = "flows";
+    private static final String FLOW_SEPARATOR = "|";
+
+    private LoadRunner loadRunner;
 
     public static Proxy start(String agentPath) throws IOException {
         Process process = new ProcessBuilder().command("java", "-javaagent:" + agentPath,
@@ -62,7 +68,27 @@ public class LoadRunnerProcess {
     }
 
     private String processCommand(String name, String value) {
-        return "OK";
+        switch (name) {
+            case EXIT:
+                return "OK";
+            case SET_FLOWS:
+                if (loadRunner != null && loadRunner.isRunning()) return "Illegal state: load is running.";
+
+                loadRunner = new LoadRunner();
+                StringTokenizer tokenizer = new StringTokenizer(value, FLOW_SEPARATOR);
+                while (tokenizer.hasMoreTokens()) {
+                    String token = tokenizer.nextToken();
+                    int flowEnd = token.lastIndexOf("}") + 1;
+                    String flowStr = token.substring(0, flowEnd);
+                    GeneratedFlow flow = GeneratedFlow.fromString(flowStr);
+                    String throughputStr = token.substring(flowEnd);
+                    float throughput = Float.parseFloat(throughputStr);
+                    loadRunner.addFlow(flow, throughput);
+                }
+                return "OK";
+            default:
+                return "command not recognized";
+        }
     }
 
     private ValuePair<String, String> readNextCommand(BufferedReader in) throws IOException {
@@ -138,6 +164,18 @@ public class LoadRunnerProcess {
                 // ignore
             }
             return !process.isAlive();
+        }
+
+        public boolean setFlows(Object[][] flowsAndThroughput) {
+            String value = "";
+            for (Object[] pair : flowsAndThroughput) {
+                GeneratedFlow flow = (GeneratedFlow) pair[0];
+                float throughput = (float) pair[1];
+                if (!value.isEmpty()) value += FLOW_SEPARATOR;
+                value += flow.toString() + String.valueOf(throughput);
+            }
+            String res = sendCommand(SET_FLOWS, value, 1000);
+            return res.equals("OK");
         }
 
         private String sendCommand(String name, String value, int timeoutMillis) {

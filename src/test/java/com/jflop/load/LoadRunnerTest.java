@@ -3,7 +3,6 @@ package com.jflop.load;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
@@ -15,8 +14,6 @@ import static org.junit.Assert.assertEquals;
 public class LoadRunnerTest {
 
     private static final int OVERHEAD_MILLIS = 3;
-
-    private static Random random = new Random();
 
     @Test
     public void testSingleFlow() {
@@ -38,18 +35,10 @@ public class LoadRunnerTest {
         int numFlows = 20;
         int minThroughput = 10;
         int maxThroughput = 100;
-        Object[][] flowsThroughputs = new Object[numFlows][];
-        for (int i = 0; i < numFlows; i++) {
-            GeneratedFlow flow = GeneratedFlow.generate(4, 4, 10);
-            String flowStr = flow.toString();
-            System.out.println(flow.getId() + ": " + flowStr);
-            assertEquals(flow, GeneratedFlow.fromString(flowStr));
-
-            flowsThroughputs[i] = new Object[]{flow, (float) random.nextInt(maxThroughput - minThroughput) + minThroughput};
-        }
-
-
-        runLoad(1000, flowsThroughputs);
+        int maxDepth = 4;
+        int maxLength = 4;
+        int maxDuration = 10;
+        runLoad(1000, GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput));
     }
 
     @Test

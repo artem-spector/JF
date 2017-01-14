@@ -125,6 +125,10 @@ public class LoadRunner {
         return durationSec(stoppedAt);
     }
 
+    public boolean isRunning() {
+        return startedAt > 0 && stoppedAt == 0;
+    }
+
     private float durationSec(long to) {
         return (float) (to - startedAt) / 1000;
     }
