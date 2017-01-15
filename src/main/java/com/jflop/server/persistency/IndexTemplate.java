@@ -6,6 +6,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.sort.SortBuilder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -85,10 +86,10 @@ public abstract class IndexTemplate implements InitializingBean {
     }
 
     // TODO: scalability WARNING - check what happens when there are more entities that maxHits
-    public <T> List<PersistentData<T>> find(QueryBuilder query, int maxHits, Class<T> dataType) {
+    public <T> List<PersistentData<T>> find(QueryBuilder query, int maxHits, Class<T> dataType, SortBuilder sort) {
         List<PersistentData<T>> res = new ArrayList<>();
 
-        SearchResponse response = esClient.search(indexName(), getDocType(dataType), query, maxHits);
+        SearchResponse response = esClient.search(indexName(), getDocType(dataType), query, maxHits, sort);
         if (response != null) {
             for (SearchHit hit : response.getHits().getHits()) {
                 try {
@@ -107,7 +108,7 @@ public abstract class IndexTemplate implements InitializingBean {
     }
 
     public <T> PersistentData<T> findSingle(QueryBuilder query, Class<T> dataType) {
-        List<PersistentData<T>> found = find(query, 2, dataType);
+        List<PersistentData<T>> found = find(query, 2, dataType, null);
         int size = found.size();
         if (size == 0)
             return null;

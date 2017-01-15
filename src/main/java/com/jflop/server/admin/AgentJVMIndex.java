@@ -57,7 +57,7 @@ public class AgentJVMIndex extends IndexTemplate {
     }
 
     public List<AgentJvmState> getAgentJvms(String accountId) {
-        List<PersistentData<AgentJvmState>> list = find(QueryBuilders.termQuery("agentJvm.accountId", accountId), MAX_JVM_NUM * MAX_FEATURES, AgentJvmState.class);
+        List<PersistentData<AgentJvmState>> list = find(QueryBuilders.termQuery("agentJvm.accountId", accountId), MAX_JVM_NUM * MAX_FEATURES, AgentJvmState.class, null);
         List<AgentJvmState> res = new ArrayList<>(list.size());
         for (PersistentData<AgentJvmState> data : list) {
             res.add(data.source);

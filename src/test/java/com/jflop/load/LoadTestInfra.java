@@ -2,12 +2,7 @@ package com.jflop.load;
 
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -37,35 +32,9 @@ public class LoadTestInfra extends LoadTestBase {
     @Test
     public void testSetLoad() throws Exception {
         startClient("loadAgent");
-
-        int numFlows = 3;
-        int minThroughput = 10;
-        int maxThroughput = 100;
-        int maxDepth = 4;
-        int maxLength = 4;
-        int maxDuration = 10;
-        Object[][] flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput);
-
-        boolean ok = loadRunnerProxy.setFlows(flowsAndThroughput);
-        assertTrue(ok);
-        ok = loadRunnerProxy.startLoad();
-        assertTrue(ok);
+        startLoad(3, 10, 100, 0, 10);
         Thread.sleep(2000);
-        Map<String, List<Object>> expectedFiredExecutedDuration = loadRunnerProxy.stopLoad(3);
-        assertNotNull(expectedFiredExecutedDuration);
-
-        for (Object[] pair : flowsAndThroughput) {
-            FlowMockup flow = (FlowMockup) pair[0];
-            float expectedThroughput = (float) pair[1];
-            String flowId = flow.getId();
-            List<Object> res = (List<Object>) expectedFiredExecutedDuration.get(flowId);
-            int expectedCount = (int) res.get(0);
-            int firedCount = (int) res.get(1);
-            int executedCount = (int) res.get(2);
-            int duration = (int) res.get(3);
-
-            assertEquals(expectedCount, executedCount);
-        }
+        stopLoad();
     }
 
 }

@@ -55,7 +55,7 @@ public class RawDataIndex extends IndexTemplate {
                 .must(agentJvmQuery(agentJvm))
                 .must(QueryBuilders.rangeQuery("time").from(from).to(to));
 
-        List<PersistentData<O>> found = find(query, 10000, occurrenceType);
+        List<PersistentData<O>> found = find(query, 10000, occurrenceType, null);
 
         Map<String, List<O>> id2occurrences = new HashMap<>();
         for (PersistentData<O> persistentData : found) {

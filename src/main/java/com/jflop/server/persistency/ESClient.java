@@ -27,6 +27,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.sort.SortBuilder;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -214,8 +215,10 @@ public class ESClient implements InitializingBean, DisposableBean {
         return request.execute().actionGet().isFound();
     }
 
-    public SearchResponse search(String indexName, String type, QueryBuilder query, int maxHits) {
+    public SearchResponse search(String indexName, String type, QueryBuilder query, int maxHits, SortBuilder sort) {
         SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setTypes(type).setQuery(query).setSize(maxHits).setVersion(true);
+        if (sort != null)
+            searchQuery.addSort(sort);
         try {
             return searchQuery.execute().actionGet();
         } catch (IndexNotFoundException e) {

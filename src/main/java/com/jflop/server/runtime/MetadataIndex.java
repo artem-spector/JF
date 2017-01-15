@@ -58,7 +58,7 @@ public class MetadataIndex extends IndexTemplate {
                 .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
                 .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));
 
-        List<PersistentData<T>> found = find(query, maxHits, metadataClass);
+        List<PersistentData<T>> found = find(query, maxHits, metadataClass, null);
 
         return found.stream().map(doc -> doc.source).collect(Collectors.toList());
     }
@@ -76,7 +76,7 @@ public class MetadataIndex extends IndexTemplate {
                 .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
                 .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));
 
-        List<PersistentData<InstrumentationMetadata>> found = find(query, 10000, InstrumentationMetadata.class);
+        List<PersistentData<InstrumentationMetadata>> found = find(query, 10000, InstrumentationMetadata.class, null);
 
         return found.stream().map(doc -> doc.source.className).collect(Collectors.toSet());
     }

@@ -70,15 +70,19 @@ public class GeneratedFlow implements FlowMockup {
         }
     }
 
-    public static GeneratedFlow generateFlow(int maxDepth, int maxLength, int maxDuration) {
+    public static GeneratedFlow generateFlow(int maxDepth, int maxLength, int minDuration, int maxDuration) {
         Set<String> availableMethods = new HashSet<>(Arrays.asList(allMethods));
-        return new GeneratedFlow(generateFlowElement(availableMethods, maxDepth, maxLength, maxDuration));
+        GeneratedFlow flow;
+        do {
+            flow = new GeneratedFlow(generateFlowElement(availableMethods, maxDepth, maxLength, maxDuration));
+        } while (flow.getExpectedDurationMillis() < minDuration);
+        return flow;
     }
 
-    public static Object[][] generateFlowsAndThroughput(int numFlows, int maxDepth, int maxLength, int maxDuration, int minThroughput, int maxThroughput) {
+    public static Object[][] generateFlowsAndThroughput(int numFlows, int maxDepth, int maxLength, int minDuration, int maxDuration, int minThroughput, int maxThroughput) {
         Object[][] flowsThroughputs = new Object[numFlows][];
         for (int i = 0; i < numFlows; i++) {
-            GeneratedFlow flow = GeneratedFlow.generateFlow(maxDepth, maxLength, maxDuration);
+            GeneratedFlow flow = GeneratedFlow.generateFlow(maxDepth, maxLength, minDuration, maxDuration);
             float throughput = (float) random.nextInt(maxThroughput - minThroughput + 1) + minThroughput;
             flowsThroughputs[i] = new Object[]{flow, throughput};
         }

@@ -5,10 +5,9 @@ import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AdminClient;
 import com.jflop.server.admin.AgentJVMIndex;
-import com.jflop.server.admin.data.AccountData;
-import com.jflop.server.admin.data.AgentJVM;
-import com.jflop.server.admin.data.AgentJvmState;
-import com.jflop.server.admin.data.JFAgent;
+import com.jflop.server.admin.data.*;
+import com.jflop.server.feature.JvmMonitorFeature;
+import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.persistency.ValuePair;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.junit.After;
@@ -27,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -42,6 +43,8 @@ import static org.junit.Assert.assertNotNull;
 public abstract class LoadTestBase {
 
     protected static final Logger logger = Logger.getLogger(LoadTestBase.class.getName());
+
+    private Object[][] flowsAndThroughput;
 
     @Autowired
     private AccountIndex accountIndex;
@@ -84,6 +87,96 @@ public abstract class LoadTestBase {
             logger.severe("The client process has not stopped in " + timeoutSec + " sec. for " + jvmStr);
     }
 
+    protected void startClient(String agentName) throws Exception {
+        assert loadRunnerProxy == null;
+
+        ValuePair<String, String> pair = getOrCreateAgent(agentName);
+        String agentId = pair.value1;
+        String agentPath = pair.value2;
+        Map<AgentJVM, Date> jvmsBefore = getAgentJVMsLastReported(agentId);
+
+        loadRunnerProxy = LoadRunnerProcess.start(agentPath);
+        Date startedAt = new Date();
+
+        AgentJVM found = null;
+        int timeoutSec = 3;
+        long border = System.currentTimeMillis() + timeoutSec * 1000;
+        while (found == null && System.currentTimeMillis() < border) {
+            for (Map.Entry<AgentJVM, Date> entry : getAgentJVMsLastReported(agentId).entrySet()) {
+                AgentJVM jvm = entry.getKey();
+                if (!jvmsBefore.containsKey(jvm) && entry.getValue().after(startedAt)) {
+                    found = jvm;
+                    break;
+                }
+            }
+            Thread.sleep(500);
+        }
+
+        assertNotNull("Agent JVM not reported in " + timeoutSec + " sec. from the process start.", found);
+        logger.info("Agent JVM has started reporting: " + found);
+        currentJvm = found;
+    }
+
+    protected void startLoad(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
+        int maxDepth = 4;
+        int maxLength = 4;
+        flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, minDuration, maxDuration, minThroughput, maxThroughput);
+
+        boolean ok = loadRunnerProxy.setFlows(flowsAndThroughput);
+        assertTrue(ok);
+        ok = loadRunnerProxy.startLoad();
+        assertTrue(ok);
+    }
+
+    protected void stopLoad() {
+        Map<String, List<Object>> expectedFiredExecutedDuration = loadRunnerProxy.stopLoad(3);
+        assertNotNull(expectedFiredExecutedDuration);
+
+        for (Object[] pair : flowsAndThroughput) {
+            FlowMockup flow = (FlowMockup) pair[0];
+            float expectedThroughput = (float) pair[1];
+            String flowId = flow.getId();
+            List<Object> res = (List<Object>) expectedFiredExecutedDuration.get(flowId);
+            int expectedCount = (int) res.get(0);
+            int firedCount = (int) res.get(1);
+            int executedCount = (int) res.get(2);
+            int duration = (int) res.get(3);
+
+            assertEquals(expectedCount, executedCount);
+        }
+    }
+
+    protected void startMonitoring() throws Exception {
+        adminClient.submitCommand(currentJvm, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
+        long duration = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        logger.info("Monitoring started in " + duration + " ms.");
+    }
+
+    protected void stopMonitoring() throws Exception {
+        adminClient.submitCommand(currentJvm, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.DISABLE, null);
+        long duration = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);
+        logger.info("Monitoring stopped in " + duration + " ms.");
+    }
+
+    private long awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {
+        long begin = System.currentTimeMillis();
+        long timeoutMillis = fromTime + timeoutSec * 1000;
+
+        PersistentData<AgentJvmState> previous = null;
+        while (System.currentTimeMillis() < timeoutMillis) {
+            PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(currentJvm, false);
+            if (previous != null && previous.version == jvmState.version) continue;
+
+            FeatureCommand command = jvmState.source.getCommand(featureId);
+            if (command != null && command.respondedAt != null && command.respondedAt.getTime() > fromTime) {
+                return System.currentTimeMillis() - begin;
+            }
+            previous = jvmState;
+            Thread.sleep(300);
+        }
+        throw new Exception("Feature state not changed in " + timeoutSec + " sec");
+    }
+
     private void initAccount(String accountName) throws Exception {
         HttpTestClient client = new HttpTestClient("http://localhost:8080");
         adminClient = new AdminClient(client, accountName);
@@ -114,36 +207,6 @@ public abstract class LoadTestBase {
             System.out.println("Agent downloaded to path " + idPath.value2);
         }
         return idPath;
-    }
-
-    protected void startClient(String agentName) throws Exception {
-        assert loadRunnerProxy == null;
-
-        ValuePair<String, String> pair = getOrCreateAgent(agentName);
-        String agentId = pair.value1;
-        String agentPath = pair.value2;
-        Map<AgentJVM, Date> jvmsBefore = getAgentJVMsLastReported(agentId);
-
-        loadRunnerProxy = LoadRunnerProcess.start(agentPath);
-        Date startedAt = new Date();
-
-        AgentJVM found = null;
-        int timeoutSec = 3;
-        long border = System.currentTimeMillis() + timeoutSec * 1000;
-        while (found == null && System.currentTimeMillis() < border) {
-            for (Map.Entry<AgentJVM, Date> entry : getAgentJVMsLastReported(agentId).entrySet()) {
-                AgentJVM jvm = entry.getKey();
-                if (!jvmsBefore.containsKey(jvm) && entry.getValue().after(startedAt)) {
-                    found = jvm;
-                    break;
-                }
-            }
-            Thread.sleep(500);
-        }
-
-        assertNotNull("Agent JVM not reported in " + timeoutSec + " sec. from the process start.", found);
-        logger.info("Agent JVM has started reporting: " + found);
-        currentJvm = found;
     }
 
     private Map<AgentJVM, Date> getAgentJVMsLastReported(String agentId) {

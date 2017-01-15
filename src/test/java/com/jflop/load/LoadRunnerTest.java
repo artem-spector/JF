@@ -16,14 +16,14 @@ public class LoadRunnerTest {
     @Test
     public void testSingleFlow() {
         // short flow with different throughputs
-        GeneratedFlow f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 5, 10, 10)[0][0];
+        GeneratedFlow f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 0, 5, 10, 10)[0][0];
         runLoad(500, new Object[]{f1, 10f});
         runLoad(900, new Object[]{f1, 100f});
         runLoad(1100, new Object[]{f1, 1000f});
         runLoad(1200, new Object[]{f1, 1500f});
         runLoad(1300, new Object[]{f1, 2000f});
 
-        f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 5, 15, 15)[0][0];
+        f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 0, 5, 15, 15)[0][0];
         runLoad(500, new Object[]{f1, 10f});
         runLoad(900, new Object[]{f1, 100f});
         runLoad(1200, new Object[]{f1, 1000f});
@@ -36,8 +36,9 @@ public class LoadRunnerTest {
         int maxThroughput = 100;
         int maxDepth = 4;
         int maxLength = 4;
-        int maxDuration = 10;
-        runLoad(1000, GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput));
+        int minDuration = 10;
+        int maxDuration = 20;
+        runLoad(1000, GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, minDuration, maxDuration, minThroughput, maxThroughput));
     }
 
     @Test

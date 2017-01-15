@@ -88,7 +88,7 @@ public class LockIndex extends IndexTemplate {
         if (cache == null || (now - retrievedAt) > 1000) {
             QueryBuilder query = QueryBuilders.rangeQuery("lockedUntil").lte(new Date(now));
             retrievedAt = now;
-            cache = find(query, 10000, TaskLockData.class); // what if there are more docs than maxHits?
+            cache = find(query, 10000, TaskLockData.class, null); // what if there are more docs than maxHits?
         }
         return cache;
     }
