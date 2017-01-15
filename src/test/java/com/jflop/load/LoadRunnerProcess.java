@@ -101,7 +101,7 @@ public class LoadRunnerProcess {
             case STOP_LOAD:
                 if (loadRunner == null || !loadRunner.isRunning())
                     return "Illegal state: load " + (loadRunner == null ? "runner not set" : "is not running");
-                Map<String, Object[]> res = loadRunner.stopLoad(Integer.parseInt(value));
+                LoadRunner.LoadResult res = loadRunner.stopLoad(Integer.parseInt(value));
                 try {
                     return mapper.writeValueAsString(res);
                 } catch (JsonProcessingException e) {
@@ -207,10 +207,10 @@ public class LoadRunnerProcess {
             return res.equals("OK");
         }
 
-        public Map<String, List<Object>> stopLoad(int timeoutSec) {
+        public LoadRunner.LoadResult stopLoad(int timeoutSec) {
             String res = sendCommand(STOP_LOAD, String.valueOf(timeoutSec), 3000);
             try {
-                return mapper.readValue(res, Map.class);
+                return mapper.readValue(res, LoadRunner.LoadResult.class);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -232,4 +232,5 @@ public class LoadRunnerProcess {
             return res;
         }
     }
+
 }

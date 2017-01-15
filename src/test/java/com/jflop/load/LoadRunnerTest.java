@@ -2,8 +2,6 @@ package com.jflop.load;
 
 import org.junit.Test;
 
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -57,21 +55,16 @@ public class LoadRunnerTest {
         } catch (InterruptedException e) {
             // ignore
         }
-        Map<String, Object[]> loadRes = runner.stopLoad(10);
+        LoadRunner.LoadResult loadRes = runner.stopLoad(10);
 
         int numThreads = runner.getNumThreads();
         for (Object[] pair : flowsThroughput) {
             FlowMockup flow = (FlowMockup) pair[0];
             String flowId = flow.getId();
-            Object[] expectedFiredExecutedDuration = loadRes.get(flowId);
-            int expected = (int) expectedFiredExecutedDuration[0];
-            int fired = (int) expectedFiredExecutedDuration[1];
-            int executed = (int) expectedFiredExecutedDuration[2];
-            long duration = (long) expectedFiredExecutedDuration[3];
-            float avgDuration = (float) duration / executed;
-            System.out.println(flowId + " in " + numThreads + " threads: expected=" + expected + "; fired=" + fired + "; executed=" + executed
-                    + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + avgDuration);
-            assertEquals("Problematic flow:\n" + flow.toString(), expected, executed, 1);
+            LoadRunner.FlowStats stats = loadRes.flows.get(flowId);
+            System.out.println(flowId + " in " + numThreads + " threads: expected=" + stats.expected + "; fired=" + stats.fired + "; executed=" + stats.executed
+                    + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + stats.averageDuration);
+            assertEquals("Problematic flow:\n" + flow.toString(), stats.expected, stats.executed, 1);
         }
     }
 }

@@ -6,6 +6,7 @@ import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AdminClient;
 import com.jflop.server.admin.AgentJVMIndex;
 import com.jflop.server.admin.data.*;
+import com.jflop.server.background.LockIndex;
 import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.persistency.ValuePair;
@@ -26,9 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * TODO: Document!
@@ -44,13 +43,16 @@ public abstract class LoadTestBase {
 
     protected static final Logger logger = Logger.getLogger(LoadTestBase.class.getName());
 
-    private Object[][] flowsAndThroughput;
+    protected Object[][] flowsAndThroughput;
 
     @Autowired
     private AccountIndex accountIndex;
 
     @Autowired
     private AgentJVMIndex agentJVMIndex;
+
+    @Autowired
+    private LockIndex lockIndex;
 
     private String accountName;
     private boolean isInitialized;
@@ -128,22 +130,19 @@ public abstract class LoadTestBase {
         assertTrue(ok);
     }
 
-    protected void stopLoad() {
-        Map<String, List<Object>> expectedFiredExecutedDuration = loadRunnerProxy.stopLoad(3);
-        assertNotNull(expectedFiredExecutedDuration);
-
+    protected LoadRunner.LoadResult stopLoad() {
+        LoadRunner.LoadResult loadResult = loadRunnerProxy.stopLoad(3);
+        assertNotNull(loadResult);
         for (Object[] pair : flowsAndThroughput) {
             FlowMockup flow = (FlowMockup) pair[0];
             float expectedThroughput = (float) pair[1];
-            String flowId = flow.getId();
-            List<Object> res = (List<Object>) expectedFiredExecutedDuration.get(flowId);
-            int expectedCount = (int) res.get(0);
-            int firedCount = (int) res.get(1);
-            int executedCount = (int) res.get(2);
-            int duration = (int) res.get(3);
-
-            assertEquals(expectedCount, executedCount);
+            LoadRunner.FlowStats stats = loadResult.flows.get(flow.getId());
+            String message = "Problematic flow:\n" + flow;
+            assertEquals(message, stats.expected, stats.executed);
+            assertEquals(expectedThroughput, (float) stats.executed / loadResult.durationMillis * 1000, expectedThroughput / 100);
         }
+
+        return loadResult;
     }
 
     protected void startMonitoring() throws Exception {
@@ -189,6 +188,9 @@ public abstract class LoadTestBase {
             adminClient.deleteAgent(agent.agentId);
         }
         agentName2IdPath = new HashMap<>();
+
+        // delete all the locks
+        lockIndex.deleteIndex();
     }
 
     private ValuePair<String, String> getOrCreateAgent(String agentName) throws Exception {

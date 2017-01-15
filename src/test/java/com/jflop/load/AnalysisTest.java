@@ -2,14 +2,13 @@ package com.jflop.load;
 
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.data.processed.FlowSummary;
-import com.jflop.server.runtime.data.processed.MethodCall;
-import com.jflop.server.util.DebugPrintUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Date;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -38,8 +37,12 @@ public class AnalysisTest extends LoadTestBase {
         startMonitoring();
         FlowSummary summary = awaitNextSummary(30);
         assertNotNull(summary);
+        LoadRunner.LoadResult loadResult = stopLoad();
         stopMonitoring();
-        stopLoad();
+
+        GeneratedFlow flow = (GeneratedFlow) flowsAndThroughput[0][0];
+        float expectedThroughput = (float) flowsAndThroughput[0][1];
+        checkFlowStatistics(flow, expectedThroughput, loadResult, summary);
     }
 
     private FlowSummary awaitNextSummary(int timeoutSec) {
@@ -61,11 +64,9 @@ public class AnalysisTest extends LoadTestBase {
         return null;
     }
 
-    private void printSummary(FlowSummary summary) {
-        System.out.println("----------- summary ------------------");
-        for (MethodCall root : summary.roots) {
-            System.out.println("\n" + DebugPrintUtil.methodCallSummaryStr("", root));
-        }
-        System.out.println("--------------------------------------");
+    private void checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult, FlowSummary summary) {
+        LoadRunner.FlowStats flowStats = loadResult.flows.get(flow.getId());
+        assertEquals(expectedThroughput, (float) flowStats.executed / loadResult.durationMillis / 1000, expectedThroughput / 100);
     }
+
 }

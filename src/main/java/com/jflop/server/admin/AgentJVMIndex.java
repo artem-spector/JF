@@ -74,7 +74,7 @@ public class AgentJVMIndex extends IndexTemplate {
         if (createIfNotExists)
             return createDocument(new PersistentData<>(id, 0, new AgentJvmState(agentJVM)));
 
-        throw new RuntimeException("Invalid JVM ID");
+        throw new RuntimeException("Invalid JVM ID: " + id + " " + agentJVM);
     }
 
     public void setCommand(AgentJVM agentJVM, FeatureCommand command) {

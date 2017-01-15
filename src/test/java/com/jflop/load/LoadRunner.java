@@ -101,7 +101,7 @@ public class LoadRunner {
         }
     }
 
-    public Map<String, Object[]> stopLoad(int timeoutSec) {
+    public LoadResult stopLoad(int timeoutSec) {
         stoppedAt = System.currentTimeMillis();
         stopIt = true;
         System.out.println("Thread pool: activeTasks=" + threadPool.getActiveCount() + "; queueLength=" + threadPool.getQueue().size());
@@ -124,21 +124,23 @@ public class LoadRunner {
             // ignore
         }
 
-        float loadDuration = getLoadDuration();
-        Map<String, Object[]> expectedFiredCountDuration = new HashMap<>();
+        LoadResult res = new LoadResult();
+        float loadDuration = getLoadDurationSec();
+        res.durationMillis = stoppedAt - startedAt;
+        res.flows = new HashMap<>();
         for (Map.Entry<String, ValuePair<Integer, Long>> entry : executeCount.entrySet()) {
             String flowId = entry.getKey();
             int executed = entry.getValue().value1;
             long duration = entry.getValue().value2;
             int fired = fireCount.get(flowId);
             int expected = Math.round(flows.get(flowId).value2 * loadDuration);
-            expectedFiredCountDuration.put(flowId, new Object[]{expected, fired, executed, duration});
+            res.flows.put(flowId, new FlowStats(expected, fired, executed, (float) duration / executed));
         }
 
-        return expectedFiredCountDuration;
+        return res;
     }
 
-    public float getLoadDuration() {
+    public float getLoadDurationSec() {
         return durationSec(stoppedAt);
     }
 
@@ -152,5 +154,28 @@ public class LoadRunner {
 
     private float durationSec(long to) {
         return (float) (to - startedAt) / 1000;
+    }
+
+    static class LoadResult {
+        public  long durationMillis;
+        public  Map<String, FlowStats> flows;
+    }
+
+    static class FlowStats {
+
+        public  int expected;
+        public  int fired;
+        public  int executed;
+        public  float averageDuration;
+
+        public FlowStats() {
+        }
+
+        public FlowStats(int expected, int fired, int executed, float averageDuration) {
+            this.expected = expected;
+            this.fired = fired;
+            this.executed = executed;
+            this.averageDuration = averageDuration;
+        }
     }
 }
