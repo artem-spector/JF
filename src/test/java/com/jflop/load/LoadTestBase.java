@@ -13,7 +13,6 @@ import com.jflop.server.persistency.ValuePair;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -22,12 +21,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -39,9 +39,9 @@ import static org.junit.Assert.assertTrue;
 @SpringApplicationConfiguration(classes = ServerApp.class)
 @WebIntegrationTest()
 
-public class LoadAnalysisTest {
+public abstract class LoadTestBase {
 
-    private static final Logger logger = Logger.getLogger(LoadAnalysisTest.class.getName());
+    protected static final Logger logger = Logger.getLogger(LoadTestBase.class.getName());
 
     @Autowired
     private AccountIndex accountIndex;
@@ -49,18 +49,23 @@ public class LoadAnalysisTest {
     @Autowired
     private AgentJVMIndex agentJVMIndex;
 
+    private String accountName;
     private boolean isInitialized;
     private AdminClient adminClient;
-    private String accountId;
 
+    private String accountId;
     private Map<String, ValuePair<String, String>> agentName2IdPath;
-    private LoadRunnerProcess.Proxy loadRunnerProxy;
-    private AgentJVM currentJvm;
+    protected LoadRunnerProcess.Proxy loadRunnerProxy;
+    protected AgentJVM currentJvm;
+
+    protected LoadTestBase(String accountName) {
+        this.accountName = accountName;
+    }
 
     @Before
     public synchronized void initOnce() throws Exception {
         if (!isInitialized) {
-            initAccount("LoadTestAccount");
+            initAccount(accountName);
             isInitialized = true;
         }
     }
@@ -77,54 +82,6 @@ public class LoadAnalysisTest {
             currentJvm = null;
         } else
             logger.severe("The client process has not stopped in " + timeoutSec + " sec. for " + jvmStr);
-    }
-
-    @Test
-    public void testStartLoadClient() throws Exception {
-        String agentName = "reusableAgent";
-        int numIterations = 3;
-
-        for (int i = 0; i < numIterations; i++) {
-            startClient(agentName);
-            assertNotNull(currentJvm);
-            logger.info("Started JVM for agent " + agentName + "->" + currentJvm.jvmId);
-            Thread.sleep(2000);
-            stopClient();
-        }
-    }
-
-    @Test
-    public void testSetLoad() throws Exception {
-        startClient("loadAgent");
-
-        int numFlows = 3;
-        int minThroughput = 10;
-        int maxThroughput = 100;
-        int maxDepth = 4;
-        int maxLength = 4;
-        int maxDuration = 10;
-        Object[][] flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, maxDuration, minThroughput, maxThroughput);
-
-        boolean ok = loadRunnerProxy.setFlows(flowsAndThroughput);
-        assertTrue(ok);
-        ok = loadRunnerProxy.startLoad();
-        assertTrue(ok);
-        Thread.sleep(2000);
-        Map<String, List<Object>> expectedFiredExecutedDuration = loadRunnerProxy.stopLoad(3);
-        assertNotNull(expectedFiredExecutedDuration);
-
-        for (Object[] pair : flowsAndThroughput) {
-            FlowMockup flow = (FlowMockup) pair[0];
-            float expectedThroughput = (float) pair[1];
-            String flowId = flow.getId();
-            List<Object> res = (List<Object>) expectedFiredExecutedDuration.get(flowId);
-            int expectedCount = (int) res.get(0);
-            int firedCount = (int) res.get(1);
-            int executedCount = (int) res.get(2);
-            int duration = (int) res.get(3);
-
-            assertEquals(expectedCount, executedCount);
-        }
     }
 
     private void initAccount(String accountName) throws Exception {
@@ -159,7 +116,7 @@ public class LoadAnalysisTest {
         return idPath;
     }
 
-    private void startClient(String agentName) throws Exception {
+    protected void startClient(String agentName) throws Exception {
         assert loadRunnerProxy == null;
 
         ValuePair<String, String> pair = getOrCreateAgent(agentName);

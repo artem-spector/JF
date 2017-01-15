@@ -15,21 +15,22 @@ public class LoadRunnerTest {
 
     @Test
     public void testSingleFlow() {
-        FlowOne f1 = new FlowOne("one", 3);
+        // short flow with different throughputs
+        GeneratedFlow f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 5, 10, 10)[0][0];
         runLoad(500, new Object[]{f1, 10f});
         runLoad(900, new Object[]{f1, 100f});
         runLoad(1100, new Object[]{f1, 1000f});
         runLoad(1200, new Object[]{f1, 1500f});
         runLoad(1300, new Object[]{f1, 2000f});
 
-        f1 = new FlowOne("two", 13);
+        f1 = (GeneratedFlow) GeneratedFlow.generateFlowsAndThroughput(1, 4, 4, 5, 15, 15)[0][0];
         runLoad(500, new Object[]{f1, 10f});
         runLoad(900, new Object[]{f1, 100f});
         runLoad(1200, new Object[]{f1, 1000f});
     }
 
     @Test
-    public void testGeneratedFlows() {
+    public void testMultipleFlows() {
         int numFlows = 20;
         int minThroughput = 10;
         int maxThroughput = 100;
@@ -41,10 +42,10 @@ public class LoadRunnerTest {
 
     @Test
     public void testProblematicFlows() {
-        GeneratedFlow flow = GeneratedFlow.fromString("{\"name\":\"m5\",\"duration\":8,\"nested\":[{\"name\":\"m1\",\"duration\":1,\"nested\":[{\"name\":\"m8\",\"duration\":1,\"nested\":[{\"name\":\"m7\",\"duration\":0,\"nested\":[{\"name\":\"m4\",\"duration\":0},{\"name\":\"m6\",\"duration\":0},{\"name\":\"m3\",\"duration\":0}]},{\"name\":\"m2\",\"duration\":0}]}]}]}");
+        GeneratedFlow flow = GeneratedFlow.fromString("{\"name\":\"m2\",\"duration\":5,\"nested\":[{\"name\":\"m4\",\"duration\":0,\"nested\":[{\"name\":\"m6\",\"duration\":0,\"nested\":[{\"name\":\"m3\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":0}]}]},{\"name\":\"m5\",\"duration\":0,\"nested\":[{\"name\":\"m8\",\"duration\":0},{\"name\":\"m1\",\"duration\":0,\"nested\":[]}]}]}]}");
         System.out.println(flow.toString());
 
-        runLoad(100, new Object[]{flow, 10f});
+        runLoad(1000, new Object[]{flow, 1100f});
     }
 
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
@@ -69,7 +70,7 @@ public class LoadRunnerTest {
             float avgDuration = (float) duration / executed;
             System.out.println(flowId + " in " + numThreads + " threads: expected=" + expected + "; fired=" + fired + "; executed=" + executed
                     + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + avgDuration);
-            assertEquals(expected, executed, 1);
+            assertEquals("Problematic flow:\n" + flow.toString(), expected, executed, 1);
         }
     }
 }

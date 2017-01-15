@@ -79,7 +79,7 @@ public class GeneratedFlow implements FlowMockup {
         Object[][] flowsThroughputs = new Object[numFlows][];
         for (int i = 0; i < numFlows; i++) {
             GeneratedFlow flow = GeneratedFlow.generateFlow(maxDepth, maxLength, maxDuration);
-            float throughput = (float) random.nextInt(maxThroughput - minThroughput) + minThroughput;
+            float throughput = (float) random.nextInt(maxThroughput - minThroughput + 1) + minThroughput;
             flowsThroughputs[i] = new Object[]{flow, throughput};
         }
         return flowsThroughputs;
