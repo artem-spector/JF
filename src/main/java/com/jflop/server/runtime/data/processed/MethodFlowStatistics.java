@@ -34,4 +34,11 @@ public class MethodFlowStatistics {
         throughputPerSec = totalCount / timeSec;
         averageTime = totalTime / totalCount;
     }
+
+    public void merge(MethodFlowStatistics stat) {
+        this.throughputPerSec += stat.throughputPerSec;
+        this.minTime = Math.min(this.minTime, stat.minTime);
+        this.maxTime = Math.max(this.maxTime, stat.maxTime);
+        this.averageTime = (this.averageTime + stat.averageTime) / 2;
+    }
 }

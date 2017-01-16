@@ -260,9 +260,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     private String printFlowSummary(FlowSummary flowSummary) {
         String res = "\n-------- Flow summary ---------";
         for (MethodCall root : flowSummary.roots) {
-            res += "\n" + DebugPrintUtil.methodCallSummaryStr("", root);
+            res += DebugPrintUtil.methodCallSummaryStr("", root);
         }
-
         return res + "\n-----------------------------------\n";
     }
 

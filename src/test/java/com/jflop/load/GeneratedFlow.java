@@ -244,9 +244,11 @@ public class GeneratedFlow implements FlowMockup {
         if (allExpectedMethods.contains(recordedMtd))
             return null;
 
-        for (MethodCall nestedRecordedCall : recordedCall.nestedCalls) {
-            MethodCall found = findRecordedFlow(expectedMtd, nestedRecordedCall, allExpectedMethods);
-            if (found != null) return found;
+        if (recordedCall.nestedCalls != null) {
+            for (MethodCall nestedRecordedCall : recordedCall.nestedCalls) {
+                MethodCall found = findRecordedFlow(expectedMtd, nestedRecordedCall, allExpectedMethods);
+                if (found != null) return found;
+            }
         }
 
         return null;

@@ -3,6 +3,7 @@ package com.jflop.load;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.data.processed.FlowSummary;
+import org.jflop.config.JflopConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ public class AnalysisTest extends LoadTestBase {
 
     @Autowired
     private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
+    private JflopConfiguration instrumentationConfig;
 
     public AnalysisTest() {
         super("AnalysisTest");
@@ -36,7 +38,13 @@ public class AnalysisTest extends LoadTestBase {
 
     @Test
     public void testSingleFlow() throws Exception {
-        startLoad(1, 10, 10, 100, 100);
+        // TODO: automatically save/grab problematic flows
+//        generateFlows(1, 10, 10, 100, 100);
+
+        GeneratedFlow problematic = GeneratedFlow.fromString("{\"name\":\"m1\",\"duration\":33,\"nested\":[{\"name\":\"m6\",\"duration\":31,\"nested\":[{\"name\":\"m3\",\"duration\":1,\"nested\":[{\"name\":\"m4\",\"duration\":17,\"nested\":[{\"name\":\"m7\",\"duration\":15},{\"name\":\"m5\",\"duration\":5}]},{\"name\":\"m2\",\"duration\":28,\"nested\":[{\"name\":\"m8\",\"duration\":2}]}]}]}]}");
+        flowsAndThroughput = new Object[][]{new Object[]{problematic, 10f}};
+
+        startLoad();
         startMonitoring();
         FlowSummary summary = awaitNextSummary(30);
         assertNotNull(summary);
@@ -54,8 +62,10 @@ public class AnalysisTest extends LoadTestBase {
         while (System.currentTimeMillis() < border) {
             try {
                 FlowSummary summary = processedDataIndex.getLastSummary();
-                if (summary != null && summary.time.after(begin))
+                if (summary != null && summary.time.after(begin)) {
+                    instrumentationConfig = instrumentationConfigurationFeature.getConfiguration(currentJvm);
                     return summary;
+                }
 
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -68,8 +78,9 @@ public class AnalysisTest extends LoadTestBase {
     }
 
     private void checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult, FlowSummary summary) {
-        Set<String> found = flow.findFlowIds(summary, instrumentationConfigurationFeature.getConfiguration(currentJvm));
+        Set<String> found = flow.findFlowIds(summary, instrumentationConfig);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
+        assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
     }
 
 }

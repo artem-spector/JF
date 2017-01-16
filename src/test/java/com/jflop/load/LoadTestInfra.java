@@ -32,7 +32,8 @@ public class LoadTestInfra extends LoadTestBase {
     @Test
     public void testSetLoad() throws Exception {
         startClient("loadAgent");
-        startLoad(3, 10, 100, 0, 10);
+        generateFlows(3, 10, 100, 0, 10);
+        startLoad();
         Thread.sleep(2000);
         stopLoad();
     }

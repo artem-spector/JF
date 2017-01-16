@@ -34,7 +34,6 @@ public class DebugPrintUtil {
             for (MethodCall nestedCall : call.nestedCalls) {
                 res += methodCallSummaryStr(indent + "\t", nestedCall);
             }
-            res += "\n";
         }
         return res;
     }

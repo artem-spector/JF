@@ -119,11 +119,13 @@ public abstract class LoadTestBase {
         currentJvm = found;
     }
 
-    protected void startLoad(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
+    protected void generateFlows(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
         int maxDepth = 4;
         int maxLength = 4;
         flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, minDuration, maxDuration, minThroughput, maxThroughput);
+    }
 
+    protected void startLoad() {
         boolean ok = loadRunnerProxy.setFlows(flowsAndThroughput);
         assertTrue(ok);
         ok = loadRunnerProxy.startLoad();

@@ -102,7 +102,13 @@ public class MethodCall {
     private void addFlowRecursively(String flowId, FlowMetadata.FlowElement metadata, List<FlowOccurrenceData.FlowElement> occurrences, long intervalLengthMillis) {
         if (flows == null) flows = new ArrayList<>();
         MethodFlowStatistics stat = new MethodFlowStatistics(occurrences, intervalLengthMillis);
-        flows.add(new MethodFlow(flowId, metadata.returnLine, stat));
+        MethodFlow methodFlow = new MethodFlow(flowId, metadata.returnLine, stat);
+        int pos = flows.indexOf(methodFlow);
+        if (pos == -1) {
+            flows.add(methodFlow);
+        } else {
+            flows.get(pos).statistics.merge(stat);
+        }
 
         if (metadata.subflows == null) return;
         if (nestedCalls == null) nestedCalls = new ArrayList<>();
