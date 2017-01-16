@@ -16,13 +16,13 @@ public class FlowSummary extends AgentData {
 
     public List<MethodCall> roots;
 
-    public void aggregateFlows(Map<FlowMetadata, List<FlowOccurrenceData>> flows, long intervalLengthMillis) {
+    public void aggregateFlows(Map<FlowMetadata, List<FlowOccurrenceData>> flows) {
         roots = new ArrayList<>();
         for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : flows.entrySet()) {
             FlowMetadata flowMetadata = entry.getKey();
             List<FlowOccurrenceData> occurrences = entry.getValue();
             MethodCall call = MethodCall.getOrCreateCall(roots, flowMetadata.rootFlow);
-            call.addFlow(flowMetadata, occurrences, intervalLengthMillis);
+            call.addFlow(flowMetadata, occurrences);
         }
     }
 

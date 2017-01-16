@@ -234,8 +234,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         // 3. build flow summary
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
-        long intervalLengthMillis = current.to.getTime() - current.from.getTime();
-        flowSummary.aggregateFlows(current.flows, intervalLengthMillis);
+        flowSummary.aggregateFlows(current.flows);
         flowSummary.aggregateThreads(current.threads, current.instrumentedTraceElements);
         if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
         current.flowSummary = flowSummary;

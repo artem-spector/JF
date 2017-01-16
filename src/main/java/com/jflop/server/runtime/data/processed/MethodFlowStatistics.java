@@ -1,5 +1,6 @@
 package com.jflop.server.runtime.data.processed;
 
+import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.FlowOccurrenceData;
 
 import java.util.List;
@@ -20,18 +21,19 @@ public class MethodFlowStatistics {
     public MethodFlowStatistics() {
     }
 
-    public MethodFlowStatistics(List<FlowOccurrenceData.FlowElement> occurrences, long intervalMillis) {
+    public MethodFlowStatistics(List<ValuePair<FlowOccurrenceData.FlowElement, Float>> occurrences) {
         minTime = Long.MAX_VALUE;
         long totalTime = 0;
         int totalCount = 0;
-        for (FlowOccurrenceData.FlowElement occurrence : occurrences) {
-            minTime = Math.min(minTime, occurrence.minTime);
-            maxTime = Math.max(maxTime, occurrence.maxTime);
-            totalTime += occurrence.cumulativeTime;
-            totalCount += occurrence.count;
+        float totalSnapshotDurationSec = 0;
+        for (ValuePair<FlowOccurrenceData.FlowElement, Float> occurrence : occurrences) {
+            minTime = Math.min(minTime, occurrence.value1.minTime);
+            maxTime = Math.max(maxTime, occurrence.value1.maxTime);
+            totalTime += occurrence.value1.cumulativeTime / 1000000;
+            totalCount += occurrence.value1.count;
+            totalSnapshotDurationSec += occurrence.value2;
         }
-        float timeSec = (float) intervalMillis / 1000;
-        throughputPerSec = totalCount / timeSec;
+        throughputPerSec = totalCount / totalSnapshotDurationSec;
         averageTime = totalTime / totalCount;
     }
 

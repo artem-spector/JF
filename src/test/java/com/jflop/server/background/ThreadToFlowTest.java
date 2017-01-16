@@ -275,7 +275,7 @@ public class ThreadToFlowTest {
                 flowOccurrence.rootFlow = occ.get(i);
 
                 MethodCall methodCall = new MethodCall(flowMetadata.rootFlow);
-                methodCall.addFlow(flowMetadata, Collections.singletonList(flowOccurrence), 10);
+                methodCall.addFlow(flowMetadata, Collections.singletonList(flowOccurrence));
                 calls.add(methodCall);
             }
 

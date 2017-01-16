@@ -3,6 +3,9 @@ package com.jflop.load;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.data.processed.FlowSummary;
+import com.jflop.server.runtime.data.processed.MethodCall;
+import com.jflop.server.runtime.data.processed.MethodFlow;
+import com.jflop.server.runtime.data.processed.MethodFlowStatistics;
 import org.jflop.config.JflopConfiguration;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +84,27 @@ public class AnalysisTest extends LoadTestBase {
         Set<String> found = flow.findFlowIds(summary, instrumentationConfig);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
         assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
+
+        String flowId = found.iterator().next();
+        MethodFlowStatistics flowStatistics = null;
+        for (MethodCall root : summary.roots) {
+            for (MethodFlow methodFlow : root.flows) {
+                if (methodFlow.flowId.equals(flowId)) {
+                    flowStatistics = methodFlow.statistics;
+                    break;
+                }
+            }
+        }
+        assertNotNull(flowStatistics);
+
+        LoadRunner.FlowStats loadFlowStatistics = loadResult.flows.get(flow.getId());
+        assertNotNull(loadFlowStatistics);
+
+        System.out.println("Expected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
+        System.out.println("Load result    : throughput=" + (float)loadFlowStatistics.executed / loadResult.durationMillis * 1000 + "; avgDuration=" + loadFlowStatistics.averageDuration);
+        System.out.println("Flow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime);
+        assertEquals(expectedThroughput, flowStatistics.throughputPerSec, expectedThroughput / 10);
+
     }
 
 }
