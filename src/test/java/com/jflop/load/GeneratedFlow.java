@@ -2,8 +2,12 @@ package com.jflop.load;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jflop.server.runtime.data.processed.FlowSummary;
+import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.util.DigestUtil;
 import org.elasticsearch.common.hash.MessageDigests;
+import org.jflop.config.JflopConfiguration;
+import org.jflop.config.MethodConfiguration;
 import org.springframework.core.annotation.AnnotationAttributes;
 
 import java.lang.reflect.Method;
@@ -99,7 +103,7 @@ public class GeneratedFlow implements FlowMockup {
         iterator.remove();
 
         try {
-            element.mtd = getMethod(name);
+            element.setMtd(getMethod(name));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException("Failed to generate flow element for method '" + name + "'", e);
         }
@@ -184,6 +188,70 @@ public class GeneratedFlow implements FlowMockup {
         current.get().pop();
     }
 
+    public Set<String> findFlowIds(FlowSummary summary, JflopConfiguration configuration) {
+        Set<MethodConfiguration> allExpectedMethods = new HashSet<>();
+        this.root.getMethodConfigurations(allExpectedMethods);
+        Set<String> found = new HashSet<>();
+        for (MethodCall root : summary.roots) {
+            checkFlowFit(this.root, root, found, configuration, allExpectedMethods);
+        }
+        return found;
+    }
+
+    private static void checkFlowFit(FlowElement expectedFlow, MethodCall recordedFlow, Set<String> found, JflopConfiguration instrumentation, Set<MethodConfiguration> allExpectedMethods) {
+        if (expectedFlow.isInstrumented(instrumentation)) {
+            MethodCall foundFlow = findRecordedFlow(expectedFlow.methodConfiguration, recordedFlow, allExpectedMethods);
+            if (foundFlow != null) {
+                if (expectedFlow.hasInstrumentedSubelements(instrumentation)) {
+                    checkSubflows(expectedFlow, recordedFlow, found, instrumentation, allExpectedMethods);
+                } else {
+                    foundFlow.flows.forEach(flow -> found.add(flow.flowId));
+                }
+            }
+        } else {
+            if (expectedFlow.nested != null) {
+                expectedFlow.nested.forEach(nestedExpectedFlow -> checkFlowFit(nestedExpectedFlow, recordedFlow, found, instrumentation, allExpectedMethods));
+            }
+        }
+    }
+
+    private static void checkSubflows(FlowElement expectedFlow, MethodCall recordedFlow, Set<String> found, JflopConfiguration instrumentation, Set<MethodConfiguration> allExpectedMethods) {
+        boolean expectedHasNested = expectedFlow.nested != null && !expectedFlow.nested.isEmpty();
+        boolean recordedHasNested = recordedFlow != null && recordedFlow.nestedCalls != null && !recordedFlow.nestedCalls.isEmpty();
+
+        if (!expectedHasNested) return;
+
+        for (FlowElement expectedSubflow : expectedFlow.nested) {
+            if (recordedHasNested) {
+                for (MethodCall recordedSubflow : recordedFlow.nestedCalls) {
+                    checkFlowFit(expectedSubflow, recordedSubflow, found, instrumentation, allExpectedMethods);
+                }
+            } else {
+                checkFlowFit(expectedSubflow, null, found, instrumentation, allExpectedMethods);
+            }
+        }
+    }
+
+    private static MethodCall findRecordedFlow(MethodConfiguration expectedMtd, MethodCall recordedCall, Set<MethodConfiguration> allExpectedMethods) {
+        if (recordedCall == null)
+            return null;
+
+        MethodConfiguration recordedMtd = new MethodConfiguration(recordedCall.className, recordedCall.methodName, recordedCall.methodDescriptor);
+
+        if (recordedMtd.equals(expectedMtd))
+            return recordedCall;
+
+        if (allExpectedMethods.contains(recordedMtd))
+            return null;
+
+        for (MethodCall nestedRecordedCall : recordedCall.nestedCalls) {
+            MethodCall found = findRecordedFlow(expectedMtd, nestedRecordedCall, allExpectedMethods);
+            if (found != null) return found;
+        }
+
+        return null;
+    }
+
     private static class FlowElement {
 
         private static final String NAME = "name";
@@ -191,13 +259,14 @@ public class GeneratedFlow implements FlowMockup {
         private static final String DURATION = "duration";
 
         private Method mtd;
+        private MethodConfiguration methodConfiguration;
         private int processDuration;
         private List<FlowElement> nested;
 
         static FlowElement fromJson(Map json) throws NoSuchMethodException {
             String name = (String) json.get(NAME);
             FlowElement res = new FlowElement();
-            res.mtd = getMethod(name);
+            res.setMtd(getMethod(name));
 
             res.processDuration = (int) json.get(DURATION);
 
@@ -210,6 +279,30 @@ public class GeneratedFlow implements FlowMockup {
             }
 
             return res;
+        }
+
+        public void setMtd(Method mtd) {
+            this.mtd = mtd;
+            methodConfiguration = new MethodConfiguration(mtd);
+        }
+
+        boolean isInstrumented(JflopConfiguration configuration) {
+            return configuration.containsMethod(methodConfiguration);
+        }
+
+        boolean hasInstrumentedSubelements(JflopConfiguration configuration) {
+            if (nested != null) {
+                for (FlowElement subelement : nested) {
+                    if (subelement.isInstrumented(configuration)) return true;
+                }
+            }
+            return false;
+        }
+
+        public void getMethodConfigurations(Set<MethodConfiguration> methods) {
+            methods.add(methodConfiguration);
+            if (nested != null)
+                nested.forEach(subelement -> subelement.getMethodConfigurations(methods));
         }
 
         Object toJson() {

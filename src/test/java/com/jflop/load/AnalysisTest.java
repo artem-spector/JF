@@ -1,5 +1,6 @@
 package com.jflop.load;
 
+import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import org.junit.Before;
@@ -7,10 +8,9 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Date;
+import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * TODO: Document!
@@ -21,6 +21,9 @@ public class AnalysisTest extends LoadTestBase {
 
     @Autowired
     private ProcessedDataIndex processedDataIndex;
+
+    @Autowired
+    private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
 
     public AnalysisTest() {
         super("AnalysisTest");
@@ -65,8 +68,8 @@ public class AnalysisTest extends LoadTestBase {
     }
 
     private void checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult, FlowSummary summary) {
-        LoadRunner.FlowStats flowStats = loadResult.flows.get(flow.getId());
-        assertEquals(expectedThroughput, (float) flowStats.executed / loadResult.durationMillis / 1000, expectedThroughput / 100);
+        Set<String> found = flow.findFlowIds(summary, instrumentationConfigurationFeature.getConfiguration(currentJvm));
+        assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
     }
 
 }

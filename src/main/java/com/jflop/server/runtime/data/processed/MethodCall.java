@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 public class MethodCall {
 
-    public String className;
+    public String className; // internal one
     public String fileName;
     public String methodName;
     public String methodDescriptor;
