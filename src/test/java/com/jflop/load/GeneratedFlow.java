@@ -203,7 +203,7 @@ public class GeneratedFlow implements FlowMockup {
             MethodCall foundFlow = findRecordedFlow(expectedFlow.methodConfiguration, recordedFlow, allExpectedMethods);
             if (foundFlow != null) {
                 if (expectedFlow.hasInstrumentedSubelements(instrumentation)) {
-                    checkSubflows(expectedFlow, recordedFlow, found, instrumentation, allExpectedMethods);
+                    checkSubflows(expectedFlow, foundFlow, found, instrumentation, allExpectedMethods);
                 } else {
                     foundFlow.flows.forEach(flow -> found.add(flow.flowId));
                 }
