@@ -42,10 +42,12 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testSingleFlow() throws Exception {
         // TODO: automatically save/grab problematic flows
-//        generateFlows(1, 10, 10, 100, 100);
+        generateFlows(1, 10, 10, 100, 100);
 
+/*
         GeneratedFlow problematic = GeneratedFlow.fromString("{\"name\":\"m1\",\"duration\":33,\"nested\":[{\"name\":\"m6\",\"duration\":31,\"nested\":[{\"name\":\"m3\",\"duration\":1,\"nested\":[{\"name\":\"m4\",\"duration\":17,\"nested\":[{\"name\":\"m7\",\"duration\":15},{\"name\":\"m5\",\"duration\":5}]},{\"name\":\"m2\",\"duration\":28,\"nested\":[{\"name\":\"m8\",\"duration\":2}]}]}]}]}");
         flowsAndThroughput = new Object[][]{new Object[]{problematic, 10f}};
+*/
 
         startLoad();
         startMonitoring();
@@ -99,11 +101,12 @@ public class AnalysisTest extends LoadTestBase {
 
         LoadRunner.FlowStats loadFlowStatistics = loadResult.flows.get(flow.getId());
         assertNotNull(loadFlowStatistics);
+        float actualThroughput = (float) loadFlowStatistics.executed / loadResult.durationMillis * 1000;
 
         System.out.println("Expected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
-        System.out.println("Load result    : throughput=" + (float)loadFlowStatistics.executed / loadResult.durationMillis * 1000 + "; avgDuration=" + loadFlowStatistics.averageDuration);
-        System.out.println("Flow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime);
-        assertEquals(expectedThroughput, flowStatistics.throughputPerSec, expectedThroughput / 10);
+        System.out.println("Load result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
+        System.out.println("Flow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
+        assertEquals(actualThroughput, flowStatistics.throughputPerSec, actualThroughput / 10);
 
     }
 
