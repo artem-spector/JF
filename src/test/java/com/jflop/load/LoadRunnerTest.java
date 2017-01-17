@@ -2,7 +2,10 @@ package com.jflop.load;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests the load runner infrastructure
@@ -41,10 +44,11 @@ public class LoadRunnerTest {
 
     @Test
     public void testProblematicFlows() {
-        GeneratedFlow flow = GeneratedFlow.fromString("{\"name\":\"m2\",\"duration\":5,\"nested\":[{\"name\":\"m4\",\"duration\":0,\"nested\":[{\"name\":\"m6\",\"duration\":0,\"nested\":[{\"name\":\"m3\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":0}]}]},{\"name\":\"m5\",\"duration\":0,\"nested\":[{\"name\":\"m8\",\"duration\":0},{\"name\":\"m1\",\"duration\":0,\"nested\":[]}]}]}]}");
+        String flowStr = "{\"name\":\"m1\",\"duration\":2,\"nested\":[{\"name\":\"m5\",\"duration\":2},{\"name\":\"m6\",\"duration\":0,\"nested\":[{\"name\":\"m8\",\"duration\":3},{\"name\":\"m2\",\"duration\":1}]}]}";
+        GeneratedFlow flow = GeneratedFlow.fromString(flowStr);
         System.out.println(flow.toString());
 
-        runLoad(1000, new Object[]{flow, 1100f});
+        runLoad(500, new Object[]{flow, 10f});
     }
 
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
@@ -55,16 +59,9 @@ public class LoadRunnerTest {
         } catch (InterruptedException e) {
             // ignore
         }
-        LoadRunner.LoadResult loadRes = runner.stopLoad(10);
 
-        int numThreads = runner.getNumThreads();
-        for (Object[] pair : flowsThroughput) {
-            FlowMockup flow = (FlowMockup) pair[0];
-            String flowId = flow.getId();
-            LoadRunner.FlowStats stats = loadRes.flows.get(flowId);
-            System.out.println(flowId + " in " + numThreads + " threads: expected=" + stats.expected + "; fired=" + stats.fired + "; executed=" + stats.executed
-                    + "\n\t duration: expected=" + flow.getExpectedDurationMillis() + "; actual=" + stats.averageDuration);
-            assertEquals("Problematic flow:\n" + flow.toString(), stats.expected, stats.executed, 1);
-        }
+        LoadRunner.LoadResult loadRes = runner.stopLoad(10);
+        List<String> problems = runner.validateResult(loadRes, flowsThroughput);
+        assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " flows have problems\n", "")), problems.isEmpty());
     }
 }

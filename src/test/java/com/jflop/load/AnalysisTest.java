@@ -31,7 +31,7 @@ public class AnalysisTest extends LoadTestBase {
     private JflopConfiguration instrumentationConfig;
 
     public AnalysisTest() {
-        super("AnalysisTest");
+        super("AnalysisTest", true);
     }
 
     @Before
@@ -42,12 +42,10 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testSingleFlow() throws Exception {
         // TODO: automatically save/grab problematic flows
-        generateFlows(1, 10, 10, 100, 100);
+//        generateFlows(1, 20, 20, 100, 100);
 
-/*
         GeneratedFlow problematic = GeneratedFlow.fromString("{\"name\":\"m1\",\"duration\":33,\"nested\":[{\"name\":\"m6\",\"duration\":31,\"nested\":[{\"name\":\"m3\",\"duration\":1,\"nested\":[{\"name\":\"m4\",\"duration\":17,\"nested\":[{\"name\":\"m7\",\"duration\":15},{\"name\":\"m5\",\"duration\":5}]},{\"name\":\"m2\",\"duration\":28,\"nested\":[{\"name\":\"m8\",\"duration\":2}]}]}]}]}");
         flowsAndThroughput = new Object[][]{new Object[]{problematic, 10f}};
-*/
 
         startLoad();
         startMonitoring();

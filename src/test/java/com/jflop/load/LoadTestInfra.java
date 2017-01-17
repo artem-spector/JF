@@ -12,7 +12,7 @@ import static org.junit.Assert.assertNotNull;
 public class LoadTestInfra extends LoadTestBase {
 
     public LoadTestInfra() {
-        super("LoadTestInfra");
+        super("LoadTestInfra", false);
     }
 
     @Test

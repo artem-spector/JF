@@ -8,6 +8,7 @@ import com.jflop.server.admin.AgentJVMIndex;
 import com.jflop.server.admin.data.*;
 import com.jflop.server.background.LockIndex;
 import com.jflop.server.feature.JvmMonitorFeature;
+import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.persistency.ValuePair;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
@@ -54,7 +56,11 @@ public abstract class LoadTestBase {
     @Autowired
     private LockIndex lockIndex;
 
+    @Autowired
+    private List<IndexTemplate> allIndexes;
+
     private String accountName;
+    private boolean deleteAllDataBefore;
     private boolean isInitialized;
     private AdminClient adminClient;
 
@@ -63,13 +69,15 @@ public abstract class LoadTestBase {
     protected LoadRunnerProcess.Proxy loadRunnerProxy;
     protected AgentJVM currentJvm;
 
-    protected LoadTestBase(String accountName) {
+    protected LoadTestBase(String accountName, boolean deleteAllDataBefore) {
         this.accountName = accountName;
+        this.deleteAllDataBefore = deleteAllDataBefore;
     }
 
     @Before
     public synchronized void initOnce() throws Exception {
         if (!isInitialized) {
+            if (deleteAllDataBefore) allIndexes.forEach(IndexTemplate::deleteIndex);
             initAccount(accountName);
             isInitialized = true;
         }
@@ -135,14 +143,8 @@ public abstract class LoadTestBase {
     protected LoadRunner.LoadResult stopLoad() {
         LoadRunner.LoadResult loadResult = loadRunnerProxy.stopLoad(3);
         assertNotNull(loadResult);
-        for (Object[] pair : flowsAndThroughput) {
-            FlowMockup flow = (FlowMockup) pair[0];
-            float expectedThroughput = (float) pair[1];
-            LoadRunner.FlowStats stats = loadResult.flows.get(flow.getId());
-            String message = "Problematic flow:\n" + flow;
-            assertEquals(message, stats.expected, stats.executed);
-            assertEquals(expectedThroughput, (float) stats.executed / loadResult.durationMillis * 1000, expectedThroughput / 100);
-        }
+        List<String> problems = LoadRunner.validateResult(loadResult, flowsAndThroughput);
+        assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " flows have problems\n", "")), problems.isEmpty());
 
         return loadResult;
     }
