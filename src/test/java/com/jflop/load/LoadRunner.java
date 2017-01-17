@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class LoadRunner {
 
     private static final Logger logger = Logger.getLogger(LoadRunner.class.getName());
-    private static final int OVERHEAD_MILLIS = 10;
+    private static final int OVERHEAD_MILLIS = 20;
 
     private Map<String, ValuePair<FlowMockup, Float>> flows;
     private ThreadPoolExecutor threadPool;
@@ -79,16 +79,17 @@ public class LoadRunner {
                 int executed = executeCount.get(id).value1;
                 if (fired < expected) {
                     threadPool.submit(() -> {
-                        if (stopIt) return;
+                        if (!stopIt) {
+                            long begin = System.currentTimeMillis();
+                            flows.get(id).value1.go();
 
-                        long begin = System.currentTimeMillis();
-                        flows.get(id).value1.go();
-                        if (stopIt) return;
-
-                        boolean updated = false;
-                        while (!updated) {
-                            ValuePair<Integer, Long> countDuration = executeCount.get(id);
-                            updated = executeCount.replace(id, countDuration, new ValuePair<>(countDuration.value1 + 1, countDuration.value2 + System.currentTimeMillis() - begin));
+                            if (!stopIt) {
+                                boolean updated = false;
+                                while (!updated) {
+                                    ValuePair<Integer, Long> countDuration = executeCount.get(id);
+                                    updated = executeCount.replace(id, countDuration, new ValuePair<>(countDuration.value1 + 1, countDuration.value2 + System.currentTimeMillis() - begin));
+                                }
+                            }
                         }
                     });
                     boolean updated = false;
@@ -132,9 +133,13 @@ public class LoadRunner {
             // ignore
         }
 
+        return getLoadResult(stoppedAt);
+    }
+
+    public LoadResult getLoadResult(long toTime) {
         LoadResult res = new LoadResult();
-        float loadDuration = getLoadDurationSec();
-        res.durationMillis = stoppedAt - startedAt;
+        float loadDuration = durationSec(toTime);
+        res.durationMillis = toTime - startedAt;
         res.flows = new HashMap<>();
         res.numThreads = threadPool.getMaximumPoolSize();
 
@@ -146,12 +151,7 @@ public class LoadRunner {
             int expected = Math.round(flows.get(flowId).value2 * loadDuration);
             res.flows.put(flowId, new FlowStats(expected, fired, executed, (float) duration / executed));
         }
-
         return res;
-    }
-
-    public float getLoadDurationSec() {
-        return durationSec(stoppedAt);
     }
 
     public boolean isRunning() {

@@ -15,6 +15,8 @@ import java.security.MessageDigest;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  * TODO: Document!
  *
@@ -95,6 +97,7 @@ public class GeneratedFlow implements FlowMockup {
 
     private static FlowElement generateFlowElement(Set<String> availableMethods, int maxDepth, int maxLength, int maxDuration) {
         FlowElement element = new FlowElement();
+        assertTrue(availableMethods.size() >= 1);
         int pos = random.nextInt(availableMethods.size());
 
         String name = null;

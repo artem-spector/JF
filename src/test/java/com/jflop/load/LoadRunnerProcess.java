@@ -31,6 +31,7 @@ public class LoadRunnerProcess {
     private static final String SET_FLOWS = "flows";
     private static final String START_LOAD = "start-load";
     private static final String STOP_LOAD = "stop-load";
+    private static final String GET_LOAD_RESULT = "get-load-result";
 
     private LoadRunner loadRunner;
 
@@ -104,6 +105,18 @@ public class LoadRunnerProcess {
                 LoadRunner.LoadResult res = loadRunner.stopLoad(Integer.parseInt(value));
                 try {
                     return mapper.writeValueAsString(res);
+                } catch (JsonProcessingException e) {
+                    String msg = "Failed writing load result";
+                    logger.log(Level.SEVERE, msg, e);
+                    return msg;
+                }
+
+            case GET_LOAD_RESULT:
+                if (loadRunner == null || !loadRunner.isRunning())
+                    return "Illegal state: load " + (loadRunner == null ? "runner not set" : "is not running");
+                LoadRunner.LoadResult loadRes = loadRunner.getLoadResult(System.currentTimeMillis());
+                try {
+                    return mapper.writeValueAsString(loadRes);
                 } catch (JsonProcessingException e) {
                     String msg = "Failed writing load result";
                     logger.log(Level.SEVERE, msg, e);
@@ -209,6 +222,15 @@ public class LoadRunnerProcess {
 
         public LoadRunner.LoadResult stopLoad(int timeoutSec) {
             String res = sendCommand(STOP_LOAD, String.valueOf(timeoutSec), 3000);
+            try {
+                return mapper.readValue(res, LoadRunner.LoadResult.class);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public LoadRunner.LoadResult getLoadResult() {
+            String res = sendCommand(GET_LOAD_RESULT, "", 3000);
             try {
                 return mapper.readValue(res, LoadRunner.LoadResult.class);
             } catch (IOException e) {

@@ -149,6 +149,15 @@ public abstract class LoadTestBase {
         return loadResult;
     }
 
+    protected LoadRunner.LoadResult getLoadResult() {
+        LoadRunner.LoadResult loadResult = loadRunnerProxy.getLoadResult();
+        assertNotNull(loadResult);
+        List<String> problems = LoadRunner.validateResult(loadResult, flowsAndThroughput);
+        assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " flows have problems\n", "")), problems.isEmpty());
+
+        return loadResult;
+    }
+
     protected void startMonitoring() throws Exception {
         adminClient.submitCommand(currentJvm, JvmMonitorFeature.FEATURE_ID, JvmMonitorFeature.ENABLE, null);
         long duration = awaitFeatureResponse(JvmMonitorFeature.FEATURE_ID, System.currentTimeMillis(), 10);

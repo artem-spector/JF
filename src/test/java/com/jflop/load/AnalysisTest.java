@@ -11,7 +11,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.*;
@@ -28,7 +30,9 @@ public class AnalysisTest extends LoadTestBase {
 
     @Autowired
     private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
+
     private JflopConfiguration instrumentationConfig;
+    private FlowSummary flowSummary;
 
     public AnalysisTest() {
         super("AnalysisTest", true);
@@ -42,32 +46,44 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testSingleFlow() throws Exception {
         // TODO: automatically save/grab problematic flows
+//        String flowStr1 = "{\"name\":\"m1\",\"duration\":33,\"nested\":[{\"name\":\"m6\",\"duration\":31,\"nested\":[{\"name\":\"m3\",\"duration\":1,\"nested\":[{\"name\":\"m4\",\"duration\":17,\"nested\":[{\"name\":\"m7\",\"duration\":15},{\"name\":\"m5\",\"duration\":5}]},{\"name\":\"m2\",\"duration\":28,\"nested\":[{\"name\":\"m8\",\"duration\":2}]}]}]}]}";
+        String flowStr1 = "{\"name\":\"m2\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":7,\"nested\":[{\"name\":\"m5\",\"duration\":23},{\"name\":\"m4\",\"duration\":23},{\"name\":\"m8\",\"duration\":16,\"nested\":[{\"name\":\"m6\",\"duration\":30},{\"name\":\"m3\",\"duration\":27,\"nested\":[{\"name\":\"m1\",\"duration\":12}]}]}]}]}";
+        flowsAndThroughput = new Object[][]{new Object[]{GeneratedFlow.fromString(flowStr1), 10f}};
 //        generateFlows(1, 20, 20, 100, 100);
-
-        GeneratedFlow problematic = GeneratedFlow.fromString("{\"name\":\"m1\",\"duration\":33,\"nested\":[{\"name\":\"m6\",\"duration\":31,\"nested\":[{\"name\":\"m3\",\"duration\":1,\"nested\":[{\"name\":\"m4\",\"duration\":17,\"nested\":[{\"name\":\"m7\",\"duration\":15},{\"name\":\"m5\",\"duration\":5}]},{\"name\":\"m2\",\"duration\":28,\"nested\":[{\"name\":\"m8\",\"duration\":2}]}]}]}]}");
-        flowsAndThroughput = new Object[][]{new Object[]{problematic, 10f}};
 
         startLoad();
         startMonitoring();
-        FlowSummary summary = awaitNextSummary(30);
-        assertNotNull(summary);
-        LoadRunner.LoadResult loadResult = stopLoad();
+        List<String> foundFlowIds1 = awaitNextSummaryAndCheckStatistics(30);
+        List<String> foundFlowIds2 = awaitNextSummaryAndCheckStatistics(10);
+        assertEquals(foundFlowIds1, foundFlowIds2);
         stopMonitoring();
-
-        GeneratedFlow flow = (GeneratedFlow) flowsAndThroughput[0][0];
-        float expectedThroughput = (float) flowsAndThroughput[0][1];
-        checkFlowStatistics(flow, expectedThroughput, loadResult, summary);
+        stopLoad();
     }
 
-    private FlowSummary awaitNextSummary(int timeoutSec) {
+    private List<String> awaitNextSummaryAndCheckStatistics(int timeoutSec) {
+        awaitNextSummary(timeoutSec);
+        assertNotNull(flowSummary);
+        LoadRunner.LoadResult loadResult = getLoadResult();
+        List<String> foundFlowIds = new ArrayList<>();
+        for (Object[] pair : flowsAndThroughput) {
+            GeneratedFlow flow = (GeneratedFlow) pair[0];
+            float expectedThroughput = (float) pair[1];
+            foundFlowIds.add(checkFlowStatistics(flow, expectedThroughput, loadResult));
+        }
+        return foundFlowIds;
+    }
+
+    private void awaitNextSummary(int timeoutSec) {
+        flowSummary = null;
+        instrumentationConfig = null;
         Date begin = new Date();
         long border = System.currentTimeMillis() + timeoutSec * 1000;
         while (System.currentTimeMillis() < border) {
             try {
-                FlowSummary summary = processedDataIndex.getLastSummary();
-                if (summary != null && summary.time.after(begin)) {
+                flowSummary = processedDataIndex.getLastSummary();
+                if (flowSummary != null && flowSummary.time.after(begin)) {
                     instrumentationConfig = instrumentationConfigurationFeature.getConfiguration(currentJvm);
-                    return summary;
+                    return;
                 }
 
                 Thread.sleep(500);
@@ -77,17 +93,16 @@ public class AnalysisTest extends LoadTestBase {
         }
 
         fail("Summary not produced in " + timeoutSec + " sec");
-        return null;
     }
 
-    private void checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult, FlowSummary summary) {
-        Set<String> found = flow.findFlowIds(summary, instrumentationConfig);
+    private String checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
+        Set<String> found = flow.findFlowIds(flowSummary, instrumentationConfig);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
         assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
 
         String flowId = found.iterator().next();
         MethodFlowStatistics flowStatistics = null;
-        for (MethodCall root : summary.roots) {
+        for (MethodCall root : flowSummary.roots) {
             for (MethodFlow methodFlow : root.flows) {
                 if (methodFlow.flowId.equals(flowId)) {
                     flowStatistics = methodFlow.statistics;
@@ -101,11 +116,12 @@ public class AnalysisTest extends LoadTestBase {
         assertNotNull(loadFlowStatistics);
         float actualThroughput = (float) loadFlowStatistics.executed / loadResult.durationMillis * 1000;
 
-        System.out.println("Expected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
-        System.out.println("Load result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
-        System.out.println("Flow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
+        System.out.println("Flow " + flow);
+        System.out.println("\tExpected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
+        System.out.println("\tLoad result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
+        System.out.println("\tFlow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
         assertEquals(actualThroughput, flowStatistics.throughputPerSec, actualThroughput / 10);
-
+        return flowId;
     }
 
 }

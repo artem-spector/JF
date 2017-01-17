@@ -51,6 +51,26 @@ public class LoadRunnerTest {
         runLoad(500, new Object[]{flow, 10f});
     }
 
+    @Test
+    public void testGetLoadResult() throws InterruptedException {
+        String flowStr = "{\"name\":\"m1\",\"duration\":2,\"nested\":[{\"name\":\"m5\",\"duration\":2},{\"name\":\"m6\",\"duration\":0,\"nested\":[{\"name\":\"m8\",\"duration\":3},{\"name\":\"m2\",\"duration\":1}]}]}";
+        GeneratedFlow flow = GeneratedFlow.fromString(flowStr);
+
+        Object[][] flowsAndThroughput = {{flow, 10f}};
+        LoadRunner runner = new LoadRunner(flowsAndThroughput);
+        runner.startLoad();
+        Thread.sleep(500);
+        LoadRunner.LoadResult loadRes = runner.getLoadResult(System.currentTimeMillis());
+        List<String> problems = LoadRunner.validateResult(loadRes, flowsAndThroughput);
+        assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " intermediate flows have problems\n", "")), problems.isEmpty());
+
+        Thread.sleep(500);
+        loadRes = runner.stopLoad(10);
+        problems = LoadRunner.validateResult(loadRes, flowsAndThroughput);
+        assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " final flows have problems\n", "")), problems.isEmpty());
+
+    }
+
     private void runLoad(long testDurationMillis, Object[]... flowsThroughput) {
         LoadRunner runner = new LoadRunner(flowsThroughput);
         runner.startLoad();
@@ -61,7 +81,7 @@ public class LoadRunnerTest {
         }
 
         LoadRunner.LoadResult loadRes = runner.stopLoad(10);
-        List<String> problems = runner.validateResult(loadRes, flowsThroughput);
+        List<String> problems = LoadRunner.validateResult(loadRes, flowsThroughput);
         assertTrue(problems.stream().collect(Collectors.joining("\n", problems.size() + " flows have problems\n", "")), problems.isEmpty());
     }
 }
