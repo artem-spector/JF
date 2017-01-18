@@ -1,6 +1,9 @@
 package com.jflop.load;
 
-import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.background.AnalysisState;
+import com.jflop.server.background.JvmMonitorAnalysis;
+import com.jflop.server.background.LockIndex;
+import com.jflop.server.background.TaskLockData;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.ProcessedDataIndex;
@@ -9,12 +12,13 @@ import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
 import com.jflop.server.runtime.data.processed.MethodFlowStatistics;
-import org.jflop.config.JflopConfiguration;
+import com.jflop.server.util.DebugPrintUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
+import java.util.logging.Level;
 
 import static org.junit.Assert.*;
 
@@ -32,10 +36,10 @@ public class AnalysisTest extends LoadTestBase {
     private MetadataIndex metadataIndex;
 
     @Autowired
-    private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
+    private LockIndex lockIndex;
 
-    private JflopConfiguration instrumentationConfig;
     private FlowSummary flowSummary;
+    private AnalysisState analysisState;
 
     public AnalysisTest() {
         super("AnalysisTest", true);
@@ -56,7 +60,7 @@ public class AnalysisTest extends LoadTestBase {
 
         startLoad();
         startMonitoring();
-        awaitNextSummary(30); // skip the first summary
+        awaitNextSummary(30, null); // skip the first summary
         Map<String, Set<String>> foundFlowIds1 = findFlowsInNextSummary(10);
         Map<String, Set<String>> foundFlowIds2 = findFlowsInNextSummary(10);
         assertEquals(foundFlowIds1, foundFlowIds2);
@@ -73,15 +77,17 @@ public class AnalysisTest extends LoadTestBase {
 
         startLoad();
         startMonitoring();
-        Map<String, Set<String>> flowIds = findFlowsInNextSummary(30);
+        awaitNextSummary(30, null); // skip the first summary
+        Map<String, Set<String>> flowIds = findFlowsInNextSummary(10);
         assertEquals(numFlows, flowIds.size());
         stopMonitoring();
         stopLoad();
     }
 
     private Map<String, Set<String>> findFlowsInNextSummary(int timeoutSec) {
-        awaitNextSummary(timeoutSec);
+        awaitNextSummary(timeoutSec, new Date());
         assertNotNull(flowSummary);
+        logger.fine(DebugPrintUtil.printFlowSummary(flowSummary, true));
         LoadRunner.LoadResult loadResult = getLoadResult();
         Map<String, Set<String>> foundFlowIds = new HashMap<>();
         for (Object[] pair : flowsAndThroughput) {
@@ -92,17 +98,27 @@ public class AnalysisTest extends LoadTestBase {
         return foundFlowIds;
     }
 
-    private void awaitNextSummary(int timeoutSec) {
+    private void awaitNextSummary(int timeoutSec, Date begin) {
         flowSummary = null;
-        instrumentationConfig = null;
-        Date begin = new Date();
+        logger.fine("Begin waiting for flow summary from " + begin);
         long border = System.currentTimeMillis() + timeoutSec * 1000;
+        String oldMsg = "";
         while (System.currentTimeMillis() < border) {
             try {
                 flowSummary = processedDataIndex.getLastSummary();
-                if (flowSummary != null && flowSummary.time.after(begin)) {
-                    instrumentationConfig = instrumentationConfigurationFeature.getConfiguration(currentJvm);
-                    assertNotNull(instrumentationConfig);
+                if (logger.isLoggable(Level.FINE)) {
+                    String msg = "Read flow summary " + (flowSummary == null ? "null" : "of time " + flowSummary.time);
+                    if (!oldMsg.equals(msg))
+                        logger.fine(msg);
+                    oldMsg = msg;
+                }
+                if (flowSummary != null && (begin == null || flowSummary.time.after(begin))) {
+                    String lockId = new TaskLockData(JvmMonitorAnalysis.TASK_NAME, currentJvm).lockId;
+                    PersistentData<TaskLockData> document = lockIndex.getDocument(new PersistentData<>(lockId, 0), TaskLockData.class);
+                    assertNotNull(document);
+                    analysisState = document.source.getCustomState(AnalysisState.class);
+                    assertNotNull(analysisState);
+                    assertNotNull(analysisState.getInstrumentationConfig());
                     return;
                 }
 
@@ -116,7 +132,7 @@ public class AnalysisTest extends LoadTestBase {
     }
 
     private Set<String> checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
-        Set<String> found = flow.findFlowIds(flowSummary, instrumentationConfig);
+        Set<String> found = flow.findFlowIds(flowSummary, analysisState.getInstrumentationConfig());
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
 
         Set<FlowMetadata> maybeSame = new HashSet<>();

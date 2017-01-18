@@ -1,9 +1,6 @@
 package com.jflop.server.util;
 
-import com.jflop.server.runtime.data.processed.MethodCall;
-import com.jflop.server.runtime.data.processed.MethodFlow;
-import com.jflop.server.runtime.data.processed.MethodFlowStatistics;
-import com.jflop.server.runtime.data.processed.ThreadHotspot;
+import com.jflop.server.runtime.data.processed.*;
 
 /**
  * TODO: Document!
@@ -12,7 +9,19 @@ import com.jflop.server.runtime.data.processed.ThreadHotspot;
  */
 public class DebugPrintUtil {
 
-    public static String methodCallSummaryStr(String indent, MethodCall call) {
+    public static String printFlowSummary(FlowSummary flowSummary, boolean expanded) {
+        String res = "Flow summary of " + flowSummary.time + " contains " + flowSummary.roots.size() + " roots";
+        if (expanded) {
+            res += "\n-------- Flow summary content ---------";
+            for (MethodCall root : flowSummary.roots) {
+                res += DebugPrintUtil.methodCallSummaryStr("", root);
+            }
+            res += "\n-----------------------------------";
+        }
+        return res + "\n";
+    }
+
+    private static String methodCallSummaryStr(String indent, MethodCall call) {
         String res = "\n" + indent + call.className + "." + call.methodName + call.methodDescriptor + " " + call.fileName + ":" + call.firstLine;
         if (call.flows != null) {
             res += "\n" + indent + "flows:";

@@ -32,6 +32,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     private static final Logger logger = Logger.getLogger(JvmMonitorAnalysis.class.getName());
 
+    public static final String TASK_NAME = "JVMRawDataAnalysis";
+
     @Autowired
     private RawDataIndex rawDataIndex;
 
@@ -67,7 +69,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     static ThreadLocal<StepState> step = new ThreadLocal<>();
 
     public JvmMonitorAnalysis() {
-        super("JVMRawDataAnalysis", 60, 3, 100);
+        super(TASK_NAME, 60, 3, 100);
     }
 
     @Override
@@ -85,7 +87,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         if (current.taskState == null) current.taskState = AnalysisState.createState();
         current.from = current.taskState.processedUntil;
         current.to = refreshThreshold;
-        current.agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
+        current.agentDataFactory = new AgentDataFactory(lock.agentJvm, new Date(), processedDataIndex.getDocTypes());
 
         JflopConfiguration lastReportedConfiguration = instrumentationConfigurationFeature.getConfiguration(current.agentJvm);
         if (lastReportedConfiguration != null)
@@ -242,7 +244,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         FlowSummary flowSummary = current.agentDataFactory.createInstance(FlowSummary.class);
         flowSummary.aggregateFlows(current.flows);
         flowSummary.aggregateThreads(current.threads, current.instrumentedTraceElements);
-        if (logger.isLoggable(Level.FINE)) logger.fine(printFlowSummary(flowSummary));
+        if (logger.isLoggable(Level.FINE)) logger.fine(DebugPrintUtil.printFlowSummary(flowSummary, logger.isLoggable(Level.FINEST)));
         current.flowSummary = flowSummary;
         processedDataIndex.addFlowSummary(flowSummary);
     }
@@ -261,14 +263,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                 }
             }
         return false;
-    }
-
-    private String printFlowSummary(FlowSummary flowSummary) {
-        String res = "\n-------- Flow summary ---------";
-        for (MethodCall root : flowSummary.roots) {
-            res += DebugPrintUtil.methodCallSummaryStr("", root);
-        }
-        return res + "\n-----------------------------------\n";
     }
 
 }

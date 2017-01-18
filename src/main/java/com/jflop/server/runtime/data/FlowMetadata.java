@@ -24,7 +24,14 @@ public class FlowMetadata extends Metadata {
     }
 
     public boolean representsSameFlowAs(FlowMetadata other) {
-        return FlowElement.representsSameFlowAs(this.rootFlow, other.rootFlow, this.rootFlow.getDistinctFlowElements(), other.rootFlow.getDistinctFlowElements());
+        Set<FlowElement> allThisElements = this.rootFlow.getDistinctFlowElements();
+        Set<FlowElement> allOtherElements = other.rootFlow.getDistinctFlowElements();
+
+        Set<FlowElement> thisCanSkip = new HashSet<>(allThisElements);
+        thisCanSkip.removeAll(allOtherElements);
+        Set<FlowElement> otherCanSkip = new HashSet<>(allOtherElements);
+        otherCanSkip.removeAll(allThisElements);
+        return FlowElement.representsSameFlowAs(this.rootFlow, other.rootFlow, thisCanSkip, otherCanSkip);
     }
 
     public static class FlowElement {
@@ -57,7 +64,7 @@ public class FlowMetadata extends Metadata {
             return res;
         }
 
-        static boolean representsSameFlowAs(FlowElement a, FlowElement b, Set<FlowElement> allA, Set<FlowElement> allB) {
+        static boolean representsSameFlowAs(FlowElement a, FlowElement b, Set<FlowElement> aCanSkip, Set<FlowElement> bCanSkip) {
             int aSubflowSize = a.subflows == null ? 0 : a.subflows.size();
             int bSubflowSize = b.subflows == null ? 0 : b.subflows.size();
 
@@ -65,46 +72,38 @@ public class FlowMetadata extends Metadata {
             if (a.equals(b)) {
                 // compare common sub-elements
                 int commonSize = Math.min(aSubflowSize, bSubflowSize);
-                for (int i = 0; i < commonSize; i++) {
-                    if (!representsSameFlowAs(a.subflows.get(i), b.subflows.get(i), allA, allB)) return false;
-                }
+                for (int i = 0; i < commonSize; i++)
+                    if (!representsSameFlowAs(a.subflows.get(i), b.subflows.get(i), aCanSkip, bCanSkip)) return false;
 
-                // one of elements may have extra sub-elements, if the other element is not aware of those extra elements at all.
-                Set<FlowElement> remaining = new HashSet<>();
                 // a has extra elements
-                for (int i = commonSize; i < aSubflowSize; i++) {
-                    remaining.addAll(a.subflows.get(i).getDistinctFlowElements());
-                }
-                remaining.retainAll(allB);
-                if (!remaining.isEmpty()) return false;
+                for (int i = commonSize; i < aSubflowSize; i++)
+                    if (aCanSkip.containsAll(a.subflows.get(i).getDistinctFlowElements())) return false;
 
                 // b has extra elements
-                for (int i = commonSize; i < bSubflowSize; i++) {
-                    remaining.addAll(b.subflows.get(i).getDistinctFlowElements());
-                }
-                remaining.retainAll(allA);
-                if (!remaining.isEmpty()) return false;
+                for (int i = commonSize; i < bSubflowSize; i++)
+                    if (bCanSkip.containsAll(b.subflows.get(i).getDistinctFlowElements())) return false;
 
                 // sub-elements fit
                 return true;
             }
 
             // elements are not equal, try to find them in sub-elements of each other
-            FlowElement foundA = a.find(b);
-            if (foundA != null && representsSameFlowAs(foundA, b, allA, allB)) return true;
-            FlowElement foundB = b.find(a);
-            if (foundB != null && representsSameFlowAs(a, foundB, allA, allB)) return true;
+            FlowElement foundA = a.find(b, aCanSkip);
+            if (foundA != null && representsSameFlowAs(foundA, b, aCanSkip, bCanSkip)) return true;
+            FlowElement foundB = b.find(a, bCanSkip);
+            if (foundB != null && representsSameFlowAs(a, foundB, aCanSkip, bCanSkip)) return true;
 
             // find did not help
             return false;
         }
 
-        private FlowElement find(FlowElement other) {
+        private FlowElement find(FlowElement other, Set<FlowElement> canSkip) {
             if (this.equals(other)) return this;
+            if (!canSkip.contains(this)) return null;
 
             if (subflows != null)
                 for (FlowElement subflow : subflows) {
-                    FlowElement found = subflow.find(other);
+                    FlowElement found = subflow.find(other, canSkip);
                     if (found != null) return found;
                 }
 
