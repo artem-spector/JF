@@ -60,6 +60,21 @@ public class AnalysisTest extends LoadTestBase {
         stopLoad();
     }
 
+    @Test
+    public void testMultipleFlows() throws Exception {
+        int numFlows = 4;
+        generateFlows(numFlows, 20, 20, 100, 100);
+        System.out.println("Generated flows:");
+        for (Object[] pair : flowsAndThroughput) System.out.println(pair[0]);
+
+        startLoad();
+        startMonitoring();
+        List<String> flowIds = awaitNextSummaryAndCheckStatistics(30);
+        assertEquals(numFlows, flowIds.size());
+        stopMonitoring();
+        stopLoad();
+    }
+
     private List<String> awaitNextSummaryAndCheckStatistics(int timeoutSec) {
         awaitNextSummary(timeoutSec);
         assertNotNull(flowSummary);
@@ -83,6 +98,7 @@ public class AnalysisTest extends LoadTestBase {
                 flowSummary = processedDataIndex.getLastSummary();
                 if (flowSummary != null && flowSummary.time.after(begin)) {
                     instrumentationConfig = instrumentationConfigurationFeature.getConfiguration(currentJvm);
+                    assertNotNull(instrumentationConfig);
                     return;
                 }
 
