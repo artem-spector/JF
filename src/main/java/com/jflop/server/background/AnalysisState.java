@@ -1,5 +1,9 @@
 package com.jflop.server.background;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jflop.config.JflopConfiguration;
+
 import java.util.Date;
 
 /**
@@ -9,8 +13,17 @@ import java.util.Date;
  */
 public class AnalysisState {
 
-    public Date processedUntil;
-    public int snapshotDuration;
+    @JsonProperty
+    Date processedUntil;
+
+    @JsonProperty
+    int snapshotDuration;
+
+    @JsonProperty
+    private Object instrumentationJson;
+
+    @JsonIgnore
+    private JflopConfiguration instrumentationCache;
 
     public AnalysisState() {
     }
@@ -20,5 +33,18 @@ public class AnalysisState {
         state.processedUntil = new Date();
         state.snapshotDuration = 1;
         return state;
+    }
+
+    @JsonIgnore
+    public JflopConfiguration getInstrumentationConfig() {
+        if (instrumentationJson != null && instrumentationCache == null)
+            instrumentationCache = JflopConfiguration.fromJson(instrumentationJson);
+        return instrumentationCache;
+    }
+
+    @JsonIgnore
+    public void setInstrumentationConfig(JflopConfiguration instr) {
+        this.instrumentationCache = instr;
+        instrumentationJson = instr.asJson();
     }
 }

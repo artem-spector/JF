@@ -1,7 +1,10 @@
 package com.jflop.load;
 
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
+import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.ProcessedDataIndex;
+import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
@@ -11,10 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -27,6 +27,9 @@ public class AnalysisTest extends LoadTestBase {
 
     @Autowired
     private ProcessedDataIndex processedDataIndex;
+
+    @Autowired
+    private MetadataIndex metadataIndex;
 
     @Autowired
     private InstrumentationConfigurationFeature instrumentationConfigurationFeature;
@@ -53,8 +56,9 @@ public class AnalysisTest extends LoadTestBase {
 
         startLoad();
         startMonitoring();
-        List<String> foundFlowIds1 = awaitNextSummaryAndCheckStatistics(30);
-        List<String> foundFlowIds2 = awaitNextSummaryAndCheckStatistics(10);
+        awaitNextSummary(30); // skip the first summary
+        Map<String, Set<String>> foundFlowIds1 = findFlowsInNextSummary(10);
+        Map<String, Set<String>> foundFlowIds2 = findFlowsInNextSummary(10);
         assertEquals(foundFlowIds1, foundFlowIds2);
         stopMonitoring();
         stopLoad();
@@ -69,21 +73,21 @@ public class AnalysisTest extends LoadTestBase {
 
         startLoad();
         startMonitoring();
-        List<String> flowIds = awaitNextSummaryAndCheckStatistics(30);
+        Map<String, Set<String>> flowIds = findFlowsInNextSummary(30);
         assertEquals(numFlows, flowIds.size());
         stopMonitoring();
         stopLoad();
     }
 
-    private List<String> awaitNextSummaryAndCheckStatistics(int timeoutSec) {
+    private Map<String, Set<String>> findFlowsInNextSummary(int timeoutSec) {
         awaitNextSummary(timeoutSec);
         assertNotNull(flowSummary);
         LoadRunner.LoadResult loadResult = getLoadResult();
-        List<String> foundFlowIds = new ArrayList<>();
+        Map<String, Set<String>> foundFlowIds = new HashMap<>();
         for (Object[] pair : flowsAndThroughput) {
             GeneratedFlow flow = (GeneratedFlow) pair[0];
             float expectedThroughput = (float) pair[1];
-            foundFlowIds.add(checkFlowStatistics(flow, expectedThroughput, loadResult));
+            foundFlowIds.put(flow.getId(), checkFlowStatistics(flow, expectedThroughput, loadResult));
         }
         return foundFlowIds;
     }
@@ -111,22 +115,36 @@ public class AnalysisTest extends LoadTestBase {
         fail("Summary not produced in " + timeoutSec + " sec");
     }
 
-    private String checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
+    private Set<String> checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
         Set<String> found = flow.findFlowIds(flowSummary, instrumentationConfig);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
+
+        Set<FlowMetadata> maybeSame = new HashSet<>();
+        for (String flowId : found) {
+            PersistentData<FlowMetadata> document = metadataIndex.getDocument(new PersistentData<>(flowId, 0), FlowMetadata.class);
+            assertNotNull(document);
+            FlowMetadata flowMetadata = document.source;
+            for (FlowMetadata other : maybeSame) {
+                if (!flowMetadata.representsSameFlowAs(other))
+                    fail("Flows " + flowMetadata.getDocumentId() + " and " + other.getDocumentId() + " cannot represent the same flow, but found fit the generated flow:\n" + flow);
+            }
+            maybeSame.add(flowMetadata);
+        }
+
         assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
 
-        String flowId = found.iterator().next();
-        MethodFlowStatistics flowStatistics = null;
-        for (MethodCall root : flowSummary.roots) {
-            for (MethodFlow methodFlow : root.flows) {
-                if (methodFlow.flowId.equals(flowId)) {
-                    flowStatistics = methodFlow.statistics;
-                    break;
+        MethodFlowStatistics flowStatistics = new MethodFlowStatistics();
+        for (String flowId : found) {
+            for (MethodCall root : flowSummary.roots) {
+                for (MethodFlow methodFlow : root.flows) {
+                    if (methodFlow.flowId.equals(flowId)) {
+                        flowStatistics.merge(methodFlow.statistics);
+                        break;
+                    }
                 }
             }
+            assertNotNull(flowStatistics);
         }
-        assertNotNull(flowStatistics);
 
         LoadRunner.FlowStats loadFlowStatistics = loadResult.flows.get(flow.getId());
         assertNotNull(loadFlowStatistics);
@@ -137,7 +155,7 @@ public class AnalysisTest extends LoadTestBase {
         System.out.println("\tLoad result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
         System.out.println("\tFlow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
         assertEquals(actualThroughput, flowStatistics.throughputPerSec, actualThroughput / 10);
-        return flowId;
+        return found;
     }
 
 }

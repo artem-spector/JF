@@ -21,6 +21,7 @@ public class MethodFlowStatistics {
     public long averageTime;
 
     public MethodFlowStatistics() {
+        minTime = Long.MAX_VALUE;
     }
 
     public MethodFlowStatistics(List<ValuePair<FlowOccurrenceData.FlowElement, Float>> occurrences) {

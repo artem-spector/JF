@@ -60,7 +60,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         Map<FlowMetadata, List<FlowOccurrenceData>> flows;
         FlowSummary flowSummary;
         Set<MethodConfiguration> methodsToInstrument;
-        private JflopConfiguration currentInstrumentation;
         private Set<StackTraceElement> instrumentedTraceElements;
         AgentDataFactory agentDataFactory;
     }
@@ -88,7 +87,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         current.to = refreshThreshold;
         current.agentDataFactory = new AgentDataFactory(lock.agentJvm, refreshThreshold, processedDataIndex.getDocTypes());
 
-        current.currentInstrumentation = instrumentationConfigurationFeature.getConfiguration(current.agentJvm);
+        JflopConfiguration lastReportedConfiguration = instrumentationConfigurationFeature.getConfiguration(current.agentJvm);
+        if (lastReportedConfiguration != null)
+            current.taskState.setInstrumentationConfig(lastReportedConfiguration);
         current.instrumentedTraceElements = new HashSet<>();
         current.methodsToInstrument = new HashSet<>();
 
@@ -164,17 +165,20 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     private void adjustInstrumentation() {
-        JflopConfiguration conf = new JflopConfiguration();
-        if (step.get().currentInstrumentation != null)
-            step.get().currentInstrumentation.getAllMethods().forEach(conf::addMethodConfig);
-        step.get().methodsToInstrument.forEach(conf::addMethodConfig);
+        JflopConfiguration oldConf = step.get().taskState.getInstrumentationConfig();
+        JflopConfiguration newConf = new JflopConfiguration();
+        if (oldConf != null)
+            oldConf.getAllMethods().forEach(newConf::addMethodConfig);
+        step.get().methodsToInstrument.forEach(newConf::addMethodConfig);
 
         Set<String> blacklist = metadataIndex.getBlacklistedClasses(step.get().agentJvm);
         for (String className : blacklist)
-            conf.removeClass(NameUtils.getInternalClassName(className));
+            newConf.removeClass(NameUtils.getInternalClassName(className));
 
-        if (!conf.equals(step.get().currentInstrumentation))
-            instrumentationConfigurationFeature.setConfiguration(step.get().agentJvm, conf);
+        if (!newConf.equals(oldConf)) {
+            instrumentationConfigurationFeature.setConfiguration(step.get().agentJvm, newConf);
+            step.get().taskState.setInstrumentationConfig(newConf);
+        }
     }
 
     void findMethodsToInstrumentInThreadDump() {
@@ -223,13 +227,15 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         StepState current = step.get();
         current.threads = rawDataIndex.getOccurrencesAndMetadata(current.agentJvm, ThreadOccurrenceData.class, ThreadMetadata.class, current.from, current.to);
         boolean noThreads = current.threads == null || current.threads.isEmpty();
-        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + (noThreads ? "no threads" : current.threads.size() + " distinct threads"));
+        if (logger.isLoggable(Level.FINE))
+            logger.fine("Found " + (noThreads ? "no threads" : current.threads.size() + " distinct threads"));
         if (noThreads) return;
 
         // 2. get recent snapshots and their metadata
         current.flows = rawDataIndex.getOccurrencesAndMetadata(current.agentJvm, FlowOccurrenceData.class, FlowMetadata.class, current.from, current.to);
         boolean noFlows = current.flows == null || current.flows.isEmpty();
-        if (logger.isLoggable(Level.FINE)) logger.fine("Found " + (noFlows ? "no flows" : current.flows.size() + " distinct flows"));
+        if (logger.isLoggable(Level.FINE))
+            logger.fine("Found " + (noFlows ? "no flows" : current.flows.size() + " distinct flows"));
         if (noFlows) return;
 
         // 3. build flow summary
@@ -242,10 +248,11 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     private boolean isInstrumented(StackTraceElement traceElement) {
-        if (step.get().currentInstrumentation == null) return false;
+        JflopConfiguration instrumentationConfig = step.get().taskState.getInstrumentationConfig();
+        if (instrumentationConfig == null) return false;
         if (step.get().instrumentedTraceElements.contains(traceElement)) return true;
 
-        Set<MethodConfiguration> methods = step.get().currentInstrumentation.getMethods(NameUtils.getInternalClassName(traceElement.getClassName()));
+        Set<MethodConfiguration> methods = instrumentationConfig.getMethods(NameUtils.getInternalClassName(traceElement.getClassName()));
         if (methods != null)
             for (MethodConfiguration method : methods) {
                 if (method.methodName.equals(traceElement.getMethodName())) {
