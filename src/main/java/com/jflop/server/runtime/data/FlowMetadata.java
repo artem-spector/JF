@@ -132,7 +132,7 @@ public class FlowMetadata extends Metadata {
             FlowElement other = (FlowElement) obj;
             return className.equals(other.className) && methodName.equals(other.methodName) && methodDescriptor.equals(other.methodDescriptor)
                     && (firstLine.equals("-1") || other.firstLine.equals("-1") || firstLine.equals(other.firstLine))
-                    && (returnLine.equals("-1") || other.returnLine.equals("-1") || returnLine.equals(other.firstLine));
+                    && (returnLine.equals("-1") || other.returnLine.equals("-1") || returnLine.equals(other.returnLine));
         }
     }
 }
