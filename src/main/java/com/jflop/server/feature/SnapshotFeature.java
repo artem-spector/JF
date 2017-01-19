@@ -7,6 +7,7 @@ import com.jflop.server.runtime.data.AgentData;
 import com.jflop.server.runtime.data.AgentDataFactory;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.FlowOccurrenceData;
+import org.jflop.config.JflopConfiguration;
 import org.jflop.snapshot.Flow;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ public class SnapshotFeature extends AgentFeature {
     public static final String FEATURE_ID = "snapshot";
     public static final String TAKE_SNAPSHOT = "takeSnapshot";
     public static final String DURATION_SEC = "durationSec";
+    public static final String SNAPSHOT_FIELD = "snapshot";
 
     public SnapshotFeature() {
         super(FEATURE_ID);
@@ -62,7 +64,7 @@ public class SnapshotFeature extends AgentFeature {
             command.progressPercent = ((int) (((float) (durationSec - countdown) / durationSec) * 100));
         }
 
-        Map<String, Object> snapshotJson = (Map<String, Object>) json.get("snapshot");
+        Map<String, Object> snapshotJson = (Map<String, Object>) json.get(SNAPSHOT_FIELD);
         if (snapshotJson == null) return null;
 
         Snapshot snapshot = Snapshot.fromJson(snapshotJson);
@@ -70,10 +72,12 @@ public class SnapshotFeature extends AgentFeature {
         command.successText = snapshot.format(0, 0);
         command.progressPercent = 100;
 
+        List configJson = (List) json.get(InstrumentationConfigurationFeature.CONFIG);
+
         List<AgentData> res = new ArrayList<>();
         for (Flow flow : snapshot.getFlowMap().values()) {
             FlowMetadata metadata = agentDataFactory.createInstance(FlowMetadata.class);
-            metadata.init(flow);
+            metadata.init(flow, configJson);
             res.add(metadata);
             FlowOccurrenceData occurrence = agentDataFactory.createInstance(FlowOccurrenceData.class);
             occurrence.init(durationSec, flow);

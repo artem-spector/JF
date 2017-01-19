@@ -13,9 +13,11 @@ import java.util.stream.Collectors;
 public class FlowMetadata extends Metadata {
 
     public FlowElement rootFlow;
+    public List instrumentedMethodsJson;
 
-    public void init(Flow flow) {
+    public void init(Flow flow, List instrumentedMethodsJson) {
         rootFlow = FlowElement.parse(flow);
+        this.instrumentedMethodsJson = instrumentedMethodsJson;
     }
 
     @Override
@@ -32,6 +34,11 @@ public class FlowMetadata extends Metadata {
         Set<FlowElement> otherCanSkip = new HashSet<>(allOtherElements);
         otherCanSkip.removeAll(allThisElements);
         return FlowElement.representsSameFlowAs(this.rootFlow, other.rootFlow, thisCanSkip, otherCanSkip);
+    }
+
+    @Override
+    public boolean mergeTo(Metadata existing) {
+        return ((FlowMetadata)existing).instrumentedMethodsJson.retainAll(instrumentedMethodsJson);
     }
 
     public static class FlowElement {

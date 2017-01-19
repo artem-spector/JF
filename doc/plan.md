@@ -75,7 +75,7 @@ A typical life cycle of an instrumented method is like this:
 ## 10 Dec 2016
 
 Exceptions in tests caused probably by IntegratioTest that initializes a true JFlop agent, which keeps sending pings when another test clears the indexes.
-Think of a feature that shits down an agent - explicitly in tests, and gradually in real life scenarios.
+Think of a feature that shuts down an agent - explicitly in tests, and gradually in real life scenarios.
 
 Instrumentation chronological sequence:
 
@@ -89,4 +89,16 @@ Instrumentation chronological sequence:
 * when last reported client configuration available via success text of last InstrumentationConfigurationFeature command 
   is close enough to the desired configuration, send a snapshot command.
 
- 
+## 19 Jan 2017
+
+ Make instrumentation config a part of the snapshot, so that later on the analysis phase we could tell really different flows
+ from those that are different because of instrumentation.
+ The data flow might be like this:
+
+ * client appends the current instrumentation configuration to the snapshot
+ * server stores the instrumentation with FlowMetadata, and updates it on each flow occurrence
+   by saving intersection between the stored and last occurrence instrumentations.
+ * when building the FlowSummary, keep these flows separate, because merging would make it difficult to place the hotspots.
+ * To find out whether two different FlowMetadata can represent the same flow,
+   reduce them to a common instrumentation set, and make sure the results are equal.
+   Reducing a flow means detecting the method instrumentations to be removed, and "collapsing" them like in tetris.

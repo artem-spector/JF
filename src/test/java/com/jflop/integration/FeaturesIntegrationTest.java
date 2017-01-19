@@ -6,6 +6,7 @@ import com.jflop.server.feature.JvmMonitorFeature;
 import com.jflop.server.feature.SnapshotFeature;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.RawDataIndex;
+import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.ThreadMetadata;
 import org.jflop.config.JflopConfiguration;
 import org.junit.Test;
@@ -16,6 +17,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -65,7 +67,8 @@ public abstract class FeaturesIntegrationTest extends IntegrationTestBase {
     @Test
     public void testSnapshotFeature() throws Exception {
         // 1. instrument multiple flows producer
-        setConfiguration(loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES));
+        JflopConfiguration expectedConfig = loadInstrumentationConfiguration(MULTIPLE_FLOWS_PRODUCER_INSTRUMENTATION_PROPERTIES);
+        setConfiguration(expectedConfig);
 
         // 2. take snapshot without load and make sure there are no flows
         stopLoad();
@@ -76,11 +79,19 @@ public abstract class FeaturesIntegrationTest extends IntegrationTestBase {
 
         // 3. take snapshot under load and make sure all the flows are recorded
         startLoad(10);
+        Date begin = new Date();
         successText = takeSnapshot(2);
         System.out.println(successText);
         assertTrue(successText.contains("2 distinct flows"));
 
         stopLoad();
+
+        metadataIndex.refreshIndex();
+        List<FlowMetadata> found = metadataIndex.findMetadata(agentJVM, FlowMetadata.class, begin, 1);
+        assertTrue(found != null && found.size() == 1);
+        FlowMetadata flow = found.get(0);
+        assertNotNull(flow.instrumentedMethodsJson);
+        assertEquals(expectedConfig, JflopConfiguration.fromJson(flow.instrumentedMethodsJson));
     }
 
     @Test
