@@ -60,6 +60,15 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     private Client client;
 
+    public ESClient() {
+    }
+
+    public ESClient(String esHost, int esPort) throws Exception {
+        this.esHost = esHost;
+        this.esPort = esPort;
+        afterPropertiesSet();
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
         client = TransportClient.builder().build()

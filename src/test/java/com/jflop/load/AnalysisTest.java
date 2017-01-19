@@ -38,6 +38,7 @@ public class AnalysisTest extends LoadTestBase {
     @Autowired
     private LockIndex lockIndex;
 
+    private boolean strictThroughputCheck;
     private FlowSummary flowSummary;
     private AnalysisState analysisState;
 
@@ -58,12 +59,30 @@ public class AnalysisTest extends LoadTestBase {
         flowsAndThroughput = new Object[][]{new Object[]{GeneratedFlow.fromString(flowStr1), 10f}};
 //        generateFlows(1, 20, 20, 100, 100);
 
+        strictThroughputCheck = false;
+
         startLoad();
         startMonitoring();
         awaitNextSummary(30, null); // skip the first summary
-        Map<String, Set<String>> foundFlowIds1 = findFlowsInNextSummary(10);
-        Map<String, Set<String>> foundFlowIds2 = findFlowsInNextSummary(10);
-        assertEquals(foundFlowIds1, foundFlowIds2);
+
+        int numIterations = 3;
+        Map<String, Set<String>> previousFlowIds = null;
+        for (int i =0; i < numIterations; i++) {
+            Map<String, Set<String>> foundFlowIds = findFlowsInNextSummary(10);
+            if (previousFlowIds != null) {
+                assertEquals(previousFlowIds.keySet(), foundFlowIds.keySet());
+                for (String generatedFlowId : previousFlowIds.keySet()) {
+                    for (String prevFlowId : previousFlowIds.get(generatedFlowId)) {
+                        for (String foundFlowId : foundFlowIds.get(generatedFlowId)) {
+                            String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same flow:\n" + flowsAndThroughput[0][0];
+                            assertTrue(message, prevFlowId.equals(foundFlowId) || flowsMaybeSame(prevFlowId, foundFlowId));
+                        }
+                    }
+                }
+            }
+            previousFlowIds = foundFlowIds;
+        }
+
         stopMonitoring();
         stopLoad();
     }
@@ -135,16 +154,13 @@ public class AnalysisTest extends LoadTestBase {
         Set<String> found = flow.findFlowIds(flowSummary, analysisState.getInstrumentationConfig());
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
 
-        Set<FlowMetadata> maybeSame = new HashSet<>();
+        Set<String> maybeSame = new HashSet<>();
         for (String flowId : found) {
-            PersistentData<FlowMetadata> document = metadataIndex.getDocument(new PersistentData<>(flowId, 0), FlowMetadata.class);
-            assertNotNull(document);
-            FlowMetadata flowMetadata = document.source;
-            for (FlowMetadata other : maybeSame) {
-                if (!flowMetadata.representsSameFlowAs(other))
-                    fail("Flows " + flowMetadata.getDocumentId() + " and " + other.getDocumentId() + " cannot represent the same flow, but found fit the generated flow:\n" + flow);
+            for (String other : maybeSame) {
+                if (!flowsMaybeSame(flowId, other))
+                    fail("Flows " + flowId + " and " + other + " cannot represent the same flow, but found fit the generated flow:\n" + flow);
             }
-            maybeSame.add(flowMetadata);
+            maybeSame.add(flowId);
         }
 
         assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
@@ -170,8 +186,19 @@ public class AnalysisTest extends LoadTestBase {
         System.out.println("\tExpected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
         System.out.println("\tLoad result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
         System.out.println("\tFlow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
-        assertEquals(actualThroughput, flowStatistics.throughputPerSec, actualThroughput / 10);
+        assertEquals(actualThroughput, flowStatistics.throughputPerSec, strictThroughputCheck ? actualThroughput / 10 : actualThroughput / 3);
         return found;
+    }
+
+    private boolean flowsMaybeSame(String flowId1, String flowId2) {
+        if (flowId1.equals(flowId2)) return true;
+        PersistentData<FlowMetadata> document = metadataIndex.getDocument(new PersistentData<>(flowId1, 0), FlowMetadata.class);
+        assertNotNull(document);
+        FlowMetadata flow1 = document.source;
+        document = metadataIndex.getDocument(new PersistentData<>(flowId2, 0), FlowMetadata.class);
+        assertNotNull(document);
+        FlowMetadata flow2 = document.source;
+        return flow1.representsSameFlowAs(flow2);
     }
 
 }

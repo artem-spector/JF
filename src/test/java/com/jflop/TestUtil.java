@@ -1,5 +1,12 @@
 package com.jflop;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jflop.server.persistency.ESClient;
+import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.runtime.data.FlowMetadata;
+
+import java.io.*;
+
 /**
  * TODO: Document!
  *
@@ -7,18 +14,61 @@ package com.jflop;
  */
 public class TestUtil {
 
-    private static long begin;
+    private static ObjectMapper mapper = new ObjectMapper();
 
-    public static synchronized void reset() {
-        begin = 0;
+    private ESClient esClient;
+
+    public static void main(String[] args) throws Exception {
+        new TestUtil().copyFlowsToFiles();
     }
 
-    public static String prefix() {
-        return String.valueOf(System.currentTimeMillis() - getBegin()) + ": " + Thread.currentThread().getName() + " -> ";
+    public TestUtil() throws Exception {
+        esClient = new ESClient("localhost", 9300);
     }
 
-    private static synchronized long getBegin() {
-        if (begin == 0) begin = System.currentTimeMillis();
-        return begin;
+    private void copyFlowsToFiles() throws IOException {
+        String folderName = "src/test/resources/samples/sameFlows/1";
+        String file1 = "flow1.json";
+        String file2 = "flow2.json";
+
+        String id1 = "xt0VhQbFjrjFOmPJlLYg5Qn3Z4M=";
+        String id2 = "qZ4byKlC/goqinPrJ3hJQSYJpLg=";
+
+        FlowMetadata flow1 = retrieve("jf-metadata", "flow", id1, FlowMetadata.class);
+        FlowMetadata flow2 = retrieve("jf-metadata", "flow", id2, FlowMetadata.class);
+        saveAsJson(flow1, folderName, file1);
+        saveAsJson(flow2, folderName, file2);
+
+        boolean res1 = flow1.representsSameFlowAs(flow2);
+        boolean res2 = flow2.representsSameFlowAs(flow1);
+        System.out.println("1 same as 2: " + res1 + "; 2 same as 1: " + res2);
+    }
+
+    private <T> T retrieve(String index, String doctype, String id, Class<T> valueType) {
+        PersistentData<T> doc = esClient.getDocument(index, doctype, new PersistentData<>(id, 0), valueType);
+        if (doc == null)
+            throw new RuntimeException("Document does not exist: " + index + "/" + doctype + "/" + id);
+        return doc.source;
+    }
+
+    private void saveAsJson(Object value, String folderName, String fileName) throws IOException {
+        File folder = new File(folderName);
+        if (!folder.exists() && !folder.mkdirs())
+            throw new IOException("Failed to locate or create folder " + folder.getAbsolutePath());
+        if (!folder.isDirectory())
+            throw new IOException("Not a folder: " + folder.getAbsolutePath());
+
+
+        File file = new File(folder, fileName);
+        FileOutputStream out = new FileOutputStream(file);
+        mapper.writeValue(out, value);
+        out.flush();
+        out.close();
+        System.out.println("file saved: " + file.getAbsolutePath());
+    }
+
+    public static <T> T readFromFile(String fileName, Class<T> valueType) throws IOException {
+        File in = new File(fileName);
+        return mapper.readValue(in, valueType);
     }
 }

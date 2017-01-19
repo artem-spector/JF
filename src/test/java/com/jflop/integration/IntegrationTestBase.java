@@ -1,7 +1,6 @@
 package com.jflop.integration;
 
 import com.jflop.HttpTestClient;
-import com.jflop.TestUtil;
 import com.jflop.server.ServerApp;
 import com.jflop.server.admin.AccountIndex;
 import com.jflop.server.admin.AdminClient;
@@ -72,7 +71,6 @@ public abstract class IntegrationTestBase {
 
     @Before
     public void activateAgent() throws Exception {
-        TestUtil.reset();
         if (adminClient != null) return;
 
         for (IndexTemplate index : allIndexes) index.deleteIndex();
