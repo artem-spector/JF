@@ -2,6 +2,7 @@ package com.jflop.load;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.util.DigestUtil;
@@ -199,6 +200,11 @@ public class GeneratedFlow implements FlowMockup {
             checkFlowFit(this.root, root, found, configuration, allExpectedMethods);
         }
         return found;
+    }
+
+    public Set<String> findFlowIds_(FlowSummary summary, Map<String, FlowMetadata> flows) {
+        Set<String> res = new HashSet<>();
+        return res;
     }
 
     private static void checkFlowFit(FlowElement expectedFlow, MethodCall recordedFlow, Set<String> found, JflopConfiguration instrumentation, Set<MethodConfiguration> allExpectedMethods) {
