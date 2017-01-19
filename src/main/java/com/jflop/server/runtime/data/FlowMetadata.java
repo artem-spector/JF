@@ -1,5 +1,6 @@
 package com.jflop.server.runtime.data;
 
+import org.jflop.config.MethodConfiguration;
 import org.jflop.snapshot.Flow;
 
 import java.util.*;
@@ -25,23 +26,44 @@ public class FlowMetadata extends Metadata {
         return rootFlow.flowId;
     }
 
-    public boolean representsSameFlowAs(FlowMetadata other) {
-        Set<FlowElement> allThisElements = this.rootFlow.getDistinctFlowElements();
-        Set<FlowElement> allOtherElements = other.rootFlow.getDistinctFlowElements();
+    /**
+     * Checks whether the given flows may be the same if reduced to a common instrumentation configuration.<br/>
+     * A positive answer might be false positive, for example if the two flows have no common instrumentation.<br/>
+     * A negative answer is true negative, i.e. the flows are different after the reduction.<br/>
+     * The relation is symmetric, the order of parameters does not matter.
+     *
+     * @param a one flow, not null
+     * @param b another flow, not null
+     * @return true if the flows may be the same, false if they are definitely different.
+     */
+    public static boolean maybeSame(FlowMetadata a, FlowMetadata b) {
+        List commonInstrumentation = new ArrayList(a.instrumentedMethodsJson);
+        commonInstrumentation.retainAll(b.instrumentedMethodsJson);
+        if (commonInstrumentation.isEmpty()) return true;
 
-        Set<FlowElement> thisCanSkip = new HashSet<>(allThisElements);
-        thisCanSkip.removeAll(allOtherElements);
-        Set<FlowElement> otherCanSkip = new HashSet<>(allOtherElements);
-        otherCanSkip.removeAll(allThisElements);
-        return FlowElement.representsSameFlowAs(this.rootFlow, other.rootFlow, thisCanSkip, otherCanSkip);
+        FlowElement aReduced = a.reduce(commonInstrumentation);
+        FlowElement bReduced = b.reduce(commonInstrumentation);
+
+        return aReduced.deepEquals(bReduced);
+    }
+
+    private FlowElement reduce(List reduceConfig) {
+        List collapseMethods = new ArrayList(instrumentedMethodsJson);
+        collapseMethods.removeAll(reduceConfig);
+        Set<FlowElement> collapseElements = new HashSet<>();
+        collapseMethods.forEach(mtd -> collapseElements.add(FlowElement.fromMethodConfigurationJson(mtd)));
+
+        FlowElement res = rootFlow.deepCopy();
+        res.collapse(collapseElements);
+        return res;
     }
 
     @Override
     public boolean mergeTo(Metadata existing) {
-        return ((FlowMetadata)existing).instrumentedMethodsJson.retainAll(instrumentedMethodsJson);
+        return ((FlowMetadata) existing).instrumentedMethodsJson.retainAll(instrumentedMethodsJson);
     }
 
-    public static class FlowElement {
+    public static class FlowElement implements Cloneable {
 
         public String flowId;
         public String className;
@@ -71,60 +93,77 @@ public class FlowMetadata extends Metadata {
             return res;
         }
 
-        static boolean representsSameFlowAs(FlowElement a, FlowElement b, Set<FlowElement> aCanSkip, Set<FlowElement> bCanSkip) {
-            int aSubflowSize = a.subflows == null ? 0 : a.subflows.size();
-            int bSubflowSize = b.subflows == null ? 0 : b.subflows.size();
+        public static FlowElement fromMethodConfigurationJson(Object json) {
+            MethodConfiguration conf = MethodConfiguration.fromJson((Map<String, Object>) json);
+            FlowElement res = new FlowElement();
+            res.className = conf.internalClassName;
+            res.methodName = conf.methodName;
+            res.methodDescriptor = conf.methodDescriptor;
+            res.firstLine = "-1";
+            res.returnLine = "-1";
+            return res;
+        }
 
-            // elements are equal
-            if (a.equals(b)) {
-                // compare common sub-elements
-                int commonSize = Math.min(aSubflowSize, bSubflowSize);
-                for (int i = 0; i < commonSize; i++)
-                    if (!representsSameFlowAs(a.subflows.get(i), b.subflows.get(i), aCanSkip, bCanSkip)) return false;
-
-                // a has extra elements
-                for (int i = commonSize; i < aSubflowSize; i++)
-                    if (aCanSkip.containsAll(a.subflows.get(i).getDistinctFlowElements())) return false;
-
-                // b has extra elements
-                for (int i = commonSize; i < bSubflowSize; i++)
-                    if (bCanSkip.containsAll(b.subflows.get(i).getDistinctFlowElements())) return false;
-
-                // sub-elements fit
-                return true;
+        FlowElement deepCopy() {
+            FlowElement clone;
+            try {
+                clone = (FlowElement) clone();
+            } catch (CloneNotSupportedException e) {
+                throw new RuntimeException(e);
             }
 
-            // elements are not equal, try to find them in sub-elements of each other
-            FlowElement foundA = a.find(b, aCanSkip);
-            if (foundA != null && representsSameFlowAs(foundA, b, aCanSkip, bCanSkip)) return true;
-            FlowElement foundB = b.find(a, bCanSkip);
-            if (foundB != null && representsSameFlowAs(a, foundB, aCanSkip, bCanSkip)) return true;
-
-            // find did not help
-            return false;
+            if (subflows != null) {
+                clone.subflows = new ArrayList<>(subflows.size());
+                for (FlowElement element : subflows)
+                    clone.subflows.add(element.deepCopy());
+            }
+            return clone;
         }
 
-        private FlowElement find(FlowElement other, Set<FlowElement> canSkip) {
-            if (this.equals(other)) return this;
-            if (!canSkip.contains(this)) return null;
-
-            if (subflows != null)
-                for (FlowElement subflow : subflows) {
-                    FlowElement found = subflow.find(other, canSkip);
-                    if (found != null) return found;
-                }
-
-            return null;
+        boolean deepEquals(FlowElement other) {
+            return this.equals(other) && this.subflows.equals(other.subflows);
         }
 
-        Set<FlowElement> getDistinctFlowElements() {
-            Set<FlowElement> res = new HashSet<>();
-            res.add(this);
-            if (subflows != null)
+        List<FlowElement> collapse(Set<FlowElement> collapseElements) {
+            if (subflows != null && !subflows.isEmpty()) {
+                List<FlowElement> newSubflows = new ArrayList<>();
                 for (FlowElement subflow : subflows) {
-                    res.addAll(subflow.getDistinctFlowElements());
+                    List<FlowElement> collapsedSubflows = subflow.collapse(collapseElements);
+                    if (collapsedSubflows != null) {
+                        for (FlowElement collapsedSubflow : collapsedSubflows) {
+                            if (newSubflows.isEmpty())
+                                newSubflows.add(collapsedSubflow);
+                            else {
+                                FlowElement lastSubflow = newSubflows.get(newSubflows.size() - 1);
+                                if (lastSubflow.equals(collapsedSubflow))
+                                    lastSubflow.addSubflows(collapsedSubflow.subflows);
+                                else
+                                    newSubflows.add(collapsedSubflow);
+                            }
+                        }
+                    }
                 }
-            return res;
+                subflows = newSubflows;
+            }
+
+            if (collapseElements.contains(this))
+                return subflows;
+            else
+                return Collections.singletonList(this);
+        }
+
+        private void addSubflows(List<FlowElement> additional) {
+            if (additional == null || additional.isEmpty()) return;
+            if (subflows == null) subflows = new ArrayList<>();
+
+            for (FlowElement element : additional) {
+                int pos = subflows.indexOf(element);
+                if (pos == -1)
+                    subflows.add(element);
+                else
+                    subflows.get(pos).addSubflows(element.subflows);
+            }
+
         }
 
         @Override

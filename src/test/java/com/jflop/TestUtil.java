@@ -31,17 +31,16 @@ public class TestUtil {
         String file1 = "flow1.json";
         String file2 = "flow2.json";
 
-        String id1 = "xt0VhQbFjrjFOmPJlLYg5Qn3Z4M=";
-        String id2 = "qZ4byKlC/goqinPrJ3hJQSYJpLg=";
+        String id1 = "yzZwcvbZmkpXJPiuDX/+Wh0pOGw=";
+        String id2 = "yycuC3q11mOQpiM81z4K+FAvydA=";
 
         FlowMetadata flow1 = retrieve("jf-metadata", "flow", id1, FlowMetadata.class);
         FlowMetadata flow2 = retrieve("jf-metadata", "flow", id2, FlowMetadata.class);
         saveAsJson(flow1, folderName, file1);
         saveAsJson(flow2, folderName, file2);
 
-        boolean res1 = flow1.representsSameFlowAs(flow2);
-        boolean res2 = flow2.representsSameFlowAs(flow1);
-        System.out.println("1 same as 2: " + res1 + "; 2 same as 1: " + res2);
+        boolean res1 = FlowMetadata.maybeSame(flow1, flow2);
+        System.out.println("1 same as 2: " + res1);
     }
 
     private <T> T retrieve(String index, String doctype, String id, Class<T> valueType) {

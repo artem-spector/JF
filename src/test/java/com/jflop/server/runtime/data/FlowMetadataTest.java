@@ -18,13 +18,13 @@ public class FlowMetadataTest {
     @Test
     public void testSameFlows() throws IOException {
         FlowMetadata flow1 = readFlow("samples/sameFlows/1/flow1.json");
-        assertTrue(flow1.representsSameFlowAs(flow1));
+        assertTrue(FlowMetadata.maybeSame(flow1, flow1));
 
         FlowMetadata flow2 = readFlow("samples/sameFlows/1/flow2.json");
-        assertTrue(flow2.representsSameFlowAs(flow2));
+        assertTrue(FlowMetadata.maybeSame(flow2, flow2));
 
-        assertTrue(flow1.representsSameFlowAs(flow2));
-        assertTrue(flow2.representsSameFlowAs(flow1));
+        assertTrue(FlowMetadata.maybeSame(flow1, flow2));
+        assertTrue(FlowMetadata.maybeSame(flow2, flow1));
     }
 
     private FlowMetadata readFlow(String path) throws IOException {

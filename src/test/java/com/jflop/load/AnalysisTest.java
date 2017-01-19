@@ -198,7 +198,7 @@ public class AnalysisTest extends LoadTestBase {
         document = metadataIndex.getDocument(new PersistentData<>(flowId2, 0), FlowMetadata.class);
         assertNotNull(document);
         FlowMetadata flow2 = document.source;
-        return flow1.representsSameFlowAs(flow2);
+        return FlowMetadata.maybeSame(flow1, flow2);
     }
 
 }
