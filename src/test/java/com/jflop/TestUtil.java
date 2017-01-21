@@ -49,13 +49,13 @@ public class TestUtil {
     }
 
     private void copyFlowSummaryToFile() throws IOException {
-        String folderName = "src/test/resources/samples/flowSummary/1";
+        String folderName = "src/test/resources/samples/flowSummary/3";
 
-        String summaryId = "AVm3MGXQrUUceQCR9s7W";
+        String summaryId = "AVnAze5j7vTJEsJlopvp";
         String summaryFile = "summary1.json";
 
-        String flowStr = "{\"name\":\"m6\",\"duration\":93,\"nested\":[{\"name\":\"m2\",\"duration\":2,\"nested\":[{\"name\":\"m4\",\"duration\":0,\"nested\":[{\"name\":\"m8\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":4}]},{\"name\":\"m1\",\"duration\":1,\"nested\":[{\"name\":\"m5\",\"duration\":3}]}]}]}]}";
-        String flowFile = "generatedFlow1.txt";
+        String flowStr = "{\"name\":\"m5\",\"duration\":62,\"nested\":[{\"name\":\"m3\",\"duration\":37,\"nested\":[{\"name\":\"m6\",\"duration\":1,\"nested\":[{\"name\":\"m1\",\"duration\":0,\"nested\":[{\"name\":\"m4\",\"duration\":0}]},{\"name\":\"m8\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":0}]}]}]},{\"name\":\"m2\",\"duration\":34}]}";
+        String flowFile = "generatedFlow1.json";
 
 
         FlowSummary flowSummary = retrieve("jf-processed-data", "flowSummary", summaryId, FlowSummary.class);

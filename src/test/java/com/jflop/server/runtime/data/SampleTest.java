@@ -36,21 +36,27 @@ public class SampleTest {
 
     @Test
     public void testFindFlowInSummary() throws IOException {
-        String folderPath = "samples/flowSummary/1/";
+        findFlowInSummary("samples/flowSummary/1/");
+        findFlowInSummary("samples/flowSummary/2/");
+        findFlowInSummary("samples/flowSummary/3/");
+    }
+
+    private void findFlowInSummary(String folderPath) throws IOException {
         FlowSummary summary = readFromFile(folderPath + "summary1.json", FlowSummary.class);
 
         Map<String, FlowMetadata> flows = new HashMap<>();
-        for (File file : getFilesInFolder("samples/flowSummary/1", "flow", ".json")) {
+        for (File file : getFilesInFolder(folderPath, "flow", ".json")) {
             FlowMetadata flowMetadata = readFromFile(folderPath + file.getName(), FlowMetadata.class);
             flows.put(flowMetadata.getDocumentId(), flowMetadata);
         }
 
-        String generatedFlowFile = new ClassPathResource(folderPath + "generatedFlow1.txt").getURL().getPath();
+        String generatedFlowFile = new ClassPathResource(folderPath + "generatedFlow1.json").getURL().getPath();
         GeneratedFlow generatedFlow = GeneratedFlow.fromString(TestUtil.readStringFromFile(generatedFlowFile));
 
-        Set<String> found = generatedFlow.findFlowIds_(summary, flows);
+        Set<String> found = generatedFlow.findFlowIds(summary, flows);
         assertNotNull(found);
-        assertTrue("Flow not found in summary", found.size() == 1);
+        assertTrue("Flow not found in summary: " + found.size(), found.size() == 1);
+        System.out.println("Flow found: " + found);
     }
 
     private <T> T readFromFile(String path, Class<T> valueType) throws IOException {

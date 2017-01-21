@@ -150,7 +150,10 @@ public class AnalysisTest extends LoadTestBase {
     }
 
     private Set<String> checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
-        Set<String> found = flow.findFlowIds(flowSummary, analysisState.getInstrumentationConfig());
+        Map<String, FlowMetadata> allFlows = new HashMap<>();
+        flowSummary.roots.forEach(root -> root.flows.forEach(f ->  allFlows.put(f.flowId, getFlowMetadata(f.flowId))));
+
+        Set<String> found = flow.findFlowIds(flowSummary, allFlows);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
 
         Set<String> maybeSame = new HashSet<>();
@@ -191,13 +194,15 @@ public class AnalysisTest extends LoadTestBase {
 
     private boolean flowsMaybeSame(String flowId1, String flowId2) {
         if (flowId1.equals(flowId2)) return true;
-        PersistentData<FlowMetadata> document = metadataIndex.getDocument(new PersistentData<>(flowId1, 0), FlowMetadata.class);
-        assertNotNull(document);
-        FlowMetadata flow1 = document.source;
-        document = metadataIndex.getDocument(new PersistentData<>(flowId2, 0), FlowMetadata.class);
-        assertNotNull(document);
-        FlowMetadata flow2 = document.source;
+        FlowMetadata flow1 = getFlowMetadata(flowId1);
+        FlowMetadata flow2 = getFlowMetadata(flowId2);
         return FlowMetadata.maybeSame(flow1, flow2);
+    }
+
+    private FlowMetadata getFlowMetadata(String id) {
+        PersistentData<FlowMetadata> document = metadataIndex.getDocument(new PersistentData<>(id, 0), FlowMetadata.class);
+        assertNotNull(document);
+        return document.source;
     }
 
 }
