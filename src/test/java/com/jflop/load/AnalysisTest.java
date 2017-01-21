@@ -1,6 +1,5 @@
 package com.jflop.load;
 
-import com.jflop.server.background.AnalysisState;
 import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.background.LockIndex;
 import com.jflop.server.background.TaskLockData;
@@ -40,7 +39,6 @@ public class AnalysisTest extends LoadTestBase {
 
     private boolean strictThroughputCheck;
     private FlowSummary flowSummary;
-    private AnalysisState analysisState;
 
     public AnalysisTest() {
         super("AnalysisTest", true);
@@ -54,8 +52,6 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testSingleFlow() throws Exception {
         // TODO: automatically save/grab problematic flows
-//        String flowStr1 = "{\"name\":\"m2\",\"duration\":0,\"nested\":[{\"name\":\"m7\",\"duration\":7,\"nested\":[{\"name\":\"m5\",\"duration\":23},{\"name\":\"m4\",\"duration\":23},{\"name\":\"m8\",\"duration\":16,\"nested\":[{\"name\":\"m6\",\"duration\":30},{\"name\":\"m3\",\"duration\":27,\"nested\":[{\"name\":\"m1\",\"duration\":12}]}]}]}]}";
-//        flowsAndThroughput = new Object[][]{new Object[]{GeneratedFlow.fromString(flowStr1), 10f}};
         generateFlows(1, 20, 20, 100, 100);
 
         strictThroughputCheck = false;
@@ -65,21 +61,9 @@ public class AnalysisTest extends LoadTestBase {
         awaitNextSummary(30, null); // skip the first summary
 
         int numIterations = 3;
-        Map<String, Set<String>> previousFlowIds = null;
-        for (int i =0; i < numIterations; i++) {
-            Map<String, Set<String>> foundFlowIds = findFlowsInNextSummary(10);
-            if (previousFlowIds != null) {
-                assertEquals(previousFlowIds.keySet(), foundFlowIds.keySet());
-                for (String generatedFlowId : previousFlowIds.keySet()) {
-                    for (String prevFlowId : previousFlowIds.get(generatedFlowId)) {
-                        for (String foundFlowId : foundFlowIds.get(generatedFlowId)) {
-                            String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same flow:\n" + flowsAndThroughput[0][0];
-                            assertTrue(message, prevFlowId.equals(foundFlowId) || flowsMaybeSame(prevFlowId, foundFlowId));
-                        }
-                    }
-                }
-            }
-            previousFlowIds = foundFlowIds;
+        Map<String, Set<String>> found = null;
+        for (int i = 0; i < numIterations; i++) {
+            found = findFlowsInNextSummary(10, found);
         }
 
         stopMonitoring();
@@ -88,7 +72,7 @@ public class AnalysisTest extends LoadTestBase {
 
     @Test
     public void testMultipleFlows() throws Exception {
-        int numFlows = 4;
+        int numFlows = 6;
         generateFlows(numFlows, 20, 20, 100, 100);
         System.out.println("Generated flows:");
         for (Object[] pair : flowsAndThroughput) System.out.println(pair[0]);
@@ -96,24 +80,42 @@ public class AnalysisTest extends LoadTestBase {
         startLoad();
         startMonitoring();
         awaitNextSummary(30, null); // skip the first summary
-        Map<String, Set<String>> flowIds = findFlowsInNextSummary(10);
-        assertEquals(numFlows, flowIds.size());
+
+        int numIterations = 3;
+        Map<String, Set<String>> found = null;
+        for (int i = 0; i < numIterations; i++) {
+            found = findFlowsInNextSummary(10, found);
+        }
+
         stopMonitoring();
         stopLoad();
     }
 
-    private Map<String, Set<String>> findFlowsInNextSummary(int timeoutSec) {
+    private Map<String, Set<String>> findFlowsInNextSummary(int timeoutSec, Map<String, Set<String>> previous) {
         awaitNextSummary(timeoutSec, new Date());
         assertNotNull(flowSummary);
         logger.fine(DebugPrintUtil.printFlowSummary(flowSummary, true));
         LoadRunner.LoadResult loadResult = getLoadResult();
-        Map<String, Set<String>> foundFlowIds = new HashMap<>();
+        Map<String, Set<String>> found = new HashMap<>();
         for (Object[] pair : flowsAndThroughput) {
             GeneratedFlow flow = (GeneratedFlow) pair[0];
             float expectedThroughput = (float) pair[1];
-            foundFlowIds.put(flow.getId(), checkFlowStatistics(flow, expectedThroughput, loadResult));
+            found.put(flow.getId(), checkFlowStatistics(flow, expectedThroughput, loadResult));
         }
-        return foundFlowIds;
+
+        if (previous != null) {
+            assertEquals(previous.keySet(), found.keySet());
+            for (String generatedFlowId : previous.keySet()) {
+                for (String prevFlowId : previous.get(generatedFlowId)) {
+                    for (String foundFlowId : found.get(generatedFlowId)) {
+                        String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same flow:\n" + flowsAndThroughput[0][0];
+                        assertTrue(message, prevFlowId.equals(foundFlowId) || flowsMaybeSame(prevFlowId, foundFlowId));
+                    }
+                }
+            }
+        }
+
+        return found;
     }
 
     private void awaitNextSummary(int timeoutSec, Date begin) {
@@ -134,9 +136,6 @@ public class AnalysisTest extends LoadTestBase {
                     String lockId = new TaskLockData(JvmMonitorAnalysis.TASK_NAME, currentJvm).lockId;
                     PersistentData<TaskLockData> document = lockIndex.getDocument(new PersistentData<>(lockId, 0), TaskLockData.class);
                     assertNotNull(document);
-                    analysisState = document.source.getCustomState(AnalysisState.class);
-                    assertNotNull(analysisState);
-                    assertNotNull(analysisState.getInstrumentationConfig());
                     return;
                 }
 
@@ -151,7 +150,7 @@ public class AnalysisTest extends LoadTestBase {
 
     private Set<String> checkFlowStatistics(GeneratedFlow flow, float expectedThroughput, LoadRunner.LoadResult loadResult) {
         Map<String, FlowMetadata> allFlows = new HashMap<>();
-        flowSummary.roots.forEach(root -> root.flows.forEach(f ->  allFlows.put(f.flowId, getFlowMetadata(f.flowId))));
+        flowSummary.roots.forEach(root -> root.flows.forEach(f -> allFlows.put(f.flowId, getFlowMetadata(f.flowId))));
 
         Set<String> found = flow.findFlowIds(flowSummary, allFlows);
         assertFalse("Flow not found in the summary:\n" + flow.toString(), found.isEmpty());
@@ -165,7 +164,7 @@ public class AnalysisTest extends LoadTestBase {
             maybeSame.add(flowId);
         }
 
-        assertEquals("Found " + found.size() + " flows in the summary for:\n" + flow.toString(), 1, found.size());
+        assertFalse("Flow not found in summary:\n" + flow.toString(), found.isEmpty());
 
         MethodFlowStatistics flowStatistics = new MethodFlowStatistics();
         for (String flowId : found) {

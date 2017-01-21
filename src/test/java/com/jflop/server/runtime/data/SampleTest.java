@@ -39,6 +39,7 @@ public class SampleTest {
         findFlowInSummary("samples/flowSummary/1/");
         findFlowInSummary("samples/flowSummary/2/");
         findFlowInSummary("samples/flowSummary/3/");
+        findFlowInSummary("samples/flowSummary/4/");
     }
 
     private void findFlowInSummary(String folderPath) throws IOException {

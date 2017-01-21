@@ -79,9 +79,9 @@ public class GeneratedFlow implements FlowMockup {
     }
 
     public static GeneratedFlow generateFlow(int maxDepth, int maxLength, int minDuration, int maxDuration) {
-        Set<String> availableMethods = new HashSet<>(Arrays.asList(allMethods));
         GeneratedFlow flow;
         do {
+            Set<String> availableMethods = new HashSet<>(Arrays.asList(allMethods));
             flow = new GeneratedFlow(generateFlowElement(availableMethods, maxDepth, maxLength, maxDuration));
         } while (flow.getExpectedDurationMillis() < minDuration);
         return flow;
@@ -232,7 +232,8 @@ public class GeneratedFlow implements FlowMockup {
         if (expectedIsInstrumented)
             return recordedCall.nestedCalls != null && recordedCall.nestedCalls.stream().anyMatch(recordedNested -> flowFits(expectedFlow, recordedNested, flowId, instrumentation));
 
-        return expectedFlow.nested == null || expectedFlow.nested.stream().anyMatch(expectedNested -> flowFits(expectedNested, recordedCall, flowId, instrumentation));
+        return expectedFlow.nested == null || expectedFlow.nested.isEmpty()
+                || expectedFlow.nested.stream().anyMatch(expectedNested -> flowFits(expectedNested, recordedCall, flowId, instrumentation));
     }
 
     private static boolean nestedFit(FlowElement expectedFlow, MethodCall recordedCall, String flowId, JflopConfiguration instrumentation) {
