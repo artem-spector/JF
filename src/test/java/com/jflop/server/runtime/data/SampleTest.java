@@ -9,11 +9,11 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * TODO: Document!
@@ -24,14 +24,8 @@ public class SampleTest {
 
     @Test
     public void testSameFlows() throws IOException {
-        FlowMetadata flow1 = readFromFile("samples/sameFlows/1/flow1.json", FlowMetadata.class);
-        assertTrue(FlowMetadata.maybeSame(flow1, flow1));
-
-        FlowMetadata flow2 = readFromFile("samples/sameFlows/1/flow2.json", FlowMetadata.class);
-        assertTrue(FlowMetadata.maybeSame(flow2, flow2));
-
-        assertTrue(FlowMetadata.maybeSame(flow1, flow2));
-        assertTrue(FlowMetadata.maybeSame(flow2, flow1));
+        assertEquals(2, countSame("samples/sameFlows/1/", "flow1.json", "flow2.json"));
+        assertEquals(1, countSame("samples/sameFlows/2/", "flow1.json", "flow2.json"));
     }
 
     @Test
@@ -40,6 +34,30 @@ public class SampleTest {
         findFlowInSummary("samples/flowSummary/2/");
         findFlowInSummary("samples/flowSummary/3/");
         findFlowInSummary("samples/flowSummary/4/");
+        findFlowInSummary("samples/flowSummary/5/");
+    }
+
+    private int countSame(String folderPath, String... flowFiles) throws IOException {
+        Map<String, FlowMetadata> allFlows = new HashMap<>();
+        for (String flowFile : flowFiles) {
+            FlowMetadata metadata = readFromFile(folderPath + flowFile, FlowMetadata.class);
+            allFlows.put(metadata.getDocumentId(), metadata);
+        }
+
+        Set<String> same = new HashSet<>();
+        for (String flowId : allFlows.keySet()) {
+            boolean isSame = true;
+            for (String sameFlowId : same) {
+                if (!FlowMetadata.maybeSame(allFlows.get(flowId), allFlows.get(sameFlowId))) {
+                    System.out.println(flowId + " cannot not be same as " + sameFlowId);
+                    isSame = false;
+                    break;
+                }
+            }
+            if (isSame) same.add(flowId);
+        }
+
+        return same.size();
     }
 
     private void findFlowInSummary(String folderPath) throws IOException {
@@ -56,7 +74,19 @@ public class SampleTest {
 
         Set<String> found = generatedFlow.findFlowIds(summary, flows);
         assertNotNull(found);
-        assertTrue("Flow not found in summary: " + found.size(), found.size() == 1);
+        assertFalse(found.isEmpty());
+
+        if (found.size() > 1) {
+            Set<String> same = new HashSet<>();
+            for (String flowId : found) {
+                if (!same.isEmpty())
+                    for (String sameFlowId : same) {
+                        boolean maybeSame = FlowMetadata.maybeSame(flows.get(flowId), flows.get(sameFlowId));
+                        assertTrue("Flows " + flowId + " and " + sameFlowId + " cannot represent same flow", maybeSame);
+                    }
+                same.add(flowId);
+            }
+        }
         System.out.println("Flow found: " + found);
     }
 

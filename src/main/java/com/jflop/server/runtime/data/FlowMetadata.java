@@ -63,7 +63,7 @@ public class FlowMetadata extends Metadata {
         return ((FlowMetadata) existing).instrumentedMethodsJson.retainAll(instrumentedMethodsJson);
     }
 
-    public static class FlowElement implements Cloneable {
+    public static class FlowElement {
 
         public String flowId;
         public String className;
@@ -105,23 +105,33 @@ public class FlowMetadata extends Metadata {
         }
 
         FlowElement deepCopy() {
-            FlowElement clone;
-            try {
-                clone = (FlowElement) clone();
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e);
-            }
+            FlowElement copy;
+            copy = new FlowElement();
+            copy.className = className;
+            copy.methodName = methodName;
+            copy.methodDescriptor = methodDescriptor;
+            copy.firstLine = firstLine;
+            copy.returnLine = returnLine;
 
             if (subflows != null) {
-                clone.subflows = new ArrayList<>(subflows.size());
-                for (FlowElement element : subflows)
-                    clone.subflows.add(element.deepCopy());
+                copy.subflows = new ArrayList<>(subflows.size());
+                subflows.forEach(subflow -> copy.subflows.add(subflow.deepCopy()));
             }
-            return clone;
+            return copy;
         }
 
         boolean deepEquals(FlowElement other) {
-            return this.equals(other) && this.subflows.equals(other.subflows);
+            if (!this.equals(other)) return false;
+
+            int thisNested = subflows == null ? 0 : subflows.size();
+            int otherNested = other.subflows == null ? 0 : other.subflows.size();
+
+            if (thisNested != otherNested) return false;
+
+            for (int i = 0; i < thisNested; i++)
+                if (!subflows.get(i).deepEquals(other.subflows.get(i))) return false;
+
+            return true;
         }
 
         List<FlowElement> collapse(Set<FlowElement> collapseElements) {
@@ -168,7 +178,7 @@ public class FlowMetadata extends Metadata {
 
         @Override
         public int hashCode() {
-            return className.hashCode() + methodName.hashCode() + methodDescriptor.hashCode() + returnLine.hashCode();
+            return className.hashCode() + methodName.hashCode() + methodDescriptor.hashCode();
         }
 
         @Override

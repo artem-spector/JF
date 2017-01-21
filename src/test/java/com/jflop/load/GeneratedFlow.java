@@ -294,11 +294,13 @@ public class GeneratedFlow implements FlowMockup {
         }
 
         boolean hasInstrumentedSubelements(JflopConfiguration configuration) {
-            if (nested != null) {
-                for (FlowElement subelement : nested) {
-                    if (subelement.isInstrumented(configuration)) return true;
-                }
+            if (nested == null || nested.isEmpty()) return false;
+
+            for (FlowElement subelement : nested) {
+                if (subelement.isInstrumented(configuration) || subelement.hasInstrumentedSubelements(configuration))
+                    return true;
             }
+
             return false;
         }
 
