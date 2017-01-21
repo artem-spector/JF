@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
  * @author artem
  *         Date: 7/9/16
  */
-public abstract class FeaturesIntegrationTest extends IntegrationTestBase {
+public class FeaturesIntegrationTest extends IntegrationTestBase {
 
 
     @Autowired
