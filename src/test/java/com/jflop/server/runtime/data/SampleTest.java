@@ -2,16 +2,16 @@ package com.jflop.server.runtime.data;
 
 import com.jflop.TestUtil;
 import com.jflop.load.GeneratedFlow;
+import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.processed.FlowSummary;
+import com.jflop.server.runtime.data.processed.MethodCall;
+import com.jflop.server.util.DebugPrintUtil;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -35,6 +35,66 @@ public class SampleTest {
         findFlowInSummary("samples/flowSummary/3/");
         findFlowInSummary("samples/flowSummary/4/");
         findFlowInSummary("samples/flowSummary/5/");
+    }
+
+    @Test
+    public void testMapThreadsToFlows() throws IOException {
+        mapThreadsToFlows("samples/threadsAndFlows/1/");
+    }
+
+    private void mapThreadsToFlows(String folderPath) throws IOException {
+        Map<ThreadMetadata, List<ThreadOccurrenceData>> threads = new HashMap<>();
+        Map<FlowMetadata, List<FlowOccurrenceData>> flows = new HashMap<>();
+        readThreadsAndFlows(folderPath, threads, flows);
+
+        FlowSummary flowSummary = new FlowSummary();
+        flowSummary.aggregateFlows(flows);
+
+        flowSummary.aggregateThreads(threads);
+
+        for (ThreadMetadata threadMetadata : threads.keySet()) {
+            boolean covered = false;
+            StackTraceElement[] trace = threadMetadata.stackTrace;
+            for (StackTraceElement element : trace) {
+                if (flowSummary.isInstrumented(element)) {
+                    covered = true;
+                    break;
+                }
+            }
+            List<ValuePair<MethodCall, Integer>> path = new ArrayList<>();
+            boolean found = flowSummary.roots.stream().anyMatch(root -> flowSummary.findPath(root, trace, trace.length - 1, path));
+            assertEquals("Thread " + threadMetadata.getDocumentId() + " covered=" + covered + ", but found=" + found, covered, found);
+        }
+
+        System.out.println(DebugPrintUtil.printFlowSummary(flowSummary, true));
+    }
+
+    private void readThreadsAndFlows(String folderPath, Map<ThreadMetadata, List<ThreadOccurrenceData>> threads, Map<FlowMetadata, List<FlowOccurrenceData>> flows) throws IOException {
+        for (File file : getFilesInFolder(folderPath, "threadMetadata", ".json")) {
+            threads.put(readFromFile(folderPath + file.getName(), ThreadMetadata.class), new ArrayList<>());
+        }
+        for (File file : getFilesInFolder(folderPath, "threadOccurrence", ".json")) {
+            ThreadOccurrenceData data = readFromFile(folderPath + file.getName(), ThreadOccurrenceData.class);
+            for (Map.Entry<ThreadMetadata, List<ThreadOccurrenceData>> entry : threads.entrySet()) {
+                if (entry.getKey().getDocumentId().equals(data.getMetadataId())) {
+                    entry.getValue().add(data);
+                    break;
+                }
+            }
+        }
+
+        for (File file : getFilesInFolder(folderPath, "flowMetadata", ".json")) {
+            flows.put(readFromFile(folderPath + file.getName(), FlowMetadata.class), new ArrayList<>());
+        }
+        for (File file : getFilesInFolder(folderPath, "flowOccurrence", ".json")) {
+            FlowOccurrenceData data = readFromFile(folderPath + file.getName(), FlowOccurrenceData.class);
+            for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : flows.entrySet()) {
+                if (entry.getKey().getDocumentId().equals(data.getMetadataId())) {
+                    entry.getValue().add(data);
+                    break;
+                }
+            }
+        }
     }
 
     private int countSame(String folderPath, String... flowFiles) throws IOException {

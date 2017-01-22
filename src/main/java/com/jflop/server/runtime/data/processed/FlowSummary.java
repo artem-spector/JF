@@ -1,7 +1,10 @@
 package com.jflop.server.runtime.data.processed;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.*;
+import org.jflop.config.MethodConfiguration;
+import org.jflop.config.NameUtils;
 
 import java.util.*;
 
@@ -16,6 +19,9 @@ public class FlowSummary extends AgentData {
 
     public List<MethodCall> roots;
 
+    @JsonIgnore
+    private Set<MethodConfiguration> allMethods;
+
     public void aggregateFlows(Map<FlowMetadata, List<FlowOccurrenceData>> flows) {
         roots = new ArrayList<>();
         for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : flows.entrySet()) {
@@ -26,7 +32,7 @@ public class FlowSummary extends AgentData {
         }
     }
 
-    public void aggregateThreads(Map<ThreadMetadata, List<ThreadOccurrenceData>> threads, Set<StackTraceElement> instrumentedTraceElements) {
+    public void aggregateThreads(Map<ThreadMetadata, List<ThreadOccurrenceData>> threads) {
         for (MethodCall root : roots) {
             for (Map.Entry<ThreadMetadata, List<ThreadOccurrenceData>> entry : threads.entrySet()) {
                 ThreadMetadata threadMetadata = entry.getKey();
@@ -34,7 +40,7 @@ public class FlowSummary extends AgentData {
                 if (stackTrace != null && stackTrace.length > 0) {
                     List<ThreadOccurrenceData> threadOccurrences = entry.getValue();
                     List<ValuePair<MethodCall, Integer>> path = new ArrayList<>();
-                    if (findPath(root, stackTrace, stackTrace.length - 1, instrumentedTraceElements, path)) {
+                    if (findPath(root, stackTrace, stackTrace.length - 1, path)) {
                         root.addThread(path, threadOccurrences);
                     }
                 }
@@ -42,7 +48,7 @@ public class FlowSummary extends AgentData {
         }
     }
 
-    public static boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements, List<ValuePair<MethodCall, Integer>> path) {
+    public boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, List<ValuePair<MethodCall, Integer>> path) {
         // it's ok to skip instrumented elements, if they are in the beginning of the stack
         // this is because the outmost methods might not return yet, and the registered flow may be partial.
         boolean skipInstrumented = tracePos == stacktrace.length - 1;
@@ -51,14 +57,15 @@ public class FlowSummary extends AgentData {
         boolean fit = false;
         while (tracePos >= 0) {
             fit = methodCall.fits(stacktrace[tracePos]);
-            if (!fit && (skipInstrumented || !instrumentedTraceElements.contains(stacktrace[tracePos])))
+            if (!fit && (skipInstrumented || !isInstrumented(stacktrace[tracePos])))
                 tracePos--;
             else
                 break;
         }
 
         // if no fitting element found in the stacktrace, it's not fit
-        if (!fit) return false;
+        if (!fit)
+            return false;
 
         // if the flow element fits the stacktrace element, add the method call and the line number to the path
         path.add(new ValuePair<>(methodCall, stacktrace[tracePos].getLineNumber()));
@@ -69,18 +76,33 @@ public class FlowSummary extends AgentData {
         // if we've reached the flow end, its's a fit only if all the remaining methods are not instrumented
         if (methodCall.nestedCalls == null || methodCall.nestedCalls.isEmpty()) {
             while (--tracePos >= 0) {
-                if (instrumentedTraceElements.contains(stacktrace[tracePos])) return false;
+                if (isInstrumented(stacktrace[tracePos])) return false;
             }
             return true;
         }
 
         // if one of subflows fits the rest of the trace, it's a fit
         for (MethodCall nested : methodCall.nestedCalls) {
-            if (findPath(nested, stacktrace, tracePos - 1, instrumentedTraceElements, path))
+            if (findPath(nested, stacktrace, tracePos - 1, path))
                 return true;
         }
 
         // if none of subflows fit, it's not fit
         return false;
+    }
+
+    public boolean isInstrumented(StackTraceElement element) {
+        if (allMethods == null) {
+            allMethods = new HashSet<>();
+            roots.forEach(this::getInstrumentedMethods);
+        }
+
+        MethodConfiguration mtd = new MethodConfiguration(NameUtils.getInternalClassName(element.getClassName()), element.getMethodName(), "UNKNOWN");
+        return allMethods.contains(mtd);
+    }
+
+    private void getInstrumentedMethods(MethodCall methodCall) {
+        allMethods.add(new MethodConfiguration(methodCall.className, methodCall.methodName, "UNKNOWN"));
+        if (methodCall.nestedCalls != null) methodCall.nestedCalls.forEach(this::getInstrumentedMethods);
     }
 }

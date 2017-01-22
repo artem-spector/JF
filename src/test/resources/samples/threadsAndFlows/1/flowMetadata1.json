@@ -1,0 +1,478 @@
+{
+  "agentJvm": {
+    "accountId": "5c99bad5-3c7a-49e9-b14b-5c165d0f1f3a",
+    "agentId": "9b07c884a16842c1be5c74466acf73b3",
+    "jvmId": "1667889264"
+  },
+  "time": 1485074047258,
+  "dataType": "flow",
+  "rootFlow": {
+    "flowId": "ERTtPcxdl0wV8aV2uhfNF+cK9NU=",
+    "className": "com/jflop/load/LoadRunner",
+    "fileName": "LoadRunner.java",
+    "methodName": "lambda$fireFlows$1",
+    "methodDescriptor": "(Ljava/lang/String;)V",
+    "firstLine": "82",
+    "returnLine": "94",
+    "subflows": [
+      {
+        "flowId": "Z79RvIGSZ/FGzg9gKp5czQmuTcI=",
+        "className": "com/jflop/load/GeneratedFlow",
+        "fileName": "GeneratedFlow.java",
+        "methodName": "go",
+        "methodDescriptor": "()V",
+        "firstLine": "185",
+        "returnLine": "188",
+        "subflows": [
+          {
+            "flowId": "EPc9MyRviS6iLxyNAwJRsVPsHIc=",
+            "className": "com/jflop/load/GeneratedFlow",
+            "fileName": "GeneratedFlow.java",
+            "methodName": "callCurrent",
+            "methodDescriptor": "()V",
+            "firstLine": "191",
+            "returnLine": "194",
+            "subflows": [
+              {
+                "flowId": "GVX3ectWrsqfiPUQTLgQlU2VcrE=",
+                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                "fileName": "GeneratedFlow.java",
+                "methodName": "call",
+                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                "firstLine": "321",
+                "returnLine": "325",
+                "subflows": [
+                  {
+                    "flowId": "LqLL7kscZNzG+nqQ0yuhk+eDg6k=",
+                    "className": "com/jflop/load/GeneratedFlow",
+                    "fileName": "GeneratedFlow.java",
+                    "methodName": "m5",
+                    "methodDescriptor": "()V",
+                    "firstLine": "55",
+                    "returnLine": "56",
+                    "subflows": [
+                      {
+                        "flowId": "F1q/WpiowGfCV4xSf0SKV6eeYPg=",
+                        "className": "com/jflop/load/GeneratedFlow",
+                        "fileName": "GeneratedFlow.java",
+                        "methodName": "generatedMethodImpl",
+                        "methodDescriptor": "()V",
+                        "firstLine": "71",
+                        "returnLine": "79",
+                        "subflows": [
+                          {
+                            "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                            "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                            "fileName": "GeneratedFlow.java",
+                            "methodName": "process",
+                            "methodDescriptor": "()V",
+                            "firstLine": "328",
+                            "returnLine": "334",
+                            "subflows": null
+                          },
+                          {
+                            "flowId": "VknnrixFxTzxeCiqYij78I3VLQE=",
+                            "className": "com/jflop/load/GeneratedFlow",
+                            "fileName": "GeneratedFlow.java",
+                            "methodName": "callCurrent",
+                            "methodDescriptor": "()V",
+                            "firstLine": "191",
+                            "returnLine": "194",
+                            "subflows": [
+                              {
+                                "flowId": "8XnodN8j5c25N1dIbhlXardfKmQ=",
+                                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                "fileName": "GeneratedFlow.java",
+                                "methodName": "call",
+                                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                "firstLine": "321",
+                                "returnLine": "325",
+                                "subflows": [
+                                  {
+                                    "flowId": "phQCqGefptk3YSV0RhsUwVuOEPY=",
+                                    "className": "com/jflop/load/GeneratedFlow",
+                                    "fileName": "GeneratedFlow.java",
+                                    "methodName": "m1",
+                                    "methodDescriptor": "()V",
+                                    "firstLine": "39",
+                                    "returnLine": "40",
+                                    "subflows": [
+                                      {
+                                        "flowId": "qrz4jpcVpAWrTm5Cfjia+8YHI6w=",
+                                        "className": "com/jflop/load/GeneratedFlow",
+                                        "fileName": "GeneratedFlow.java",
+                                        "methodName": "generatedMethodImpl",
+                                        "methodDescriptor": "()V",
+                                        "firstLine": "71",
+                                        "returnLine": "79",
+                                        "subflows": [
+                                          {
+                                            "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                            "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                            "fileName": "GeneratedFlow.java",
+                                            "methodName": "process",
+                                            "methodDescriptor": "()V",
+                                            "firstLine": "328",
+                                            "returnLine": "334",
+                                            "subflows": null
+                                          },
+                                          {
+                                            "flowId": "HE5dcqmqlPl82gv6jnG2wh6DHNc=",
+                                            "className": "com/jflop/load/GeneratedFlow",
+                                            "fileName": "GeneratedFlow.java",
+                                            "methodName": "callCurrent",
+                                            "methodDescriptor": "()V",
+                                            "firstLine": "191",
+                                            "returnLine": "194",
+                                            "subflows": [
+                                              {
+                                                "flowId": "pj3VB0TcK6tyG500J0NXvNcvD1M=",
+                                                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                "fileName": "GeneratedFlow.java",
+                                                "methodName": "call",
+                                                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                                "firstLine": "321",
+                                                "returnLine": "325",
+                                                "subflows": [
+                                                  {
+                                                    "flowId": "qj67i/kglhobSiUYRw9FeL4CihI=",
+                                                    "className": "com/jflop/load/GeneratedFlow",
+                                                    "fileName": "GeneratedFlow.java",
+                                                    "methodName": "m8",
+                                                    "methodDescriptor": "()V",
+                                                    "firstLine": "67",
+                                                    "returnLine": "68",
+                                                    "subflows": [
+                                                      {
+                                                        "flowId": "GMInf/hmpiuSiyq4MIX+9CEfqhw=",
+                                                        "className": "com/jflop/load/GeneratedFlow",
+                                                        "fileName": "GeneratedFlow.java",
+                                                        "methodName": "generatedMethodImpl",
+                                                        "methodDescriptor": "()V",
+                                                        "firstLine": "71",
+                                                        "returnLine": "79",
+                                                        "subflows": [
+                                                          {
+                                                            "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                                            "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                            "fileName": "GeneratedFlow.java",
+                                                            "methodName": "process",
+                                                            "methodDescriptor": "()V",
+                                                            "firstLine": "328",
+                                                            "returnLine": "334",
+                                                            "subflows": null
+                                                          },
+                                                          {
+                                                            "flowId": "HSRjWG4FV6J5AAJ/Ki6Ywpivv5I=",
+                                                            "className": "com/jflop/load/GeneratedFlow",
+                                                            "fileName": "GeneratedFlow.java",
+                                                            "methodName": "callCurrent",
+                                                            "methodDescriptor": "()V",
+                                                            "firstLine": "191",
+                                                            "returnLine": "194",
+                                                            "subflows": [
+                                                              {
+                                                                "flowId": "8Jk6nqjvMvlGudzgN2FVGBstKmY=",
+                                                                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                "fileName": "GeneratedFlow.java",
+                                                                "methodName": "call",
+                                                                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                                                "firstLine": "321",
+                                                                "returnLine": "325",
+                                                                "subflows": [
+                                                                  {
+                                                                    "flowId": "svHW2N/3pXi67CvIk2JdlDrhmyg=",
+                                                                    "className": "com/jflop/load/GeneratedFlow",
+                                                                    "fileName": "GeneratedFlow.java",
+                                                                    "methodName": "m3",
+                                                                    "methodDescriptor": "()V",
+                                                                    "firstLine": "47",
+                                                                    "returnLine": "48",
+                                                                    "subflows": [
+                                                                      {
+                                                                        "flowId": "Le6nwWoagesyXovf8UFMuRLocts=",
+                                                                        "className": "com/jflop/load/GeneratedFlow",
+                                                                        "fileName": "GeneratedFlow.java",
+                                                                        "methodName": "generatedMethodImpl",
+                                                                        "methodDescriptor": "()V",
+                                                                        "firstLine": "71",
+                                                                        "returnLine": "79",
+                                                                        "subflows": [
+                                                                          {
+                                                                            "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                                                            "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                            "fileName": "GeneratedFlow.java",
+                                                                            "methodName": "process",
+                                                                            "methodDescriptor": "()V",
+                                                                            "firstLine": "328",
+                                                                            "returnLine": "334",
+                                                                            "subflows": null
+                                                                          },
+                                                                          {
+                                                                            "flowId": "nAYqpbY8mgTQ2NcKjgKqYW4FuU0=",
+                                                                            "className": "com/jflop/load/GeneratedFlow",
+                                                                            "fileName": "GeneratedFlow.java",
+                                                                            "methodName": "callCurrent",
+                                                                            "methodDescriptor": "()V",
+                                                                            "firstLine": "191",
+                                                                            "returnLine": "194",
+                                                                            "subflows": [
+                                                                              {
+                                                                                "flowId": "vfOOxwzCVe6Nfb9EvL0cwqf56v0=",
+                                                                                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                                "fileName": "GeneratedFlow.java",
+                                                                                "methodName": "call",
+                                                                                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                                                                "firstLine": "321",
+                                                                                "returnLine": "325",
+                                                                                "subflows": [
+                                                                                  {
+                                                                                    "flowId": "Nhz6WC+nQJzxzochpKkJ5MWWYuE=",
+                                                                                    "className": "com/jflop/load/GeneratedFlow",
+                                                                                    "fileName": "GeneratedFlow.java",
+                                                                                    "methodName": "generatedMethodImpl",
+                                                                                    "methodDescriptor": "()V",
+                                                                                    "firstLine": "71",
+                                                                                    "returnLine": "79",
+                                                                                    "subflows": [
+                                                                                      {
+                                                                                        "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                                                                        "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                                        "fileName": "GeneratedFlow.java",
+                                                                                        "methodName": "process",
+                                                                                        "methodDescriptor": "()V",
+                                                                                        "firstLine": "328",
+                                                                                        "returnLine": "334",
+                                                                                        "subflows": null
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "flowId": "0Cxy21uerb+TUgObanYeeX/5n68=",
+                                                            "className": "com/jflop/load/GeneratedFlow",
+                                                            "fileName": "GeneratedFlow.java",
+                                                            "methodName": "callCurrent",
+                                                            "methodDescriptor": "()V",
+                                                            "firstLine": "191",
+                                                            "returnLine": "194",
+                                                            "subflows": [
+                                                              {
+                                                                "flowId": "84Y2jovF94vtGfacGmnGxLQc3rA=",
+                                                                "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                "fileName": "GeneratedFlow.java",
+                                                                "methodName": "call",
+                                                                "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                                                "firstLine": "321",
+                                                                "returnLine": "325",
+                                                                "subflows": [
+                                                                  {
+                                                                    "flowId": "Le6nwWoagesyXovf8UFMuRLocts=",
+                                                                    "className": "com/jflop/load/GeneratedFlow",
+                                                                    "fileName": "GeneratedFlow.java",
+                                                                    "methodName": "generatedMethodImpl",
+                                                                    "methodDescriptor": "()V",
+                                                                    "firstLine": "71",
+                                                                    "returnLine": "79",
+                                                                    "subflows": [
+                                                                      {
+                                                                        "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                                                        "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                        "fileName": "GeneratedFlow.java",
+                                                                        "methodName": "process",
+                                                                        "methodDescriptor": "()V",
+                                                                        "firstLine": "328",
+                                                                        "returnLine": "334",
+                                                                        "subflows": null
+                                                                      },
+                                                                      {
+                                                                        "flowId": "nAYqpbY8mgTQ2NcKjgKqYW4FuU0=",
+                                                                        "className": "com/jflop/load/GeneratedFlow",
+                                                                        "fileName": "GeneratedFlow.java",
+                                                                        "methodName": "callCurrent",
+                                                                        "methodDescriptor": "()V",
+                                                                        "firstLine": "191",
+                                                                        "returnLine": "194",
+                                                                        "subflows": [
+                                                                          {
+                                                                            "flowId": "vfOOxwzCVe6Nfb9EvL0cwqf56v0=",
+                                                                            "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                            "fileName": "GeneratedFlow.java",
+                                                                            "methodName": "call",
+                                                                            "methodDescriptor": "(Lcom/jflop/load/GeneratedFlow;)V",
+                                                                            "firstLine": "321",
+                                                                            "returnLine": "325",
+                                                                            "subflows": [
+                                                                              {
+                                                                                "flowId": "Nhz6WC+nQJzxzochpKkJ5MWWYuE=",
+                                                                                "className": "com/jflop/load/GeneratedFlow",
+                                                                                "fileName": "GeneratedFlow.java",
+                                                                                "methodName": "generatedMethodImpl",
+                                                                                "methodDescriptor": "()V",
+                                                                                "firstLine": "71",
+                                                                                "returnLine": "79",
+                                                                                "subflows": [
+                                                                                  {
+                                                                                    "flowId": "QtaXciYK6OYKF1eJQ9ajYbKxsDY=",
+                                                                                    "className": "com/jflop/load/GeneratedFlow$FlowElement",
+                                                                                    "fileName": "GeneratedFlow.java",
+                                                                                    "methodName": "process",
+                                                                                    "methodDescriptor": "()V",
+                                                                                    "firstLine": "328",
+                                                                                    "returnLine": "334",
+                                                                                    "subflows": null
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "instrumentedMethodsJson": [
+    {
+      "dsc": "(Ljava/io/BufferedReader;)Lcom/jflop/server/persistency/ValuePair;",
+      "cls": "com/jflop/load/LoadRunnerProcess",
+      "mtd": "readNextCommand"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/LoadRunnerProcess",
+      "mtd": "go"
+    },
+    {
+      "dsc": "([Ljava/lang/String;)V",
+      "cls": "com/jflop/load/LoadRunnerProcess",
+      "mtd": "main"
+    },
+    {
+      "dsc": "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/GeneratedMethodAccessor4",
+      "mtd": "invoke"
+    },
+    {
+      "dsc": "(Ljava/lang/String;)V",
+      "cls": "com/jflop/load/LoadRunner",
+      "mtd": "lambda$fireFlows$1"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/LoadRunner",
+      "mtd": "fireFlows"
+    },
+    {
+      "dsc": "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/GeneratedMethodAccessor3",
+      "mtd": "invoke"
+    },
+    {
+      "dsc": "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/GeneratedMethodAccessor2",
+      "mtd": "invoke"
+    },
+    {
+      "dsc": "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/GeneratedMethodAccessor9",
+      "mtd": "invoke"
+    },
+    {
+      "dsc": "(Lcom/jflop/load/GeneratedFlow;)V",
+      "cls": "com/jflop/load/GeneratedFlow$FlowElement",
+      "mtd": "call"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow$FlowElement",
+      "mtd": "process"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "generatedMethodImpl"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "callCurrent"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "m5"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "m8"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "m1"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "go"
+    },
+    {
+      "dsc": "()V",
+      "cls": "com/jflop/load/GeneratedFlow",
+      "mtd": "m3"
+    },
+    {
+      "dsc": "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/GeneratedMethodAccessor1",
+      "mtd": "invoke"
+    },
+    {
+      "dsc": "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+      "cls": "sun/reflect/misc/Trampoline",
+      "mtd": "invoke"
+    }
+  ]
+}

@@ -4,11 +4,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.persistency.ESClient;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.FlowMetadata;
+import com.jflop.server.runtime.data.FlowOccurrenceData;
+import com.jflop.server.runtime.data.ThreadMetadata;
+import com.jflop.server.runtime.data.ThreadOccurrenceData;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.*;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -24,7 +34,8 @@ public class TestUtil {
     public static void main(String[] args) throws Exception {
         TestUtil util = new TestUtil();
 //        util.copyFlowsToFiles();
-        util.copyFlowSummaryToFile();
+//        util.copyFlowSummaryToFile();
+        util.copyLastThreadsAndFlows();
     }
 
     public TestUtil() throws Exception {
@@ -71,11 +82,65 @@ public class TestUtil {
         saveString(flowStr, folderName, flowFile);
     }
 
+    private void copyLastThreadsAndFlows() throws IOException {
+        String folderName = "src/test/resources/samples/threadsAndFlows/1";
+
+        FlowSummary summary = findLast("jf-processed-data", "flowSummary", FlowSummary.class);
+        Date to = summary.time;
+        Date from = new Date(to.getTime() - 3000);
+
+        List<ThreadOccurrenceData> threadOccurrences = findAll("jf-raw-data", "thread", from, to, 100, ThreadOccurrenceData.class);
+        saveListAsJson(threadOccurrences, folderName, "threadOccurrence", ".json");
+        Set<String> threadIds = new HashSet<>();
+        threadOccurrences.forEach(occ -> threadIds.add(occ.getMetadataId()));
+        List<Object> threadValues = new ArrayList<>();
+        threadIds.forEach(id -> threadValues.add(retrieve("jf-metadata", "thread", id, ThreadMetadata.class)));
+        saveListAsJson(threadValues, folderName, "threadMetadata", ".json");
+
+        List<FlowOccurrenceData> flowOccurrences = findAll("jf-raw-data", "flow", from, to, 100, FlowOccurrenceData.class);
+        saveListAsJson(flowOccurrences, folderName, "flowOccurrence", ".json");
+        Set<String> flowIds = new HashSet<>();
+        flowOccurrences.forEach(occ -> flowIds.add(occ.getMetadataId()));
+        List<Object> flowValues = new ArrayList<>();
+        flowIds.forEach(id -> flowValues.add(retrieve("jf-metadata", "flow", id, FlowMetadata.class)));
+        saveListAsJson(flowValues, folderName, "flowMetadata", ".json");
+    }
+
     private <T> T retrieve(String index, String doctype, String id, Class<T> valueType) {
         PersistentData<T> doc = esClient.getDocument(index, doctype, new PersistentData<>(id, 0), valueType);
         if (doc == null)
             throw new RuntimeException("Document does not exist: " + index + "/" + doctype + "/" + id);
         return doc.source;
+    }
+
+    private <T> T findLast(String index, String doctype, Class<T> valueType) {
+        SearchResponse response = esClient.search(index, doctype, QueryBuilders.matchAllQuery(), 1, SortBuilders.fieldSort("time").order(SortOrder.DESC));
+        try {
+            return mapper.readValue(response.getHits().getAt(0).source(), valueType);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private <T> List<T> findAll(String index, String doctype, Date from, Date to, int maxHits, Class<T> valueType) {
+        RangeQueryBuilder timeQuery = QueryBuilders.rangeQuery("time").from(from).to(to);
+        SearchResponse response = esClient.search(index, doctype, timeQuery, maxHits, null);
+        try {
+            List<T> res = new ArrayList<T>();
+            for (SearchHit hit : response.getHits().getHits()) {
+                res.add(mapper.readValue(hit.source(), valueType));
+            }
+            return res;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void saveListAsJson(List<? extends Object> values, String folderName, String prefix, String suffix) throws IOException {
+        int count = 1;
+        for (Object value : values) {
+            saveAsJson(value, folderName, prefix + (count++) + suffix);
+        }
     }
 
     private void saveAsJson(Object value, String folderName, String fileName) throws IOException {
