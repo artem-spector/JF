@@ -40,6 +40,7 @@ public class SampleTest {
     @Test
     public void testMapThreadsToFlows() throws IOException {
         mapThreadsToFlows("samples/threadsAndFlows/1/");
+        mapThreadsToFlows("samples/threadsAndFlows/2/");
     }
 
     private void mapThreadsToFlows(String folderPath) throws IOException {

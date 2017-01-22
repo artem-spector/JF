@@ -102,3 +102,10 @@ Instrumentation chronological sequence:
  * To find out whether two different FlowMetadata can represent the same flow,
    reduce them to a common instrumentation set, and make sure the results are equal.
    Reducing a flow means detecting the method instrumentations to be removed, and "collapsing" them like in tetris.
+
+## 22 Jan 2017
+
+ After building single FlowSummary, we can group all the flows into clusters by their common path.
+ The difference between the clusters and individual flows can be represented via "pseudo-flow", which contains significant differences.
+ Use stacktraces when possible, because they contain all the path elements, and not only instrumented ones.
+

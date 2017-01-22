@@ -83,7 +83,7 @@ public class TestUtil {
     }
 
     private void copyLastThreadsAndFlows() throws IOException {
-        String folderName = "src/test/resources/samples/threadsAndFlows/1";
+        String folderName = "src/test/resources/samples/threadsAndFlows/2";
 
         FlowSummary summary = findLast("jf-processed-data", "flowSummary", FlowSummary.class);
         Date to = summary.time;
