@@ -138,19 +138,6 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     }
 
     private boolean needToIncreaseSnapshotDuration(float duration) {
-        StepState current = step.get();
-
-        // if there are instrumented threads without flows, try to increase the duration
-        for (ThreadMetadata thread : current.threads.keySet()) {
-            if (current.flowSummary.coversThread(thread.dumpId))
-                continue;
-
-            for (StackTraceElement traceElement : thread.stackTrace) {
-                if (isInstrumented(traceElement))
-                    return true;
-            }
-        }
-
         // if some flows happen less than twice in a snapshot - increase the duration
         return minFlowThroughput() * duration < 2;
 

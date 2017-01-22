@@ -42,17 +42,6 @@ public class FlowSummary extends AgentData {
         }
     }
 
-    public boolean coversThread(String threadId) {
-        for (MethodCall root : roots) {
-            if (root.hotspots != null) {
-                for (ThreadHotspot hotspot : root.hotspots) {
-                    if (hotspot.threadId.equals(threadId)) return true;
-                }
-            }
-        }
-        return false;
-    }
-
     public static boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, Set<StackTraceElement> instrumentedTraceElements, List<ValuePair<MethodCall, Integer>> path) {
         // it's ok to skip instrumented elements, if they are in the beginning of the stack
         // this is because the outmost methods might not return yet, and the registered flow may be partial.
