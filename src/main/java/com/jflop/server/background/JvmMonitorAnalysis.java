@@ -53,14 +53,14 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     private SnapshotFeature snapshotFeature;
 
     // step-level state
-    static class StepState {
+    public static class StepState {
         private AgentJVM agentJvm;
         AnalysisState taskState;
         Date from;
         Date to;
-        Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
-        Map<FlowMetadata, List<FlowOccurrenceData>> flows;
-        FlowSummary flowSummary;
+        public Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
+        public Map<FlowMetadata, List<FlowOccurrenceData>> flows;
+        public FlowSummary flowSummary;
         Set<MethodConfiguration> methodsToInstrument;
         private Set<StackTraceElement> instrumentedTraceElements;
         AgentDataFactory agentDataFactory;

@@ -101,6 +101,52 @@ public class FlowSummary extends AgentData {
         return allMethods.contains(mtd);
     }
 
+    /**
+     * Distance between the two flows is calculated as a number of the summary nodes where one flow presents and the other doesn't,
+     * divided by the length of the longest flow.
+     *
+     * @param flow1 one flow, must present in the summary
+     * @param flow2 another flow, must present in the summary
+     * @return the distance, 0 means the flows are identical, 1 means they have no common nodes
+     */
+    public float calculateDistance(String flow1, String flow2) {
+        boolean flow1Found = false;
+        boolean flow2Found = false;
+        for (MethodCall root : roots) {
+            boolean flow1InThisRoot = root.flows.stream().anyMatch(flow -> flow.flowId.equals(flow1));
+            boolean flow2InThisRoot = root.flows.stream().anyMatch(flow -> flow.flowId.equals(flow2));
+            if (flow1InThisRoot && flow2InThisRoot) {
+                ValuePair<Integer, Integer> pair = calculateDistanceAndLength(root, flow1, flow2);
+                return (float) pair.value1 / pair.value2;
+            } else if (flow1InThisRoot)
+                flow1Found = true;
+            else if (flow2InThisRoot)
+                flow2Found = true;
+        }
+
+        if (flow1Found && flow2Found) return 1f; // flows belong to different roots
+
+        String msg = "Flows don't belong to the summary:" + (flow1Found ? "" : " " + flow1) + (flow2Found ? "" : " " + flow2);
+        throw new IllegalArgumentException(msg);
+    }
+
+    private ValuePair<Integer, Integer> calculateDistanceAndLength(MethodCall node, String flow1, String flow2) {
+        boolean flow1Presents = node.flows.stream().anyMatch(flow -> flow.flowId.equals(flow1));
+        boolean flow2Presents = node.flows.stream().anyMatch(flow -> flow.flowId.equals(flow2));
+
+        int distance = flow1Presents == flow2Presents ? 0 : 1;
+        int length = flow1Presents || flow2Presents ? 1 : 0;
+
+        if (length > 0 && node.nestedCalls != null)
+            for (MethodCall nested : node.nestedCalls) {
+                ValuePair<Integer, Integer> nestedRes = calculateDistanceAndLength(nested, flow1, flow2);
+                distance += nestedRes.value1;
+                length += nestedRes.value2;
+            }
+
+        return new ValuePair<>(distance, length);
+    }
+
     private void getInstrumentedMethods(MethodCall methodCall) {
         allMethods.add(new MethodConfiguration(methodCall.className, methodCall.methodName, "UNKNOWN"));
         if (methodCall.nestedCalls != null) methodCall.nestedCalls.forEach(this::getInstrumentedMethods);
