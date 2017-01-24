@@ -130,6 +130,13 @@ public class FlowSummary extends AgentData {
         throw new IllegalArgumentException(msg);
     }
 
+    public FlowOutline buildOutline(String flowId, Map<String, ThreadMetadata> threads) {
+        Optional<MethodCall> found = roots.stream().filter(root -> root.flows.stream().anyMatch(flow -> flow.flowId.equals(flowId))).findFirst();
+        MethodCall root = found.orElseThrow(() -> new RuntimeException("Flow " + flowId + " not present in the summary."));
+
+        return new FlowOutline(flowId, root, threads);
+    }
+
     private ValuePair<Integer, Integer> calculateDistanceAndLength(MethodCall node, String flow1, String flow2) {
         boolean flow1Presents = node.flows.stream().anyMatch(flow -> flow.flowId.equals(flow1));
         boolean flow2Presents = node.flows.stream().anyMatch(flow -> flow.flowId.equals(flow2));

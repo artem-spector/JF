@@ -4,6 +4,7 @@ import com.jflop.TestUtil;
 import com.jflop.load.GeneratedFlow;
 import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.persistency.ValuePair;
+import com.jflop.server.runtime.data.processed.FlowOutline;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.util.DebugPrintUtil;
@@ -65,6 +66,13 @@ public class SampleTest {
                 System.out.println(flow1 + " - " + flow2 + " = " + distance);
             }
         }
+
+        String flow1 = array[0];
+        Map<String, ThreadMetadata> threads = new HashMap<>();
+        stepState.threads.keySet().forEach(threadMetadata -> threads.put(threadMetadata.getDocumentId(), threadMetadata));
+        FlowOutline outline = summary.buildOutline(flow1, threads);
+        String flowStr = outline.format();
+        System.out.println(flowStr);
     }
 
     private void mapThreadsToFlows(String folderPath) throws IOException {
