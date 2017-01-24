@@ -27,12 +27,71 @@ public class FlowOutline {
         root = createOutline(flowId, call, threadPos);
     }
 
+    public String format(boolean removeClutter) {
+        if (removeClutter) {
+            Set<OutlineCall> clutter = getClutter();
+            removeClutter(root, clutter);
+        }
+        return "\nflow " + flowId + formatCall("\n\t", root);
+    }
+
+    private void removeClutter(OutlineCall call, Set<OutlineCall> clutter) {
+        if (call.nested == null || call.nested.isEmpty() || clutter.isEmpty()) return;
+
+        OutlineCall copy = call.shallowCopy();
+        for (OutlineCall nestedCall : call.nested) {
+            removeClutter(nestedCall, clutter);
+            if (clutter.contains(nestedCall)) {
+                if (nestedCall.nested != null) {
+                    for (OutlineCall grandchild : nestedCall.nested) {
+                        copy.addNested(grandchild);
+                    }
+                }
+            } else {
+                copy.addNested(nestedCall);
+            }
+        }
+
+        call.nested = copy.nested;
+    }
+
+    private Set<OutlineCall> getClutter() {
+        Map<OutlineCall, Integer> callCounts = new HashMap<>();
+        getCallUsage(root, callCounts);
+
+        List<OutlineCall> sortedCalls = new ArrayList<>(callCounts.keySet());
+        sortedCalls.sort(Comparator.comparingInt(callCounts::get).reversed());
+
+        Set<OutlineCall> clutter = new HashSet<>();
+        int maxCount = callCounts.get(sortedCalls.get(0));
+        int minCount = callCounts.get(sortedCalls.get(sortedCalls.size() - 1));
+        for (OutlineCall call : sortedCalls) {
+            int count = callCounts.get(call);
+            if (maxCount - count < count - minCount) {
+                clutter.add(call);
+            } else
+                break;
+        }
+
+        return clutter;
+    }
+
+    private int getCallUsage(OutlineCall call, Map<OutlineCall, Integer> res) {
+        int totalNum = 1;
+        res.compute(call, (key, count) -> count == null ? 1 : count + 1);
+        if (call.nested != null) {
+            for (OutlineCall nestedCall : call.nested) {
+                totalNum += getCallUsage(nestedCall, res);
+            }
+        }
+        return totalNum;
+    }
+
     private OutlineCall createOutline(String flowId, MethodCall methodCall, Map<ThreadMetadata, Integer> threadPos) {
         OutlineCall res = new OutlineCall(methodCall);
         OutlineCall prepend = findCallInThreads(res, threadPos);
 
         if (methodCall.nestedCalls != null) {
-            res.nested = new ArrayList<>();
             for (MethodCall nestedCall : methodCall.nestedCalls) {
                 if (nestedCall.flows.stream().anyMatch(flow -> flow.flowId.equals(flowId))) {
                     Map<ThreadMetadata, Integer> nestedThreadPos = new HashMap<>();
@@ -43,7 +102,7 @@ public class FlowOutline {
                             nestedThreadPos.put(thread, threadPos.get(thread));
                         });
                     }
-                    res.nested.add(createOutline(flowId, nestedCall, nestedThreadPos));
+                    res.addNested(createOutline(flowId, nestedCall, nestedThreadPos));
                 }
             }
         } else if (!threadPos.isEmpty()) {
@@ -56,8 +115,6 @@ public class FlowOutline {
     }
 
     private void completeCallWithThreads(OutlineCall res, Map<ThreadMetadata, Integer> threadPos) {
-        res.nested = new ArrayList<>();
-
         for (Map.Entry<ThreadMetadata, Integer> entry : threadPos.entrySet()) {
             StackTraceElement[] stackTrace = entry.getKey().stackTrace;
             int pos = entry.getValue();
@@ -65,7 +122,7 @@ public class FlowOutline {
             OutlineCall curr = res;
             for (; pos >= 0; pos--) {
                 OutlineCall call = new OutlineCall(stackTrace[pos]);
-                if (!curr.nested.contains(call)) curr.nested.add(call);
+                curr.addNested(call);
                 curr = call;
             }
         }
@@ -89,14 +146,14 @@ public class FlowOutline {
                     if (!found) {
                         res.add(call);
                         if (res.size() > 1) {
-                            res.get(res.size() - 2).nested.add(call);
+                            res.get(res.size() - 2).addNested(call);
                         }
                     }
                 }
 
                 if (found) {
                     entry.setValue(pos);
-                    if (!res.isEmpty()) res.get(res.size() - 1).nested.add(flowCall);
+                    if (!res.isEmpty()) res.get(res.size() - 1).addNested(flowCall);
                 } else {
                     throw new RuntimeException(flowCall + " not found in thread " + entry.getKey().getDocumentId() + " from position " + entry.getValue());
                 }
@@ -113,10 +170,6 @@ public class FlowOutline {
         }
 
         return res.isEmpty() ? null : res.get(0);
-    }
-
-    public String format() {
-        return "\nflow " + flowId + formatCall("\n\t", root);
     }
 
     private String formatCall(String prefix, OutlineCall call) {
@@ -136,15 +189,35 @@ public class FlowOutline {
 
         List<OutlineCall> nested;
 
+        OutlineCall() {
+        }
+
         OutlineCall(StackTraceElement element) {
             className = element.getClassName();
             methodName = element.getMethodName();
-            nested = new ArrayList<>();
         }
 
         OutlineCall(MethodCall methodCall) {
             className = NameUtils.getExternalClassName(methodCall.className);
             methodName = methodCall.methodName;
+        }
+
+        OutlineCall addNested(OutlineCall nestedCall) {
+            if (nested == null) nested = new ArrayList<>();
+            int pos = nested.indexOf(nestedCall);
+            if (pos == -1) {
+                nested.add(nestedCall);
+                return nestedCall;
+            } else {
+                return nested.get(pos);
+            }
+        }
+
+        OutlineCall shallowCopy() {
+            OutlineCall res = new OutlineCall();
+            res.className = className;
+            res.methodName = methodName;
+            return res;
         }
 
         @Override

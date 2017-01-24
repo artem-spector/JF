@@ -71,7 +71,7 @@ public class SampleTest {
         Map<String, ThreadMetadata> threads = new HashMap<>();
         stepState.threads.keySet().forEach(threadMetadata -> threads.put(threadMetadata.getDocumentId(), threadMetadata));
         FlowOutline outline = summary.buildOutline(flow1, threads);
-        String flowStr = outline.format();
+        String flowStr = outline.format(true);
         System.out.println(flowStr);
     }
 
