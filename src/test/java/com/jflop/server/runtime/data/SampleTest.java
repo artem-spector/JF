@@ -50,6 +50,38 @@ public class SampleTest {
         groupFlowSummary("samples/threadsAndFlows/2/");
     }
 
+    @Test
+    public void testCreateMetrics() throws IOException {
+        createMetrics("samples/analysisSteps/1/");
+    }
+
+    private void createMetrics(String folderPath) throws IOException {
+
+        for (File stepFile : getFilesInFolder(folderPath, "step", ".json")) {
+            JvmMonitorAnalysis.StepState stepState = readStepStateFromFile(folderPath + stepFile.getName());
+            MetricMetadata metricMetadata = new MetricMetadata();
+            Map<String, Float> observation = new TreeMap<>();
+
+            for (List<FlowOccurrenceData> occurrenceList : stepState.flows.values()) {
+                for (FlowOccurrenceData occurrence : occurrenceList) {
+                    collectFlowMetrics(metricMetadata, observation, occurrence.snapshotDurationSec, occurrence.rootFlow);
+                }
+            }
+
+            System.out.println("metric line:");
+            for (Map.Entry<String, Float> entry : observation.entrySet()) {
+                System.out.println(entry.getKey() + "->" + entry.getValue());
+            }
+        }
+    }
+
+    private void collectFlowMetrics(MetricMetadata metricBuilder, Map<String, Float> observation, float snapshotDurationSec, FlowOccurrenceData.FlowElement element) {
+        metricBuilder.aggregate(snapshotDurationSec, element, observation);
+        if (element.subflows != null) {
+            element.subflows.forEach(subflow -> collectFlowMetrics(metricBuilder, observation, snapshotDurationSec, subflow));
+        }
+    }
+
     private void groupFlowSummary(String folderPath) throws IOException {
         JvmMonitorAnalysis.StepState stepState = buildFlowSummary(folderPath, true);
         FlowSummary summary = stepState.flowSummary;
@@ -197,5 +229,11 @@ public class SampleTest {
         assertTrue("Not a folder: " + folder.getAbsolutePath(), folder.isDirectory());
 
         return folder.listFiles((dir, name) -> name.startsWith(prefix) && name.endsWith(suffix));
+    }
+
+    private JvmMonitorAnalysis.StepState readStepStateFromFile(String path) throws IOException {
+        ClassPathResource rsc = new ClassPathResource(path);
+        assertTrue("File does not exist: " + rsc.getURL(), rsc.exists());
+        return JvmMonitorAnalysis.StepState.readFromFile(rsc.getFile());
     }
 }

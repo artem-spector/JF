@@ -4,6 +4,7 @@ import org.jflop.snapshot.Flow;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents statics of a specific flow in a snapshot
@@ -26,7 +27,9 @@ public class FlowOccurrenceData extends OccurrenceData {
         return rootFlow.flowId;
     }
 
-    public static class FlowElement {
+    public static class FlowElement implements MetricSource {
+
+        public static final int NANO2MILLIS = 1000000;
 
         public String flowId;
         public int count;
@@ -40,9 +43,9 @@ public class FlowOccurrenceData extends OccurrenceData {
             FlowElement res = new FlowElement();
             res.flowId = flow.getKey().toString();
             res.count = flow.getCount();
-            res.minTime = flow.getMinTime();
-            res.maxTime = flow.getMaxTime();
-            res.cumulativeTime = flow.getCumulativeTime();
+            res.minTime = flow.getMinTime() / NANO2MILLIS;
+            res.maxTime = flow.getMaxTime() / NANO2MILLIS;
+            res.cumulativeTime = flow.getCumulativeTime() / NANO2MILLIS;
 
             if (flow.getSubflows() != null) {
                 res.subflows = new ArrayList<>();
@@ -52,6 +55,26 @@ public class FlowOccurrenceData extends OccurrenceData {
             }
 
             return res;
+        }
+
+        @Override
+        public String getSourceId() {
+            return flowId;
+        }
+
+        @Override
+        public String[] getMetricNames() {
+            return new String[]{"min", "max", "avg", "thrpt"};
+        }
+
+        @Override
+        public void aggregate(float elapsedTimeSec, Map<String, Float> aggregated) {
+            aggregated.compute("min", (key, value) -> value == null ? minTime : Math.min(value, minTime));
+            aggregated.compute("max", (key, value) -> value == null ? maxTime : Math.max(value, maxTime));
+            float averageDuration = (float) cumulativeTime / count / 1000;
+            float throughput = count / elapsedTimeSec;
+            aggregated.compute("avg", (key, value) -> value == null ? averageDuration : (value + averageDuration) / 2);
+            aggregated.compute("thrpt", (key, value) -> value == null ? throughput : (value + throughput) / 2);
         }
     }
 

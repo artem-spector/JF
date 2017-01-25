@@ -13,8 +13,6 @@ import java.util.List;
  */
 public class MethodFlowStatistics {
 
-    public static final int NANO2MILLIS = 1000000;
-
     public float throughputPerSec;
     public long minTime;
     public long maxTime;
@@ -30,9 +28,9 @@ public class MethodFlowStatistics {
         int totalCount = 0;
         float totalSnapshotDurationSec = 0;
         for (ValuePair<FlowOccurrenceData.FlowElement, Float> occurrence : occurrences) {
-            minTime = Math.min(minTime, occurrence.value1.minTime / NANO2MILLIS);
-            maxTime = Math.max(maxTime, occurrence.value1.maxTime / NANO2MILLIS);
-            totalTime += occurrence.value1.cumulativeTime / NANO2MILLIS;
+            minTime = Math.min(minTime, occurrence.value1.minTime);
+            maxTime = Math.max(maxTime, occurrence.value1.maxTime);
+            totalTime += occurrence.value1.cumulativeTime;
             totalCount += occurrence.value1.count;
             totalSnapshotDurationSec += occurrence.value2;
         }

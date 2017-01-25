@@ -17,7 +17,6 @@ public abstract class Metadata extends AgentData {
     @JsonIgnore
     public abstract String getDocumentId();
 
-    @JsonIgnore
     public boolean mergeTo(Metadata existing) {
         return false;
     }

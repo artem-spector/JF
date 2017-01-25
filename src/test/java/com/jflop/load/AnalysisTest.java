@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -36,6 +37,9 @@ public class AnalysisTest extends LoadTestBase {
 
     @Autowired
     private LockIndex lockIndex;
+
+    @Autowired
+    private JvmMonitorAnalysis analysisTask;
 
     private boolean strictThroughputCheck;
     private FlowSummary flowSummary;
@@ -73,7 +77,7 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testMultipleFlows() throws Exception {
         int numFlows = 6;
-        generateFlows(numFlows, 20, 20, 100, 100);
+        generateFlows(numFlows, 10, 100, 50, 200);
         System.out.println("Generated flows:");
         for (Object[] pair : flowsAndThroughput) System.out.println(pair[0]);
 
@@ -81,14 +85,27 @@ public class AnalysisTest extends LoadTestBase {
         startMonitoring();
         awaitNextSummary(30, null); // skip the first summary
 
+        File folder = prepareFolder("target/testMultipleFlows-temp");
+
         int numIterations = 3;
         Map<String, Set<String>> found = null;
         for (int i = 0; i < numIterations; i++) {
+            analysisTask.saveStepToFile(new File(folder, "step" + (i + 1) + ".json"));
             found = findFlowsInNextSummary(10, found);
         }
 
         stopMonitoring();
         stopLoad();
+    }
+
+    private File prepareFolder(String path) {
+        File folder = new File(path);
+        if (folder.exists()) {
+            for (File file : folder.listFiles()) file.delete();
+        } else {
+            folder.mkdirs();
+        }
+        return folder;
     }
 
     private Map<String, Set<String>> findFlowsInNextSummary(int timeoutSec, Map<String, Set<String>> previous) {

@@ -1,5 +1,7 @@
 package com.jflop.server.background;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
@@ -18,6 +20,8 @@ import org.jflop.config.NameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +56,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
     @Autowired
     private SnapshotFeature snapshotFeature;
 
+    private File saveStepToFile;
+
     // step-level state
     public static class StepState {
         private AgentJVM agentJvm;
@@ -64,6 +70,54 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         Set<MethodConfiguration> methodsToInstrument;
         private Set<StackTraceElement> instrumentedTraceElements;
         AgentDataFactory agentDataFactory;
+
+        void writeTo(File file) {
+            Map<String, Object> stored = new HashMap<>();
+            stored.put("threadMetadata", threads == null ? null : threads.keySet());
+            stored.put("threadOccurrences", threads == null ? null : threads.values());
+            stored.put("flowMetadata", flows == null ? null : flows.keySet());
+            stored.put("flowOccurrences", flows == null ? null : flows.values());
+            try {
+                new ObjectMapper().writeValue(file, stored);
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Failed saving step to file", e);
+            }
+        }
+
+        public static StepState readFromFile(File file) throws IOException {
+            ObjectMapper mapper = new ObjectMapper();
+            Map map = mapper.readValue(file, Map.class);
+
+            StepState res = new StepState();
+
+            res.threads = new HashMap<>();
+            List<ThreadMetadata> threadMetadata = get(mapper, map, "threadMetadata", new TypeReference<List<ThreadMetadata>>(){});
+            List<List<ThreadOccurrenceData>> threadOccurrences = get(mapper, map, "threadOccurrences", new TypeReference<List<List<ThreadOccurrenceData>>>(){});
+            threadMetadata.forEach(thread -> res.threads.put(thread, new ArrayList<>()));
+            threadOccurrences.forEach(occ ->
+            {
+                for (Map.Entry<ThreadMetadata, List<ThreadOccurrenceData>> entry : res.threads.entrySet())
+                    if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
+            });
+
+            res.flows = new HashMap<>();
+            List<FlowMetadata> flowMetadata = get(mapper, map, "flowMetadata", new TypeReference<List<FlowMetadata>>(){});
+            List<List<FlowOccurrenceData>> flowOccurrences = get(mapper, map, "flowOccurrences", new TypeReference<List<List<FlowOccurrenceData>>>(){});
+            flowMetadata.forEach(flow -> res.flows.put(flow, new ArrayList<>()));
+            flowOccurrences.forEach(occ ->
+            {
+                for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : res.flows.entrySet())
+                    if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
+            });
+
+            return res;
+        }
+
+        private static <T> T get(ObjectMapper mapper, Map map, String key, TypeReference<T> type) throws IOException {
+            Object json = map.get(key);
+            String jsonStr = mapper.writeValueAsString(json);
+            return mapper.readValue(jsonStr, type);
+        }
     }
 
     static ThreadLocal<StepState> step = new ThreadLocal<>();
@@ -102,6 +156,10 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         StepState current = step.get();
         lock.setCustomState(current.taskState);
         step.remove();
+        if (saveStepToFile != null) {
+            current.writeTo(saveStepToFile);
+            saveStepToFile = null;
+        }
     }
 
     void analyze() {
@@ -130,6 +188,11 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             taskState.snapshotDuration = duration;
             taskState.processedUntil = current.to;
         }
+    }
+
+    // for tests only
+    public void saveStepToFile(File file) {
+        this.saveStepToFile = file;
     }
 
     private boolean needToDecreaseSnapshotDuration(float duration) {
