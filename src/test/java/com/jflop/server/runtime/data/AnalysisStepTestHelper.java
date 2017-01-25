@@ -48,23 +48,30 @@ public class AnalysisStepTestHelper {
         return flowSummaryCalculated;
     }
 
-    public int countSameFlows() {
+    public List<Set<String>> groupSameFlows() {
         Map<String, FlowMetadata> allFlows = getAllFlowMetadata();
+        List<Set<String>> sameGroups = new ArrayList<>();
 
-        Set<String> same = new HashSet<>();
         for (String flowId : allFlows.keySet()) {
-            boolean isSame = true;
-            for (String sameFlowId : same) {
-                if (!flowsMaybeSame(flowId, sameFlowId)) {
-                    System.out.println(flowId + " cannot not be same as " + sameFlowId);
-                    isSame = false;
-                    break;
+            boolean found = false;
+            for (Set<String> sameGroup : sameGroups) {
+                for (String sameId : sameGroup) {
+                    if (flowsMaybeSame(flowId, sameId)) {
+                        found = true;
+                        sameGroup.add(flowId);
+                        break;
+                    }
                 }
             }
-            if (isSame) same.add(flowId);
+
+            if (!found) {
+                Set<String> group = new HashSet<>();
+                group.add(flowId);
+                sameGroups.add(group);
+            }
         }
 
-        return same.size();
+        return sameGroups;
     }
 
     public boolean flowsMaybeSame(String id1, String id2) {
