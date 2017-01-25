@@ -25,6 +25,17 @@ import static org.junit.Assert.*;
 public class SampleTest {
 
     @Test
+    public void testRecorded() throws IOException {
+        String folderPath = "samples/analysisSteps/1/";
+        Object[][] flowsAndThroughput = GeneratedFlow.read(getClasspathFile(folderPath + "generatedFlows.json"));
+
+        for (File stepFile : getFilesInFolder(folderPath, "step", ".json")) {
+            AnalysisStepTestHelper helper = new AnalysisStepTestHelper(readStepStateFromFile(folderPath + stepFile.getName()), flowsAndThroughput);
+            helper.checkFlowStatistics(null, false);
+        }
+    }
+
+    @Test
     public void testSameFlows() throws IOException {
         assertEquals(2, countSame("samples/sameFlows/1/", "flow1.json", "flow2.json"));
         assertEquals(1, countSame("samples/sameFlows/2/", "flow1.json", "flow2.json"));
@@ -235,5 +246,11 @@ public class SampleTest {
         ClassPathResource rsc = new ClassPathResource(path);
         assertTrue("File does not exist: " + rsc.getURL(), rsc.exists());
         return JvmMonitorAnalysis.StepState.readFromFile(rsc.getFile());
+    }
+
+    private File getClasspathFile(String path) throws IOException {
+        ClassPathResource rsc = new ClassPathResource(path);
+        assertTrue("File does not exist: " + rsc.getURL(), rsc.exists());
+        return rsc.getFile();
     }
 }

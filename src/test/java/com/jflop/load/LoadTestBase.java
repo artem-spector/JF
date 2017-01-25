@@ -29,7 +29,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * TODO: Document!
@@ -43,7 +44,7 @@ import static org.junit.Assert.*;
 
 public abstract class LoadTestBase {
 
-    protected static final Logger logger = Logger.getLogger(LoadTestBase.class.getName());
+    static final Logger logger = Logger.getLogger(LoadTestBase.class.getName());
 
     protected Object[][] flowsAndThroughput;
 
@@ -127,11 +128,10 @@ public abstract class LoadTestBase {
         currentJvm = found;
     }
 
-    protected Object[][] generateFlows(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
+    protected void generateFlows(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
         int maxDepth = 4;
         int maxLength = 4;
         flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, minDuration, maxDuration, minThroughput, maxThroughput);
-        return flowsAndThroughput;
     }
 
     protected void startLoad() {

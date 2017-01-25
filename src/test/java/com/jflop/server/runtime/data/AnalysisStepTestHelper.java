@@ -55,7 +55,7 @@ public class AnalysisStepTestHelper {
         for (String flowId : allFlows.keySet()) {
             boolean isSame = true;
             for (String sameFlowId : same) {
-                if (!FlowMetadata.maybeSame(allFlows.get(flowId), allFlows.get(sameFlowId))) {
+                if (!flowsMaybeSame(flowId, sameFlowId)) {
                     System.out.println(flowId + " cannot not be same as " + sameFlowId);
                     isSame = false;
                     break;
@@ -65,6 +65,11 @@ public class AnalysisStepTestHelper {
         }
 
         return same.size();
+    }
+
+    public boolean flowsMaybeSame(String id1, String id2) {
+        Map<String, FlowMetadata> allFlows = getAllFlowMetadata();
+        return id1.equals(id2) || FlowMetadata.maybeSame(allFlows.get(id1), allFlows.get(id2));
     }
 
     public void checkThreadsCoverage() {
@@ -142,7 +147,7 @@ public class AnalysisStepTestHelper {
             Set<String> maybeSame = new HashSet<>();
             for (String flowId : found) {
                 for (String other : maybeSame) {
-                    if (flowId.equals(other) || FlowMetadata.maybeSame(allFlows.get(flowId), allFlows.get(other)))
+                    if (!flowsMaybeSame(flowId, other))
                         fail("Flows " + flowId + " and " + other + " cannot represent the same flow, but found fit the generated flow:\n" + flow);
                 }
                 maybeSame.add(flowId);
@@ -163,15 +168,21 @@ public class AnalysisStepTestHelper {
                 assertNotNull(flowStatistics);
             }
 
-            LoadRunner.FlowStats loadFlowStatistics = loadResult.flows.get(flow.getId());
-            assertNotNull(loadFlowStatistics);
-            float actualThroughput = (float) loadFlowStatistics.executed / loadResult.durationMillis * 1000;
-
             System.out.println("Flow " + flow);
             System.out.println("\tExpected       : throughput=" + expectedThroughput + "; duration=" + flow.getExpectedDurationMillis());
-            System.out.println("\tLoad result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
+
+            Float actualThroughput = null;
+            if (loadResult != null) {
+                LoadRunner.FlowStats loadFlowStatistics = loadResult.flows.get(flow.getId());
+                assertNotNull(loadFlowStatistics);
+                actualThroughput = (float) loadFlowStatistics.executed / loadResult.durationMillis * 1000;
+                System.out.println("\tLoad result    : throughput=" + actualThroughput + "; avgDuration=" + loadFlowStatistics.averageDuration);
+            }
+
             System.out.println("\tFlow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
-            assertEquals(actualThroughput, flowStatistics.throughputPerSec, strictThroughputCheck ? actualThroughput / 10 : actualThroughput / 3);
+
+            if (loadResult != null)
+                assertEquals(actualThroughput, flowStatistics.throughputPerSec, strictThroughputCheck ? actualThroughput / 10 : actualThroughput / 3);
 
             res.put(flow.getId(), found);
 

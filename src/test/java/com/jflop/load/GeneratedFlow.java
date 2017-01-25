@@ -1,6 +1,7 @@
 package com.jflop.load;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.processed.FlowSummary;
@@ -12,6 +13,8 @@ import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.springframework.core.annotation.AnnotationAttributes;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.util.*;
@@ -129,6 +132,30 @@ public class GeneratedFlow implements FlowMockup {
         }
 
         return element;
+    }
+
+    public static void save(File file, Object[][] flowsAndThroughput) throws IOException {
+        List<List<Object>> json = new ArrayList<>();
+        for (Object[] pair : flowsAndThroughput) {
+            json.add(Arrays.asList(pair[0].toString(), pair[1]));
+        }
+
+        mapper.writeValue(file, json);
+    }
+
+    public static Object[][] read(File file) throws IOException {
+        TypeReference type = new TypeReference<List<List<Object>>>() {
+        };
+        List<List<Object>> json = mapper.readValue(file, type);
+
+        Object[][] res = new Object[json.size()][2];
+        for (int i = 0; i < res.length; i++) {
+            List<Object> pair = json.get(i);
+            res[i][0] = fromString((String) pair.get(0));
+            res[i][1] = ((Double)pair.get(1)).floatValue();
+        }
+
+        return res;
     }
 
     public static GeneratedFlow fromString(String str) {
