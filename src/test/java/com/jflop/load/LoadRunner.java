@@ -177,13 +177,13 @@ public class LoadRunner {
         return problems;
     }
 
-    static class LoadResult {
+    public static class LoadResult {
         public long durationMillis;
         public Map<String, FlowStats> flows;
         public int numThreads;
     }
 
-    static class FlowStats {
+    public static class FlowStats {
 
         public int expected;
         public int fired;

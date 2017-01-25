@@ -127,10 +127,11 @@ public abstract class LoadTestBase {
         currentJvm = found;
     }
 
-    protected void generateFlows(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
+    protected Object[][] generateFlows(int numFlows, int minThroughput, int maxThroughput, int minDuration, int maxDuration) {
         int maxDepth = 4;
         int maxLength = 4;
         flowsAndThroughput = GeneratedFlow.generateFlowsAndThroughput(numFlows, maxDepth, maxLength, minDuration, maxDuration, minThroughput, maxThroughput);
+        return flowsAndThroughput;
     }
 
     protected void startLoad() {

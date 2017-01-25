@@ -2,10 +2,10 @@ package com.jflop.load;
 
 import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.background.LockIndex;
-import com.jflop.server.background.TaskLockData;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.ProcessedDataIndex;
+import com.jflop.server.runtime.data.AnalysisStepTestHelper;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
@@ -68,6 +68,47 @@ public class AnalysisTest extends LoadTestBase {
         Map<String, Set<String>> found = null;
         for (int i = 0; i < numIterations; i++) {
             found = findFlowsInNextSummary(10, found);
+        }
+
+        stopMonitoring();
+        stopLoad();
+    }
+
+    @Test
+    public void testSingleFlow_new() throws Exception {
+        Object[][] generated = generateFlows(1, 20, 20, 100, 100);
+        runFlows(generated, 3, "target/testSingleFlow-temp");
+    }
+
+    private void runFlows(Object[][] generatedFlows, int numIterations, String folderPath) throws Exception {
+        startLoad();
+        startMonitoring();
+        awaitNextSummary(30, null); // skip the first summary
+
+        File folder = prepareFolder(folderPath);
+
+        Map<String, Set<String>> previous = null;
+        for (int i = 0; i < numIterations; i++) {
+            File file = new File(folder, "step" + (i + 1) + ".json");
+            analysisTask.saveStepToFile(file);
+            awaitNextSummary(10, new Date());
+            LoadRunner.LoadResult loadResult = getLoadResult();
+
+            AnalysisStepTestHelper helper = new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(file), generatedFlows);
+            Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, false);
+            if (previous != null) {
+                assertEquals(previous.keySet(), found.keySet());
+                for (Object[] pair : generatedFlows) {
+                    GeneratedFlow generatedFlow = (GeneratedFlow) pair[0];
+                    for (String prevFlowId : previous.get(generatedFlow.getId())) {
+                        for (String foundFlowId : found.get(generatedFlow.getId())) {
+                            String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same generated flow:\n" + generatedFlow;
+                            assertTrue(message, prevFlowId.equals(foundFlowId) || flowsMaybeSame(prevFlowId, foundFlowId));
+                        }
+                    }
+                }
+            }
+            previous = found;
         }
 
         stopMonitoring();
@@ -150,9 +191,6 @@ public class AnalysisTest extends LoadTestBase {
                     oldMsg = msg;
                 }
                 if (flowSummary != null && (begin == null || flowSummary.time.after(begin))) {
-                    String lockId = new TaskLockData(JvmMonitorAnalysis.TASK_NAME, currentJvm).lockId;
-                    PersistentData<TaskLockData> document = lockIndex.getDocument(new PersistentData<>(lockId, 0), TaskLockData.class);
-                    assertNotNull(document);
                     return;
                 }
 
