@@ -24,7 +24,8 @@ public class SampleTest {
     private static final String[] FOLDERS = new String[]{
             "samples/analysisSteps/1/",
             "samples/analysisSteps/2/",
-            "samples/analysisSteps/3/"
+            "samples/analysisSteps/3/",
+            "samples/analysisSteps/4/"
     };
 
     @Test
@@ -100,6 +101,7 @@ public class SampleTest {
             @Override
             public AnalysisStepTestHelper next() {
                 try {
+                    System.out.println("--------- step " + (pos + 1) + " -----------");
                     return new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(stepFiles[pos++]), flowsAndThroughput);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
