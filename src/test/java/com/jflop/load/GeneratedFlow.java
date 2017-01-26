@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.runtime.data.FlowMetadata;
+import com.jflop.server.runtime.data.processed.FlowOutline;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
@@ -11,6 +12,7 @@ import com.jflop.server.util.DigestUtil;
 import org.elasticsearch.common.hash.MessageDigests;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
+import org.jflop.config.NameUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
 
 import java.io.File;
@@ -32,7 +34,7 @@ public class GeneratedFlow implements FlowMockup {
     private static ObjectMapper mapper = new ObjectMapper();
     private static Random random = new Random();
 
-    private static String[] allMethods = {"m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8"};
+    public static final List<String> ALL_METHODS = Arrays.asList("m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8");
 
     private FlowElement root;
     private String id;
@@ -84,7 +86,7 @@ public class GeneratedFlow implements FlowMockup {
     public static GeneratedFlow generateFlow(int maxDepth, int maxLength, int minDuration, int maxDuration) {
         GeneratedFlow flow;
         do {
-            Set<String> availableMethods = new HashSet<>(Arrays.asList(allMethods));
+            Set<String> availableMethods = new HashSet<>(ALL_METHODS);
             flow = new GeneratedFlow(generateFlowElement(availableMethods, maxDepth, maxLength, maxDuration));
         } while (flow.getExpectedDurationMillis() < minDuration);
         return flow;
@@ -152,7 +154,7 @@ public class GeneratedFlow implements FlowMockup {
         for (int i = 0; i < res.length; i++) {
             List<Object> pair = json.get(i);
             res[i][0] = fromString((String) pair.get(0));
-            res[i][1] = ((Double)pair.get(1)).floatValue();
+            res[i][1] = ((Double) pair.get(1)).floatValue();
         }
 
         return res;
@@ -223,12 +225,13 @@ public class GeneratedFlow implements FlowMockup {
     public Set<String> findFlowIds(FlowSummary summary, Map<String, FlowMetadata> flows) {
         Set<String> res = new HashSet<>();
         FlowElement expectedRoot = this.root;
+        FlowOutline.OutlineCall expectedOutline = buildOutline(expectedRoot);
 
         for (MethodCall recordedRoot : summary.roots) {
             for (MethodFlow methodFlow : recordedRoot.flows) {
                 String flowId = methodFlow.flowId;
-                JflopConfiguration jflopConfiguration = JflopConfiguration.fromJson(flows.get(flowId).instrumentedMethodsJson);
-                if (flowFits(expectedRoot, recordedRoot, flowId, jflopConfiguration)) {
+                List<FlowOutline.OutlineCall> recordedOutline = buildOutline(recordedRoot, flowId);
+                if (recordedOutline != null && recordedOutline.size() == 1 && recordedOutline.get(0).deepEquals(expectedOutline)) {
                     res.add(flowId);
                 }
             }
@@ -237,49 +240,41 @@ public class GeneratedFlow implements FlowMockup {
         return res;
     }
 
-    private static boolean flowFits(FlowElement expectedFlow, MethodCall recordedCall, String flowId, JflopConfiguration instrumentation) {
+    private static List<FlowOutline.OutlineCall> buildOutline(MethodCall recorded, String flowId) {
+        if (recorded.flows.stream().noneMatch(flow -> flow.flowId.equals(flowId)))
+            return null;
 
-        MethodConfiguration expectedMtd = expectedFlow.methodConfiguration;
-        boolean expectedIsInstrumented = instrumentation.containsMethod(expectedMtd);
+        FlowOutline.OutlineCall res = null;
+        String className = NameUtils.getExternalClassName(recorded.className);
+        if (className.equals(GeneratedFlow.class.getName()) && ALL_METHODS.contains(recorded.methodName)) {
+            res = new FlowOutline.OutlineCall(className, recorded.methodName);
+        }
 
-        if (recordedCall == null)
-            return !expectedIsInstrumented && !expectedFlow.hasInstrumentedSubelements(instrumentation);
-
-        if (recordedCall.flows.stream().noneMatch(methodFlow -> methodFlow.flowId.equals(flowId)))
-            return false;
-
-        MethodConfiguration recordedMtd = new MethodConfiguration(recordedCall.className, recordedCall.methodName, recordedCall.methodDescriptor);
-
-        if (expectedIsInstrumented && expectedMtd.equals(recordedMtd))
-            return !expectedFlow.hasInstrumentedSubelements(instrumentation) || nestedFit(expectedFlow, recordedCall, flowId, instrumentation);
-
-        if (expectedIsInstrumented && expectedFlow.containsMethod(recordedMtd))
-            return false;
-
-        if (expectedIsInstrumented)
-            return recordedCall.nestedCalls != null && recordedCall.nestedCalls.stream().anyMatch(recordedNested -> flowFits(expectedFlow, recordedNested, flowId, instrumentation));
-
-        return expectedFlow.nested == null || expectedFlow.nested.isEmpty()
-                || expectedFlow.nested.stream().anyMatch(expectedNested -> flowFits(expectedNested, recordedCall, flowId, instrumentation));
-    }
-
-    private static boolean nestedFit(FlowElement expectedFlow, MethodCall recordedCall, String flowId, JflopConfiguration instrumentation) {
-        boolean expectedHasNested = expectedFlow.nested != null && !expectedFlow.nested.isEmpty();
-        boolean recordedHasNested = recordedCall != null && recordedCall.nestedCalls != null && !recordedCall.nestedCalls.isEmpty();
-
-        if (!expectedHasNested)
-            return true;
-
-        for (FlowElement expectedNested : expectedFlow.nested) {
-            if (recordedHasNested) {
-                if (recordedCall.nestedCalls.stream().noneMatch(recordedNested -> flowFits(expectedNested, recordedNested, flowId, instrumentation)))
-                    return false;
-            } else {
-                if (!flowFits(expectedNested, null, flowId, instrumentation))
-                    return false;
+        List<FlowOutline.OutlineCall> nested = null;
+        if (recorded.nestedCalls != null) {
+            nested = new ArrayList<>();
+            for (MethodCall nestedRecorded : recorded.nestedCalls) {
+                List<FlowOutline.OutlineCall> nestedOutline = buildOutline(nestedRecorded, flowId);
+                if (nestedOutline != null)
+                    for (FlowOutline.OutlineCall call : nestedOutline) nested.add(call);
             }
         }
-        return true;
+
+        if (res != null) {
+            if (nested != null)
+                for (FlowOutline.OutlineCall call : nested) res.addNested(call);
+            return Collections.singletonList(res);
+        }
+
+        return nested;
+    }
+
+    private static FlowOutline.OutlineCall buildOutline(FlowElement expected) {
+        FlowOutline.OutlineCall res = new FlowOutline.OutlineCall(expected.mtd.getDeclaringClass().getName(), expected.mtd.getName());
+        if (expected.nested != null) {
+            expected.nested.forEach(nestedExpected -> res.addNested(buildOutline(nestedExpected)));
+        }
+        return res;
     }
 
     private static class FlowElement {
@@ -318,17 +313,6 @@ public class GeneratedFlow implements FlowMockup {
 
         boolean isInstrumented(JflopConfiguration configuration) {
             return configuration.containsMethod(methodConfiguration);
-        }
-
-        boolean hasInstrumentedSubelements(JflopConfiguration configuration) {
-            if (nested == null || nested.isEmpty()) return false;
-
-            for (FlowElement subelement : nested) {
-                if (subelement.isInstrumented(configuration) || subelement.hasInstrumentedSubelements(configuration))
-                    return true;
-            }
-
-            return false;
         }
 
         Object toJson() {
@@ -374,9 +358,5 @@ public class GeneratedFlow implements FlowMockup {
             return res;
         }
 
-        public boolean containsMethod(MethodConfiguration methodConfiguration) {
-            return this.methodConfiguration.equals(methodConfiguration)
-                    || nested != null && nested.stream().anyMatch(flowElement -> flowElement.containsMethod(methodConfiguration));
-        }
     }
 }

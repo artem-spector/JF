@@ -182,7 +182,7 @@ public class FlowOutline {
         return res;
     }
 
-    static class OutlineCall {
+    public static class OutlineCall {
 
         String className; // external
         String methodName;
@@ -202,7 +202,12 @@ public class FlowOutline {
             methodName = methodCall.methodName;
         }
 
-        OutlineCall addNested(OutlineCall nestedCall) {
+        public OutlineCall(String className, String methodName) {
+            this.className = className;
+            this.methodName = methodName;
+        }
+
+        public OutlineCall addNested(OutlineCall nestedCall) {
             if (nested == null) nested = new ArrayList<>();
             int pos = nested.indexOf(nestedCall);
             if (pos == -1) {
@@ -236,6 +241,21 @@ public class FlowOutline {
         @Override
         public String toString() {
             return className + "." + methodName;
+        }
+
+        public boolean deepEquals(OutlineCall other) {
+            if (!this.equals(other)) return false;
+
+            int thisNestedCount = nested == null ? 0 : nested.size();
+            int otherNestedCount = other.nested == null ? 0 : other.nested.size();
+            if (thisNestedCount != otherNestedCount) return false;
+            if (thisNestedCount == 0) return true;
+
+            for (int i = 0; i < nested.size(); i++) {
+                if (!nested.get(i).deepEquals(other.nested.get(i))) return false;
+            }
+
+            return true;
         }
     }
 }
