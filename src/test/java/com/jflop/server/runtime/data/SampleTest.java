@@ -21,50 +21,65 @@ import static org.junit.Assert.assertTrue;
  */
 public class SampleTest {
 
+    private static final String[] FOLDERS = new String[]{
+            "samples/analysisSteps/1/",
+            "samples/analysisSteps/2/"
+    };
+
     @Test
     public void testStatistics() throws IOException {
-        for (AnalysisStepTestHelper helper : steps("samples/analysisSteps/1/")) {
-            helper.checkFlowStatistics(null, false);
+        for (String folderPath : FOLDERS) {
+            for (AnalysisStepTestHelper helper : steps(folderPath)) {
+                helper.checkFlowStatistics(null, false);
+            }
         }
     }
 
     @Test
     public void testSameFlows() throws IOException {
-        int maxSize = 0;
-        int count = 1;
-        for (AnalysisStepTestHelper helper : steps("samples/analysisSteps/1/")) {
-            for (Set<String> ids : helper.groupSameFlows()) {
-                maxSize = Math.max(maxSize, ids.size());
-                if (ids.size() > 1)
-                    System.out.println("step " + count + " same flows: " + ids);
+        for (String folderPath : FOLDERS) {
+            int maxSize = 0;
+            int count = 1;
+            for (AnalysisStepTestHelper helper : steps(folderPath)) {
+                for (Set<String> ids : helper.groupSameFlows()) {
+                    maxSize = Math.max(maxSize, ids.size());
+                    if (ids.size() > 1)
+                        System.out.println("step " + count + " same flows: " + ids);
+                }
+                count++;
             }
-            count++;
+            assertEquals("Unexpected same flows", 1, maxSize);
         }
-        assertEquals("Unexpected same flows", 1, maxSize);
     }
 
     @Test
     public void testMapThreadsToFlows() throws IOException {
-        for (AnalysisStepTestHelper helper : steps("samples/analysisSteps/1/")) {
-            helper.checkThreadsCoverage();
+        for (String folderPath : FOLDERS) {
+            for (AnalysisStepTestHelper helper : steps(folderPath)) {
+                helper.checkThreadsCoverage();
+            }
         }
     }
 
     @Test
     public void testGroupFlowSummary() throws IOException {
-        for (AnalysisStepTestHelper helper : steps("samples/analysisSteps/1/")) {
-            helper.calculateDistanceAndOutline();
+        for (String folderPath : FOLDERS) {
+            for (AnalysisStepTestHelper helper : steps(folderPath)) {
+                helper.calculateDistanceAndOutline();
+            }
         }
     }
 
     @Test
     public void testCreateMetrics() throws IOException {
-        for (AnalysisStepTestHelper helper : steps("samples/analysisSteps/1/")) {
-            Map<String, Float> line = helper.createMetrics();
+        for (String folderPath : FOLDERS) {
+            for (AnalysisStepTestHelper helper : steps(folderPath)) {
+                Map<String, Float> line = helper.createMetrics();
 
-            System.out.println("metric line:");
-            for (Map.Entry<String, Float> entry : line.entrySet()) {
-                System.out.println(entry.getKey() + "->" + entry.getValue());
+                System.out.println("metric line:");
+                for (Map.Entry<String, Float> entry : line.entrySet()) {
+                    System.out.println(entry.getKey() + "->" + entry.getValue());
+                }
             }
         }
     }

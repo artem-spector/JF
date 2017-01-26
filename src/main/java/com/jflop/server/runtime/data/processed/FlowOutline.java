@@ -172,7 +172,7 @@ public class FlowOutline {
         return res.isEmpty() ? null : res.get(0);
     }
 
-    private String formatCall(String prefix, OutlineCall call) {
+    private static String formatCall(String prefix, OutlineCall call) {
         String res = prefix + call.toString();
         if (call.nested != null) {
             for (OutlineCall nestedCall : call.nested) {

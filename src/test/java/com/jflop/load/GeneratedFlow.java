@@ -225,13 +225,14 @@ public class GeneratedFlow implements FlowMockup {
     public Set<String> findFlowIds(FlowSummary summary, Map<String, FlowMetadata> flows) {
         Set<String> res = new HashSet<>();
         FlowElement expectedRoot = this.root;
-        FlowOutline.OutlineCall expectedOutline = buildOutline(expectedRoot);
 
         for (MethodCall recordedRoot : summary.roots) {
             for (MethodFlow methodFlow : recordedRoot.flows) {
                 String flowId = methodFlow.flowId;
+                List<FlowOutline.OutlineCall> expectedOutline = buildOutline(expectedRoot, JflopConfiguration.fromJson(flows.get(flowId).instrumentedMethodsJson));
                 List<FlowOutline.OutlineCall> recordedOutline = buildOutline(recordedRoot, flowId);
-                if (recordedOutline != null && recordedOutline.size() == 1 && recordedOutline.get(0).deepEquals(expectedOutline)) {
+                if (recordedOutline != null && recordedOutline.size() == 1 && expectedOutline != null && expectedOutline.size() == 1 &&
+                        recordedOutline.get(0).deepEquals(expectedOutline.get(0))) {
                     res.add(flowId);
                 }
             }
@@ -255,8 +256,7 @@ public class GeneratedFlow implements FlowMockup {
             nested = new ArrayList<>();
             for (MethodCall nestedRecorded : recorded.nestedCalls) {
                 List<FlowOutline.OutlineCall> nestedOutline = buildOutline(nestedRecorded, flowId);
-                if (nestedOutline != null)
-                    for (FlowOutline.OutlineCall call : nestedOutline) nested.add(call);
+                if (nestedOutline != null) nested.addAll(nestedOutline);
             }
         }
 
@@ -269,12 +269,29 @@ public class GeneratedFlow implements FlowMockup {
         return nested;
     }
 
-    private static FlowOutline.OutlineCall buildOutline(FlowElement expected) {
-        FlowOutline.OutlineCall res = new FlowOutline.OutlineCall(expected.mtd.getDeclaringClass().getName(), expected.mtd.getName());
-        if (expected.nested != null) {
-            expected.nested.forEach(nestedExpected -> res.addNested(buildOutline(nestedExpected)));
+    private static List<FlowOutline.OutlineCall> buildOutline(FlowElement expected, JflopConfiguration instrumentationConfig) {
+        FlowOutline.OutlineCall res = null;
+
+        if (instrumentationConfig.containsMethod(new MethodConfiguration(expected.mtd))){
+            res = new FlowOutline.OutlineCall(expected.mtd.getDeclaringClass().getName(), expected.mtd.getName());
         }
-        return res;
+
+        List<FlowOutline.OutlineCall> nested = null;
+        if (expected.nested != null) {
+            nested = new ArrayList<>();
+            for (FlowElement nestedExpected : expected.nested) {
+                List<FlowOutline.OutlineCall> nestedOutline = buildOutline(nestedExpected, instrumentationConfig);
+                if (nestedOutline != null) nested.addAll(nestedOutline);
+            }
+        }
+
+        if (res != null) {
+            if (nested != null)
+                for (FlowOutline.OutlineCall call : nested) res.addNested(call);
+            return Collections.singletonList(res);
+        }
+
+        return nested;
     }
 
     private static class FlowElement {
