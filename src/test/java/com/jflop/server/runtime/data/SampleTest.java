@@ -23,14 +23,15 @@ public class SampleTest {
 
     private static final String[] FOLDERS = new String[]{
             "samples/analysisSteps/1/",
-            "samples/analysisSteps/2/"
+            "samples/analysisSteps/2/",
+            "samples/analysisSteps/3/"
     };
 
     @Test
     public void testStatistics() throws IOException {
         for (String folderPath : FOLDERS) {
             for (AnalysisStepTestHelper helper : steps(folderPath)) {
-                helper.checkFlowStatistics(null, false);
+                helper.checkFlowStatistics(null, 0.5f);
             }
         }
     }

@@ -26,7 +26,7 @@ public class DebugPrintUtil {
         if (call.flows != null) {
             res += "\n" + indent + "flows:";
             for (MethodFlow flow : call.flows) {
-                res += "\n" + indent + "\t" + "flow: " + flow.flowId + "; return line: " + flow.returnLine;
+                res += "\n" + indent + "\t" + "flow: " + flow.flowId + "; position: " + flow.position + "; return line: " + flow.returnLine;
                 MethodFlowStatistics stat = flow.statistics;
                 res += String.format(" stat: {throughput: %,.2f per sec; min: %,d; max: %,d; avg: %,d}", stat.throughputPerSec, stat.minTime, stat.maxTime, stat.averageTime);
             }

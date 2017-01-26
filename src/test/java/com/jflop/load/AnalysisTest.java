@@ -66,7 +66,7 @@ public class AnalysisTest extends LoadTestBase {
             LoadRunner.LoadResult loadResult = getLoadResult();
 
             AnalysisStepTestHelper helper = new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(file), generatedFlows);
-            Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, false);
+            Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, 0.5f);
             if (previous != null) {
                 assertEquals(previous.keySet(), found.keySet());
                 for (Object[] pair : generatedFlows) {

@@ -3,6 +3,7 @@ package com.jflop.load;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.FlowMetadata;
 import com.jflop.server.runtime.data.processed.FlowOutline;
 import com.jflop.server.runtime.data.processed.FlowSummary;
@@ -230,9 +231,9 @@ public class GeneratedFlow implements FlowMockup {
             for (MethodFlow methodFlow : recordedRoot.flows) {
                 String flowId = methodFlow.flowId;
                 List<FlowOutline.OutlineCall> expectedOutline = buildOutline(expectedRoot, JflopConfiguration.fromJson(flows.get(flowId).instrumentedMethodsJson));
-                List<FlowOutline.OutlineCall> recordedOutline = buildOutline(recordedRoot, flowId);
+                List<ValuePair<FlowOutline.OutlineCall, Integer>> recordedOutline = buildOutline(recordedRoot, flowId);
                 if (recordedOutline != null && recordedOutline.size() == 1 && expectedOutline != null && expectedOutline.size() == 1 &&
-                        recordedOutline.get(0).deepEquals(expectedOutline.get(0))) {
+                        recordedOutline.get(0).value1.deepEquals(expectedOutline.get(0))) {
                     res.add(flowId);
                 }
             }
@@ -241,9 +242,9 @@ public class GeneratedFlow implements FlowMockup {
         return res;
     }
 
-    private static List<FlowOutline.OutlineCall> buildOutline(MethodCall recorded, String flowId) {
-        if (recorded.flows.stream().noneMatch(flow -> flow.flowId.equals(flowId)))
-            return null;
+    private static List<ValuePair<FlowOutline.OutlineCall, Integer>> buildOutline(MethodCall recorded, String flowId) {
+        Optional<MethodFlow> first = recorded.flows.stream().filter(flow -> flow.flowId.equals(flowId)).findFirst();
+        if (!first.isPresent()) return null;
 
         FlowOutline.OutlineCall res = null;
         String className = NameUtils.getExternalClassName(recorded.className);
@@ -251,19 +252,24 @@ public class GeneratedFlow implements FlowMockup {
             res = new FlowOutline.OutlineCall(className, recorded.methodName);
         }
 
-        List<FlowOutline.OutlineCall> nested = null;
+        List<ValuePair<FlowOutline.OutlineCall, Integer>> nested = null;
         if (recorded.nestedCalls != null) {
             nested = new ArrayList<>();
             for (MethodCall nestedRecorded : recorded.nestedCalls) {
-                List<FlowOutline.OutlineCall> nestedOutline = buildOutline(nestedRecorded, flowId);
-                if (nestedOutline != null) nested.addAll(nestedOutline);
+                List<ValuePair<FlowOutline.OutlineCall, Integer>> nestedOutline = buildOutline(nestedRecorded, flowId);
+                if (nestedOutline != null) {
+                    nestedOutline.sort(Comparator.comparingInt(o -> o.value2));
+                    nested.addAll(nestedOutline);
+                }
             }
         }
 
         if (res != null) {
             if (nested != null)
-                for (FlowOutline.OutlineCall call : nested) res.addNested(call);
-            return Collections.singletonList(res);
+                for (ValuePair<FlowOutline.OutlineCall, Integer> call : nested) res.addNested(call.value1);
+
+            int position = first.get().position;
+            return Collections.singletonList(new ValuePair<>(res, position));
         }
 
         return nested;

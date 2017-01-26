@@ -9,14 +9,16 @@ package com.jflop.server.runtime.data.processed;
 public class MethodFlow {
 
     public String flowId;
+    public int position;
     public String returnLine;
     public MethodFlowStatistics statistics;
 
     public MethodFlow() {
     }
 
-    public MethodFlow(String flowId, String returnLine, MethodFlowStatistics flowStatistics) {
+    public MethodFlow(String flowId, int position, String returnLine, MethodFlowStatistics flowStatistics) {
         this.flowId = flowId;
+        this.position = position;
         this.returnLine = returnLine;
         this.statistics = flowStatistics;
     }

@@ -55,7 +55,7 @@ public class MethodCall {
     public void addFlow(FlowMetadata metadata, List<FlowOccurrenceData> occurrences) {
         List<ValuePair<FlowOccurrenceData.FlowElement, Float>> occurrenceElements =
                 occurrences.stream().map(occ -> new ValuePair<>(occ.rootFlow, occ.snapshotDurationSec)).collect(Collectors.toList());
-        addFlowRecursively(metadata.rootFlow.flowId, metadata.rootFlow, occurrenceElements);
+        addFlowRecursively(metadata.rootFlow.flowId, metadata.rootFlow, 0, occurrenceElements);
     }
 
     public void addThread(List<ValuePair<MethodCall, Integer>> path, List<ThreadOccurrenceData> occurrences) {
@@ -100,15 +100,20 @@ public class MethodCall {
                 new Object[] {that.className, that.fileName, that.methodName, that.methodDescriptor});
     }
 
-    private void addFlowRecursively(String flowId, FlowMetadata.FlowElement metadata, List<ValuePair<FlowOccurrenceData.FlowElement, Float>> occurrences) {
+    private void addFlowRecursively(String flowId, FlowMetadata.FlowElement metadata, int position, List<ValuePair<FlowOccurrenceData.FlowElement, Float>> occurrences) {
         if (flows == null) flows = new ArrayList<>();
         MethodFlowStatistics stat = new MethodFlowStatistics(occurrences);
-        MethodFlow methodFlow = new MethodFlow(flowId, metadata.returnLine, stat);
-        int pos = flows.indexOf(methodFlow);
-        if (pos == -1) {
+        MethodFlow methodFlow = new MethodFlow(flowId, position, metadata.returnLine, stat);
+
+        int parentPosition = 0;
+        int existingPos = flows.indexOf(methodFlow);
+        if (existingPos == -1) {
             flows.add(methodFlow);
         } else {
-            flows.get(pos).statistics.merge(stat);
+            MethodFlow existing = flows.get(existingPos);
+            existing.statistics.merge(stat);
+            existing.position += position;
+            parentPosition = existing.position;
         }
 
         if (metadata.subflows == null) return;
@@ -121,7 +126,7 @@ public class MethodCall {
 
             List<ValuePair<FlowOccurrenceData.FlowElement, Float>> subOccurrences =
                     occurrences.stream().map(occurrence -> new ValuePair<>(occurrence.value1.subflows.get(subflowIdx), occurrence.value2)).collect(Collectors.toList());
-            nestedCall.addFlowRecursively(flowId, subMeta, subOccurrences);
+            nestedCall.addFlowRecursively(flowId, subMeta, parentPosition + subflowIdx, subOccurrences);
         }
     }
 

@@ -139,7 +139,7 @@ public class AnalysisStepTestHelper {
         return observation;
     }
 
-    public Map<String, Set<String>> checkFlowStatistics(LoadRunner.LoadResult loadResult, boolean strictThroughputCheck) {
+    public Map<String, Set<String>> checkFlowStatistics(LoadRunner.LoadResult loadResult, float allowedMistake) {
         Map<String, Set<String>> res = new HashMap<>();
         Map<String, FlowMetadata> allFlows = getAllFlowMetadata();
         FlowSummary flowSummary = getFlowSummary();
@@ -189,7 +189,7 @@ public class AnalysisStepTestHelper {
             System.out.println("\tFlow statistics: throughput=" + flowStatistics.throughputPerSec + "; avgDuration=" + flowStatistics.averageTime + "; minDuration=" + flowStatistics.minTime + "; maxDuration=" + flowStatistics.maxTime);
 
             if (loadResult != null)
-                assertEquals(actualThroughput, flowStatistics.throughputPerSec, strictThroughputCheck ? actualThroughput / 10 : actualThroughput / 3);
+                assertEquals(actualThroughput, flowStatistics.throughputPerSec, actualThroughput * allowedMistake);
 
             res.put(flow.getId(), found);
 
