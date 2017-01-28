@@ -1,5 +1,7 @@
 package com.jflop.server.persistency;
 
+import com.jflop.server.runtime.data.MetricMetadata;
+
 /**
  * Source, id, and version
  *
@@ -24,5 +26,9 @@ public class PersistentData<T> {
 
     public PersistentData(String id, long version) {
         this(id, version, null);
+    }
+
+    public PersistentData(T id, T metricMetadataClass) {
+
     }
 }

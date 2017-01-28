@@ -4,10 +4,7 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.runtime.data.FlowMetadata;
-import com.jflop.server.runtime.data.InstrumentationMetadata;
-import com.jflop.server.runtime.data.Metadata;
-import com.jflop.server.runtime.data.ThreadMetadata;
+import com.jflop.server.runtime.data.*;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;
@@ -33,7 +30,8 @@ public class MetadataIndex extends IndexTemplate {
         super(METADADATA_INDEX + "-template", METADADATA_INDEX + "*",
                 new DocType("thread", "persistency/threadMetadata.json", ThreadMetadata.class),
                 new DocType("class", "persistency/instrumentationMetadata.json", InstrumentationMetadata.class),
-                new DocType("flow", "persistency/flowMetadata.json", FlowMetadata.class)
+                new DocType("flow", "persistency/flowMetadata.json", FlowMetadata.class),
+                new DocType("metric", "persistency/metricMetadata.json", MetricMetadata.class)
         );
     }
 
@@ -79,5 +77,15 @@ public class MetadataIndex extends IndexTemplate {
         List<PersistentData<InstrumentationMetadata>> found = find(query, 10000, InstrumentationMetadata.class, null);
 
         return found.stream().map(doc -> doc.source.className).collect(Collectors.toSet());
+    }
+
+    public PersistentData<MetricMetadata> getOrCreateMetricMetadata(AgentDataFactory dataFactory) {
+        String id = MetricMetadata.getMetadataId(dataFactory.getAgentJVM());
+        PersistentData<MetricMetadata> doc = getDocument(new PersistentData<>(id, 0), MetricMetadata.class);
+        if (doc == null) {
+            MetricMetadata metricMetadata = dataFactory.createInstance(MetricMetadata.class);
+            doc = createDocument(new PersistentData<>(id, 0, metricMetadata));
+        }
+        return doc;
     }
 }

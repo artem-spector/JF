@@ -1,6 +1,0 @@
-[
-  [
-    "{\"name\":\"m2\",\"duration\":80,\"nested\":[{\"name\":\"m1\",\"duration\":14,\"nested\":[{\"name\":\"m8\",\"duration\":3,\"nested\":[{\"name\":\"m4\",\"duration\":2,\"nested\":[{\"name\":\"m7\",\"duration\":0},{\"name\":\"m6\",\"duration\":1}]},{\"name\":\"m5\",\"duration\":3},{\"name\":\"m3\",\"duration\":0,\"nested\":[]}]}]}]}",
-    20.0
-  ]
-]

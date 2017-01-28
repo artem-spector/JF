@@ -1,5 +1,6 @@
 package com.jflop.server.runtime.data;
 
+import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.util.DigestUtil;
 
 import java.util.*;
@@ -15,11 +16,26 @@ public class MetricMetadata extends Metadata {
     public long count;
     public Map<String, Long> sourceIDs;
 
+    public static String getMetadataId(AgentJVM agentJvm) {
+        return DigestUtil.uniqueId(agentJvm, "metrics");
+    }
+
     @Override
     public String getDocumentId() {
         if (agentJvmId == null)
-            agentJvmId = DigestUtil.uniqueId(agentJvm, "metrics");
+            agentJvmId = getMetadataId(agentJvm);
         return agentJvmId;
+    }
+
+    public void aggregateFlowOccurrence(FlowOccurrenceData flowOccurrence, Map<String, Float> res) {
+        aggregateFlowElement(flowOccurrence.rootFlow, res, flowOccurrence.snapshotDurationSec);
+    }
+
+    private void aggregateFlowElement(FlowOccurrenceData.FlowElement element, Map<String, Float> res, float snapshotDurationSec) {
+        aggregate(snapshotDurationSec, element, res);
+        if (element.subflows != null) {
+            element.subflows.forEach(subflow -> aggregateFlowElement(subflow, res, snapshotDurationSec));
+        }
     }
 
     public void aggregate(float elapsedTimeSec, MetricSource source, Map<String, Float> res) {

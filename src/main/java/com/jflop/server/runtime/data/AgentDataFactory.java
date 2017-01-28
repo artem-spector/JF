@@ -29,6 +29,10 @@ public class AgentDataFactory {
 
     }
 
+    public AgentJVM getAgentJVM() {
+        return agentJVM;
+    }
+
     public <T extends AgentData> T createInstance(Class<T> type) {
         try {
             T instance = type.newInstance();

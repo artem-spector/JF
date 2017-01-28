@@ -6,6 +6,8 @@ import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.feature.ClassInfoFeature;
 import com.jflop.server.feature.InstrumentationConfigurationFeature;
 import com.jflop.server.feature.SnapshotFeature;
+import com.jflop.server.persistency.DocType;
+import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.RawDataIndex;
@@ -67,6 +69,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         public Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
         public Map<FlowMetadata, List<FlowOccurrenceData>> flows;
         public FlowSummary flowSummary;
+        public MetricMetadata metricMetadata;
         Set<MethodConfiguration> methodsToInstrument;
         private Set<StackTraceElement> instrumentedTraceElements;
         AgentDataFactory agentDataFactory;
@@ -77,6 +80,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             stored.put("threadOccurrences", threads == null ? null : threads.values());
             stored.put("flowMetadata", flows == null ? null : flows.keySet());
             stored.put("flowOccurrences", flows == null ? null : flows.values());
+            stored.put("metricMetadata", metricMetadata);
             try {
                 new ObjectMapper().writeValue(file, stored);
             } catch (IOException e) {
@@ -110,6 +114,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                     if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
             });
 
+            res.metricMetadata = get(mapper, map, "metricMetadata", new TypeReference<MetricMetadata>() {});
+
             return res;
         }
 
@@ -141,7 +147,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         if (current.taskState == null) current.taskState = AnalysisState.createState();
         current.from = current.taskState.processedUntil;
         current.to = refreshThreshold;
-        current.agentDataFactory = new AgentDataFactory(lock.agentJvm, new Date(), processedDataIndex.getDocTypes());
+        List<DocType> docTypes = new ArrayList<>(processedDataIndex.getDocTypes());
+        docTypes.addAll(metadataIndex.getDocTypes());
+        current.agentDataFactory = new AgentDataFactory(lock.agentJvm, new Date(), docTypes);
 
         JflopConfiguration lastReportedConfiguration = instrumentationConfigurationFeature.getConfiguration(current.agentJvm);
         if (lastReportedConfiguration != null)
@@ -164,8 +172,27 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     void analyze() {
         mapThreadsToFlows();
+        buildMetrics();
         findMethodsToInstrumentInThreadDump();
         adjustInstrumentation();
+    }
+
+    void buildMetrics() {
+        StepState current = step.get();
+        PersistentData<MetricMetadata> metricMetadata = metadataIndex.getOrCreateMetricMetadata(current.agentDataFactory);
+        current.metricMetadata = metricMetadata.source;
+
+        Map<String, Float> observation = new HashMap<>();
+
+        if (current.flows != null) {
+            for (List<FlowOccurrenceData> occurrenceList : current.flows.values()) {
+                for (FlowOccurrenceData occurrence : occurrenceList) {
+                    metricMetadata.source.aggregateFlowOccurrence(occurrence, observation);
+                }
+            }
+        }
+
+        metadataIndex.updateDocument(metricMetadata);
     }
 
     void takeSnapshot() {

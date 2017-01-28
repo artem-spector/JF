@@ -24,10 +24,12 @@ public class AnalysisStepTestHelper {
     private Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
     private Map<FlowMetadata, List<FlowOccurrenceData>> flows;
     private FlowSummary flowSummaryCalculated;
+    private MetricMetadata metricMetadata;
 
     public AnalysisStepTestHelper(JvmMonitorAnalysis.StepState state, Object[][] flowsAndThroughput) {
         this.threads = state.threads;
         this.flows = state.flows;
+        this.metricMetadata = state.metricMetadata;
 
         if (flowsAndThroughput != null) {
             generatedFlows = new ArrayList<>();
@@ -122,12 +124,11 @@ public class AnalysisStepTestHelper {
     }
 
     public Map<String, Float> createMetrics() throws IOException {
-        MetricMetadata metricMetadata = new MetricMetadata();
         Map<String, Float> observation = new TreeMap<>();
 
         for (List<FlowOccurrenceData> occurrenceList : flows.values()) {
             for (FlowOccurrenceData occurrence : occurrenceList) {
-                collectFlowMetrics(metricMetadata, observation, occurrence.snapshotDurationSec, occurrence.rootFlow);
+                metricMetadata.aggregateFlowOccurrence(occurrence, observation);
             }
         }
 
@@ -196,13 +197,6 @@ public class AnalysisStepTestHelper {
         }
 
         return res;
-    }
-
-    private void collectFlowMetrics(MetricMetadata metricBuilder, Map<String, Float> observation, float snapshotDurationSec, FlowOccurrenceData.FlowElement element) {
-        metricBuilder.aggregate(snapshotDurationSec, element, observation);
-        if (element.subflows != null) {
-            element.subflows.forEach(subflow -> collectFlowMetrics(metricBuilder, observation, snapshotDurationSec, subflow));
-        }
     }
 
     private Map<String, FlowMetadata> getAllFlowMetadata() {
