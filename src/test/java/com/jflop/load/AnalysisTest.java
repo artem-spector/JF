@@ -65,6 +65,7 @@ public class AnalysisTest extends LoadTestBase {
             awaitNextSummary(10, new Date());
             LoadRunner.LoadResult loadResult = getLoadResult();
 
+            assertTrue("File does not exist: " + file.getAbsolutePath(), file.exists());
             AnalysisStepTestHelper helper = new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(file), generatedFlows);
             Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, 0.5f);
             if (previous != null) {
