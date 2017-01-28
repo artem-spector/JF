@@ -92,7 +92,7 @@ public class AnalysisStepTestHelper {
                 }
             }
             List<ValuePair<MethodCall, Integer>> path = new ArrayList<>();
-            boolean found = flowSummary.roots.stream().anyMatch(root -> flowSummary.findPath(root, trace, trace.length - 1, path));
+            boolean found = flowSummary.roots.stream().anyMatch(root -> flowSummary.findPath(root, trace, trace.length - 1) != null);
             assertEquals("Thread " + threadMetadata.getDocumentId() + " covered=" + covered + ", but found=" + found, covered, found);
         }
     }

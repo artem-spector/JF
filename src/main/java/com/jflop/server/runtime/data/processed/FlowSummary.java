@@ -39,8 +39,8 @@ public class FlowSummary extends AgentData {
                 StackTraceElement[] stackTrace = threadMetadata.stackTrace;
                 if (stackTrace != null && stackTrace.length > 0) {
                     List<ThreadOccurrenceData> threadOccurrences = entry.getValue();
-                    List<ValuePair<MethodCall, Integer>> path = new ArrayList<>();
-                    if (findPath(root, stackTrace, stackTrace.length - 1, path)) {
+                    List<ValuePair<MethodCall, Integer>> path = findPath(root, stackTrace, stackTrace.length - 1);
+                    if (path != null) {
                         root.addThread(path, threadOccurrences);
                     }
                 }
@@ -48,7 +48,7 @@ public class FlowSummary extends AgentData {
         }
     }
 
-    public boolean findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos, List<ValuePair<MethodCall, Integer>> path) {
+    public List<ValuePair<MethodCall, Integer>> findPath(MethodCall methodCall, StackTraceElement[] stacktrace, int tracePos) {
         // it's ok to skip instrumented elements, if they are in the beginning of the stack
         // this is because the outmost methods might not return yet, and the registered flow may be partial.
         boolean skipInstrumented = tracePos == stacktrace.length - 1;
@@ -65,30 +65,31 @@ public class FlowSummary extends AgentData {
 
         // if no fitting element found in the stacktrace, it's not fit
         if (!fit)
-            return false;
+            return null;
 
         // if the flow element fits the stacktrace element, add the method call and the line number to the path
+        List<ValuePair<MethodCall, Integer>> path = new ArrayList<>();
         path.add(new ValuePair<>(methodCall, stacktrace[tracePos].getLineNumber()));
 
-        // if we've reached the trace end, it's a fit
-        if (tracePos == 0) return true;
+        // if we've reached the trace end, we're done
+        if (tracePos == 0) return path;
 
-        // if we've reached the flow end, its's a fit only if all the remaining methods are not instrumented
+        // if we've reached the flow end, we're done
         if (methodCall.nestedCalls == null || methodCall.nestedCalls.isEmpty()) {
-            while (--tracePos >= 0) {
-                if (isInstrumented(stacktrace[tracePos])) return false;
-            }
-            return true;
+            return path;
         }
 
-        // if one of subflows fits the rest of the trace, it's a fit
+        // go through the subflows and pick the longest sub-path
+        List<ValuePair<MethodCall, Integer>> longestPath = null;
         for (MethodCall nested : methodCall.nestedCalls) {
-            if (findPath(nested, stacktrace, tracePos - 1, path))
-                return true;
+            List<ValuePair<MethodCall, Integer>> nestedPath = findPath(nested, stacktrace, tracePos - 1);
+            if (longestPath == null || (nestedPath != null && nestedPath.size() > longestPath.size()))
+                longestPath = nestedPath;
         }
+        if (longestPath != null)
+            path.addAll(longestPath);
 
-        // if none of subflows fit, it's not fit
-        return false;
+        return path;
     }
 
     public boolean isInstrumented(StackTraceElement element) {
