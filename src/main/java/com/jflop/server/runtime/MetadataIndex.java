@@ -5,6 +5,7 @@ import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.*;
+import com.jflop.server.runtime.data.metric.MetricMetadata;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.stereotype.Component;

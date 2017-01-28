@@ -1,4 +1,6 @@
-package com.jflop.server.runtime.data;
+package com.jflop.server.runtime.data.metric;
+
+import com.jflop.server.runtime.data.OccurrenceData;
 
 import java.util.Map;
 

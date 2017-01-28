@@ -3,7 +3,7 @@ package com.jflop.server.runtime;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
-import com.jflop.server.runtime.data.MetricData;
+import com.jflop.server.runtime.data.metric.MetricData;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilders;

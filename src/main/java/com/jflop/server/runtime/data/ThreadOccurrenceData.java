@@ -15,4 +15,5 @@ public class ThreadOccurrenceData extends OccurrenceData {
     public String getMetadataId() {
         return dumpId;
     }
+
 }

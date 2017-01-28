@@ -12,6 +12,8 @@ import com.jflop.server.runtime.MetadataIndex;
 import com.jflop.server.runtime.ProcessedDataIndex;
 import com.jflop.server.runtime.RawDataIndex;
 import com.jflop.server.runtime.data.*;
+import com.jflop.server.runtime.data.metric.MetricData;
+import com.jflop.server.runtime.data.metric.MetricMetadata;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import com.jflop.server.runtime.data.processed.MethodCall;
 import com.jflop.server.runtime.data.processed.MethodFlow;
@@ -184,11 +186,15 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
         Map<String, Float> observation = new HashMap<>();
 
+        if (current.threads != null) {
+            for (List<ThreadOccurrenceData> occurrenceList : current.threads.values()) {
+                current.metricMetadata.aggregateThreads(occurrenceList, observation);
+            }
+        }
+
         if (current.flows != null) {
             for (List<FlowOccurrenceData> occurrenceList : current.flows.values()) {
-                for (FlowOccurrenceData occurrence : occurrenceList) {
-                    metricMetadata.source.aggregateFlowOccurrence(occurrence, observation);
-                }
+                current.metricMetadata.aggregateFlows(occurrenceList, observation);
             }
         }
 

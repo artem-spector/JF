@@ -4,6 +4,7 @@ import com.jflop.load.GeneratedFlow;
 import com.jflop.load.LoadRunner;
 import com.jflop.server.background.JvmMonitorAnalysis;
 import com.jflop.server.persistency.ValuePair;
+import com.jflop.server.runtime.data.metric.MetricMetadata;
 import com.jflop.server.runtime.data.processed.*;
 
 import java.io.IOException;
@@ -126,9 +127,15 @@ public class AnalysisStepTestHelper {
     public Map<String, Float> createMetrics() throws IOException {
         Map<String, Float> observation = new TreeMap<>();
 
-        for (List<FlowOccurrenceData> occurrenceList : flows.values()) {
-            for (FlowOccurrenceData occurrence : occurrenceList) {
-                metricMetadata.aggregateFlowOccurrence(occurrence, observation);
+        if (threads != null) {
+            for (List<ThreadOccurrenceData> occurrenceList : threads.values()) {
+                metricMetadata.aggregateThreads(occurrenceList, observation);
+            }
+        }
+
+        if (flows != null) {
+            for (List<FlowOccurrenceData> occurrenceList : flows.values()) {
+                metricMetadata.aggregateFlows(occurrenceList, observation);
             }
         }
 
