@@ -193,6 +193,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         }
 
         metadataIndex.updateDocument(metricMetadata);
+        MetricData metricData = current.agentDataFactory.createInstance(MetricData.class);
+        metricData.metrics = observation;
+        processedDataIndex.addMetrics(metricData);
     }
 
     void takeSnapshot() {

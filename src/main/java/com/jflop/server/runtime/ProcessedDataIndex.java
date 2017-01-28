@@ -3,6 +3,7 @@ package com.jflop.server.runtime;
 import com.jflop.server.persistency.DocType;
 import com.jflop.server.persistency.IndexTemplate;
 import com.jflop.server.persistency.PersistentData;
+import com.jflop.server.runtime.data.MetricData;
 import com.jflop.server.runtime.data.processed.FlowSummary;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -10,6 +11,7 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * TODO: Document!
@@ -23,7 +25,8 @@ public class ProcessedDataIndex extends IndexTemplate {
 
     protected ProcessedDataIndex() {
         super(PROCESSED_DATA_INDEX + "-template", PROCESSED_DATA_INDEX + "*",
-                new DocType("flowSummary", "persistency/flowSummary.json", FlowSummary.class)
+                new DocType("flowSummary", "persistency/flowSummary.json", FlowSummary.class),
+                new DocType("metric", "persistency/metricData.json", MetricData.class)
         );
     }
 
@@ -33,7 +36,11 @@ public class ProcessedDataIndex extends IndexTemplate {
     }
 
     public void addFlowSummary(FlowSummary data) {
-        createDocument(new PersistentData<Object>(data));
+        createDocument(new PersistentData<>(data));
+    }
+
+    public void addMetrics(MetricData observation) {
+        createDocument(new PersistentData<>(observation));
     }
 
     public FlowSummary getLastSummary() {
