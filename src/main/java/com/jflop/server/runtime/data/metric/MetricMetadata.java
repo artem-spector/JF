@@ -51,7 +51,7 @@ public class MetricMetadata extends Metadata {
     public void aggregateThreads(Collection<ThreadOccurrenceData> occurrences, Map<String, Float> res) {
         Aggregator aggregator = new Aggregator();
         for (ThreadOccurrenceData occurrence : occurrences) {
-            ValueAggregator value = new ValueAggregator(occurrence.dumpId, "concurrency", true, true, true, false);
+            ValueAggregator value = new ValueAggregator("thread", occurrence.threadState.name(), true, true, true, false);
             value.setValue(occurrence.count, occurrence.count, occurrence.count, 1, 0);
             aggregator.add(value);
         }

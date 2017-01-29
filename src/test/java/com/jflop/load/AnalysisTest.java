@@ -50,37 +50,54 @@ public class AnalysisTest extends LoadTestBase {
         runFlows(flowsAndThroughput, 3, "target/testMultipleFlows-temp");
     }
 
+    @Test
+    public void runContinuously() throws Exception {
+        generateFlows(6, 10, 100, 50, 200);
+        runFlows(flowsAndThroughput, 10000, null);
+    }
+
     private void runFlows(Object[][] generatedFlows, int numIterations, String folderPath) throws Exception {
         startLoad();
         startMonitoring();
         awaitNextSummary(30, null); // skip the first summary
 
-        File folder = prepareFolder(folderPath);
-        GeneratedFlow.save(new File(folder, "generatedFlows.json"), generatedFlows);
+        File folder = null;
+        if (folderPath != null) {
+            folder = prepareFolder(folderPath);
+            GeneratedFlow.save(new File(folder, "generatedFlows.json"), generatedFlows);
+        }
 
         Map<String, Set<String>> previous = null;
         for (int i = 0; i < numIterations; i++) {
-            File file = new File(folder, "step" + (i + 1) + ".json");
-            analysisTask.saveStepToFile(file);
-            awaitNextSummary(10, new Date());
-            LoadRunner.LoadResult loadResult = getLoadResult();
+            String fileName = "step" + (i + 1) + ".json";
+            if (folderPath != null) {
+                File file = new File(folder, fileName);
+                analysisTask.saveStepToFile(file);
+            }
 
-            assertTrue("File does not exist: " + file.getAbsolutePath(), file.exists());
-            AnalysisStepTestHelper helper = new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(file), generatedFlows);
-            Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, 0.5f);
-            if (previous != null) {
-                assertEquals(previous.keySet(), found.keySet());
-                for (Object[] pair : generatedFlows) {
-                    GeneratedFlow generatedFlow = (GeneratedFlow) pair[0];
-                    for (String prevFlowId : previous.get(generatedFlow.getId())) {
-                        for (String foundFlowId : found.get(generatedFlow.getId())) {
-                            String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same generated flow:\n" + generatedFlow;
-                            assertTrue(message, helper.flowsMaybeSame(prevFlowId, foundFlowId));
+            System.out.println("-------------- step " + (i + 1) + " ---------------");
+            awaitNextSummary(10, new Date());
+
+            if (folderPath != null) {
+                LoadRunner.LoadResult loadResult = getLoadResult();
+                File file = new File(folder, fileName);
+                assertTrue("File does not exist: " + file.getAbsolutePath(), file.exists());
+                AnalysisStepTestHelper helper = new AnalysisStepTestHelper(JvmMonitorAnalysis.StepState.readFromFile(file), generatedFlows);
+                Map<String, Set<String>> found = helper.checkFlowStatistics(loadResult, 0.5f);
+                if (previous != null) {
+                    assertEquals(previous.keySet(), found.keySet());
+                    for (Object[] pair : generatedFlows) {
+                        GeneratedFlow generatedFlow = (GeneratedFlow) pair[0];
+                        for (String prevFlowId : previous.get(generatedFlow.getId())) {
+                            for (String foundFlowId : found.get(generatedFlow.getId())) {
+                                String message = "Flows " + prevFlowId + " and " + foundFlowId + " cannot represent the same generated flow:\n" + generatedFlow;
+                                assertTrue(message, helper.flowsMaybeSame(prevFlowId, foundFlowId));
+                            }
                         }
                     }
                 }
+                previous = found;
             }
-            previous = found;
         }
 
         stopMonitoring();
