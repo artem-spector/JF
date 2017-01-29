@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
@@ -72,6 +73,7 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         public Map<FlowMetadata, List<FlowOccurrenceData>> flows;
         public FlowSummary flowSummary;
         public MetricMetadata metricMetadata;
+        public List<LoadData> loadData;
         Set<MethodConfiguration> methodsToInstrument;
         private Set<StackTraceElement> instrumentedTraceElements;
         AgentDataFactory agentDataFactory;
@@ -82,9 +84,13 @@ public class JvmMonitorAnalysis extends BackgroundTask {
             stored.put("threadOccurrences", threads == null ? null : threads.values());
             stored.put("flowMetadata", flows == null ? null : flows.keySet());
             stored.put("flowOccurrences", flows == null ? null : flows.values());
+            stored.put("loadData", loadData == null ? null : loadData);
             stored.put("metricMetadata", metricMetadata);
             try {
-                new ObjectMapper().writeValue(file, stored);
+                FileOutputStream out = new FileOutputStream(file);
+                new ObjectMapper().writeValue(out, stored);
+                out.flush();
+                out.close();
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Failed saving step to file", e);
             }
@@ -115,6 +121,8 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                 for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : res.flows.entrySet())
                     if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
             });
+
+            res.loadData = get(mapper, map, "loadData", new TypeReference<List<LoadData>>() {});
 
             res.metricMetadata = get(mapper, map, "metricMetadata", new TypeReference<MetricMetadata>() {});
 
@@ -185,6 +193,9 @@ public class JvmMonitorAnalysis extends BackgroundTask {
         current.metricMetadata = metricMetadata.source;
 
         Map<String, Float> observation = new HashMap<>();
+
+        current.loadData = rawDataIndex.getLoadData(current.from, current.to);
+        current.metricMetadata.aggregateLoad(current.loadData, observation);
 
         if (current.threads != null) {
             for (List<ThreadOccurrenceData> occurrenceList : current.threads.values()) {

@@ -7,11 +7,13 @@ import com.jflop.server.persistency.PersistentData;
 import com.jflop.server.runtime.data.*;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * TODO: Document!
@@ -82,5 +84,11 @@ public class RawDataIndex extends IndexTemplate {
                 .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
                 .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
                 .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));
+    }
+
+    public List<LoadData> getLoadData(Date from, Date to) {
+        RangeQueryBuilder time = QueryBuilders.rangeQuery("time").from(from).to(to);
+        List<PersistentData<LoadData>> found = find(time, 300, LoadData.class, null);
+        return found.stream().map(doc -> doc.source).collect(Collectors.toList());
     }
 }

@@ -24,12 +24,14 @@ public class AnalysisStepTestHelper {
 
     private Map<ThreadMetadata, List<ThreadOccurrenceData>> threads;
     private Map<FlowMetadata, List<FlowOccurrenceData>> flows;
+    private final List<LoadData> loadData;
     private FlowSummary flowSummaryCalculated;
     private MetricMetadata metricMetadata;
 
     public AnalysisStepTestHelper(JvmMonitorAnalysis.StepState state, Object[][] flowsAndThroughput) {
         this.threads = state.threads;
         this.flows = state.flows;
+        this.loadData = state.loadData;
         this.metricMetadata = state.metricMetadata;
 
         if (flowsAndThroughput != null) {
@@ -138,6 +140,9 @@ public class AnalysisStepTestHelper {
                 metricMetadata.aggregateFlows(occurrenceList, observation);
             }
         }
+
+        if (loadData != null)
+            metricMetadata.aggregateLoad(loadData, observation);
 
         System.out.println("metric line:");
         for (Map.Entry<String, Float> entry : observation.entrySet()) {

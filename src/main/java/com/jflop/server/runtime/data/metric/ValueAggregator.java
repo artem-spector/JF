@@ -52,7 +52,7 @@ public class ValueAggregator {
         this.total += other.total;
         this.count += other.count;
         this.min = Math.min(this.min, other.min);
-        this.max = Math.min(this.max, other.max);
+        this.max = Math.max(this.max, other.max);
     }
 
     public void writeMetrics(String sourceId, Map<String, Float> out) {

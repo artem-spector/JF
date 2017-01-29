@@ -2,13 +2,14 @@ package com.jflop.server.runtime.data.metric;
 
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.runtime.data.FlowOccurrenceData;
+import com.jflop.server.runtime.data.LoadData;
 import com.jflop.server.runtime.data.Metadata;
 import com.jflop.server.runtime.data.ThreadOccurrenceData;
-import com.jflop.server.runtime.data.metric.ValueAggregator;
 import com.jflop.server.util.DigestUtil;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,50 +34,46 @@ public class MetricMetadata extends Metadata {
         return agentJvmId;
     }
 
-    public void aggregateThreads(Collection<ThreadOccurrenceData> occurrences, Map<String, Float> res) {
-        ValueAggregator aggregated = null;
-        for (ThreadOccurrenceData occurrence : occurrences) {
-            ValueAggregator curr = new ValueAggregator(occurrence.dumpId, "concurrency", true, true, true, false);
-            curr.setValue(occurrence.count, occurrence.count, occurrence.count, 1, 0);
-            if (aggregated == null)
-                aggregated = curr;
-            else
-                aggregated.mergeFrom(curr);
+    public void aggregateLoad(List<LoadData> dataList, Map<String, Float> res) {
+        Aggregator aggregator = new Aggregator();
+        for (LoadData loadData : dataList) {
+            ValueAggregator cpu = new ValueAggregator("load", "cpu", true, true, true, false);
+            cpu.setValue(loadData.processCpuLoad, loadData.processCpuLoad, loadData.processCpuLoad, 1, -1);
+            aggregator.add(cpu);
+            ValueAggregator heap = new ValueAggregator("load", "mem", true, true, true, false);
+            heap.setValue(loadData.heapUsed, loadData.heapUsed, loadData.heapUsed, 1, -1);
+            aggregator.add(heap);
         }
 
-        if (aggregated != null)
-            aggregated.writeMetrics(internalSourceName(aggregated), res);
+        aggregator.writeTo(res);
+    }
+
+    public void aggregateThreads(Collection<ThreadOccurrenceData> occurrences, Map<String, Float> res) {
+        Aggregator aggregator = new Aggregator();
+        for (ThreadOccurrenceData occurrence : occurrences) {
+            ValueAggregator value = new ValueAggregator(occurrence.dumpId, "concurrency", true, true, true, false);
+            value.setValue(occurrence.count, occurrence.count, occurrence.count, 1, 0);
+            aggregator.add(value);
+        }
+        aggregator.writeTo(res);
     }
 
     public void aggregateFlows(Collection<FlowOccurrenceData> occurrences, Map<String, Float> res) {
-        Map<String, ValueAggregator> aggregated = null;
+        Aggregator aggregator = new Aggregator();
         for (FlowOccurrenceData occurrence : occurrences) {
-            Map<String, ValueAggregator> curr = new HashMap<>();
-            getFlowValues(occurrence.rootFlow, occurrence.snapshotDurationSec, curr);
-            if (aggregated == null)
-                aggregated = curr;
-            else
-                for (Map.Entry<String, ValueAggregator> entry : curr.entrySet()) {
-                    ValueAggregator aggregatedValue = aggregated.get(entry.getKey());
-                    if (aggregatedValue == null)
-                        aggregated.put(entry.getKey(), entry.getValue());
-                    else
-                        aggregatedValue.mergeFrom(entry.getValue());
-                }
+            getFlowValues(occurrence.rootFlow, occurrence.snapshotDurationSec, aggregator);
         }
-
-        if (aggregated != null)
-            aggregated.values().forEach(v -> v.writeMetrics(internalSourceName(v), res));
+        aggregator.writeTo(res);
     }
 
-    private void getFlowValues(FlowOccurrenceData.FlowElement element, float snapshotDuration, Map<String, ValueAggregator> res) {
+    private void getFlowValues(FlowOccurrenceData.FlowElement element, float snapshotDuration, Aggregator aggregator) {
         ValueAggregator value = new ValueAggregator(element.flowId, "flowDuration", true, true, true, true);
         value.setValue(element.cumulativeTime, element.maxTime, element.minTime, element.count, snapshotDuration);
-        res.put(value.getId(), value);
+        aggregator.add(value);
 
         if (element.subflows != null)
             for (FlowOccurrenceData.FlowElement subflow : element.subflows)
-                getFlowValues(subflow, snapshotDuration, res);
+                getFlowValues(subflow, snapshotDuration, aggregator);
     }
 
     private String internalSourceName(ValueAggregator aggregator) {
@@ -85,4 +82,21 @@ public class MetricMetadata extends Metadata {
         return String.valueOf(sourceNum);
     }
 
+    private class Aggregator {
+
+        private Map<String, ValueAggregator> res = new HashMap<>();
+
+        public void add(ValueAggregator value) {
+            String key = value.getId();
+            ValueAggregator existing = res.get(key);
+            if (existing == null)
+                res.put(key, value);
+            else
+                existing.mergeFrom(value);
+        }
+
+        public void writeTo(Map<String, Float> out) {
+            res.values().forEach(v -> v.writeMetrics(internalSourceName(v), out));
+        }
+    }
 }

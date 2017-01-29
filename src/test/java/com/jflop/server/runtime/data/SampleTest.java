@@ -23,7 +23,8 @@ public class SampleTest {
 
     private static final String[] FOLDERS = new String[]{
             "samples/analysisSteps/1/",
-            "samples/analysisSteps/2/"
+            "samples/analysisSteps/2/",
+            "samples/analysisSteps/3/"
     };
 
     @Test
