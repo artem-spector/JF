@@ -6,11 +6,16 @@ import com.jflop.server.runtime.data.metric.MetricData;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,26 +41,30 @@ public class TestUtil {
     }
 
     private void exportMetrics(File file, int maxHits) throws IOException {
-        List<String> names = new ArrayList<>();
-        List<Map<String, Float>> values = new ArrayList<>();
+        DateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd_HH:mm:ss");
 
-        SearchResponse response = esClient.search("jf-processed-data", "metric", QueryBuilders.matchAllQuery(), maxHits, null);
+        List<String> names = new ArrayList<>();
+        List<Map<String, Object>> values = new ArrayList<>();
+
+        SearchResponse response = esClient.search("jf-processed-data", "metric", QueryBuilders.matchAllQuery(), maxHits, SortBuilders.fieldSort("time").order(SortOrder.ASC));
         for (SearchHit hit : response.getHits().getHits()) {
             MetricData metricData = mapper.readValue(hit.source(), MetricData.class);
-            Map<String, Float> line = metricData.metrics;
-            line.keySet().forEach(k -> {if (!names.contains(k)) names.add(k);});
+            Map<String, Object> line = new HashMap<>(metricData.metrics);
+            line.keySet().forEach(k -> {
+                if (!names.contains(k)) names.add(k);
+            });
+            line.put("time", metricData.time);
             values.add(line);
         }
 
         PrintStream out = new PrintStream(file);
-        out.println(names.stream().collect(Collectors.joining(" ")));
-        for (Map<String, Float> line : values) {
-            String lineStr = "";
+        out.println(names.stream().collect(Collectors.joining(" ", "time ", "")));
+        for (Map<String, Object> line : values) {
+            String lineStr = dateFormat.format(line.get("time"));
             for (String name : names) {
-                if (!lineStr.isEmpty()) lineStr += " ";
-                Float val = line.get(name);
-                if (val == null) val = 0f;
-                lineStr += val;
+                Object val = line.get(name);
+                assert val instanceof Float;
+                lineStr += " " + val;
             }
             out.println(lineStr);
         }

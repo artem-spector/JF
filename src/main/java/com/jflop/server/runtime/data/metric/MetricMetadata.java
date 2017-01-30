@@ -37,11 +37,11 @@ public class MetricMetadata extends Metadata {
     public void aggregateLoad(List<LoadData> dataList, Map<String, Float> res) {
         Aggregator aggregator = new Aggregator();
         for (LoadData loadData : dataList) {
-            ValueAggregator cpu = new ValueAggregator("load", "cpu", true, true, true, false);
-            cpu.setValue(loadData.processCpuLoad, loadData.processCpuLoad, loadData.processCpuLoad, 1, -1);
+            ValueAggregator cpu = new ValueAggregator("load", "cpu", null);
+            cpu.setValue(loadData.processCpuLoad, 1, -1);
             aggregator.add(cpu);
-            ValueAggregator heap = new ValueAggregator("load", "mem", true, true, true, false);
-            heap.setValue(loadData.heapUsed, loadData.heapUsed, loadData.heapUsed, 1, -1);
+            ValueAggregator heap = new ValueAggregator("load", "mem", null);
+            heap.setValue(loadData.heapUsed, 1, -1);
             aggregator.add(heap);
         }
 
@@ -51,8 +51,8 @@ public class MetricMetadata extends Metadata {
     public void aggregateThreads(Collection<ThreadOccurrenceData> occurrences, Map<String, Float> res) {
         Aggregator aggregator = new Aggregator();
         for (ThreadOccurrenceData occurrence : occurrences) {
-            ValueAggregator value = new ValueAggregator("thread", occurrence.threadState.name(), true, true, true, false);
-            value.setValue(occurrence.count, occurrence.count, occurrence.count, 1, 0);
+            ValueAggregator value = new ValueAggregator("thread", occurrence.threadState.name(), null);
+            value.setValue(occurrence.count, 1, 0);
             aggregator.add(value);
         }
         aggregator.writeTo(res);
@@ -67,8 +67,8 @@ public class MetricMetadata extends Metadata {
     }
 
     private void getFlowValues(FlowOccurrenceData.FlowElement element, float snapshotDuration, Aggregator aggregator) {
-        ValueAggregator value = new ValueAggregator(element.flowId, "flowDuration", true, false, false, true);
-        value.setValue(element.cumulativeTime, element.maxTime, element.minTime, element.count, snapshotDuration);
+        ValueAggregator value = new ValueAggregator(element.flowId, "duration", "throughput");
+        value.setValue(element.cumulativeTime, element.count, snapshotDuration);
         aggregator.add(value);
 
         if (element.subflows != null)

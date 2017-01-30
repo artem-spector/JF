@@ -1,5 +1,5 @@
 read.metrics <- function (fileName, folder = "../../../../target/") {
-  read.table(file=paste(folder, fileName, sep = ""), header = TRUE)
+  read.table(file=paste(folder, fileName, sep = ""), sep = " ", na.strings = "null", header = TRUE, row.names = "time")
 }
 
 plotFlow <- function(data, flowNum, col = "blue", newPlot = FALSE) {
@@ -8,8 +8,8 @@ plotFlow <- function(data, flowNum, col = "blue", newPlot = FALSE) {
   }
   
   for (i in flowNum) {
-    thruCol <- paste("X", i, "_freq", sep = "");
-    durCol <- paste("X", i, "_flowDurationAvg", sep = "");
+    thruCol <- paste("throughput_", i, sep = "");
+    durCol <- paste("duration_", i, sep = "");
     points(data[,thruCol], data[,durCol], col = col, pch = 16, cex = .5)
   }
 }
