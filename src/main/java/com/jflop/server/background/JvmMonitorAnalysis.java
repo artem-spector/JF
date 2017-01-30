@@ -189,24 +189,23 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     void buildMetrics() {
         StepState current = step.get();
+        current.loadData = rawDataIndex.getLoadData(current.from, current.to);
+
+        if (current.threads == null || current.flows == null || current.loadData.isEmpty()) return;
+
         PersistentData<MetricMetadata> metricMetadata = metadataIndex.getOrCreateMetricMetadata(current.agentDataFactory);
         current.metricMetadata = metricMetadata.source;
 
         Map<String, Float> observation = new HashMap<>();
 
-        current.loadData = rawDataIndex.getLoadData(current.from, current.to);
         current.metricMetadata.aggregateLoad(current.loadData, observation);
 
-        if (current.threads != null) {
-            for (List<ThreadOccurrenceData> occurrenceList : current.threads.values()) {
-                current.metricMetadata.aggregateThreads(occurrenceList, observation);
-            }
+        for (List<ThreadOccurrenceData> occurrenceList : current.threads.values()) {
+            current.metricMetadata.aggregateThreads(occurrenceList, observation);
         }
 
-        if (current.flows != null) {
-            for (List<FlowOccurrenceData> occurrenceList : current.flows.values()) {
-                current.metricMetadata.aggregateFlows(occurrenceList, observation);
-            }
+        for (List<FlowOccurrenceData> occurrenceList : current.flows.values()) {
+            current.metricMetadata.aggregateFlows(occurrenceList, observation);
         }
 
         metadataIndex.updateDocument(metricMetadata);

@@ -67,7 +67,7 @@ public class MetricMetadata extends Metadata {
     }
 
     private void getFlowValues(FlowOccurrenceData.FlowElement element, float snapshotDuration, Aggregator aggregator) {
-        ValueAggregator value = new ValueAggregator(element.flowId, "flowDuration", true, true, true, true);
+        ValueAggregator value = new ValueAggregator(element.flowId, "flowDuration", true, false, false, true);
         value.setValue(element.cumulativeTime, element.maxTime, element.minTime, element.count, snapshotDuration);
         aggregator.add(value);
 
