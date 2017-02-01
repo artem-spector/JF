@@ -46,6 +46,6 @@ newCentroid <- function(data, prev) {
 }
 
 plotKm <- function(data, centers, title) {
-  plot(data, pch = 16, cex = .5, col="gray", main = title)
+  plot(data, pch = 16, cex = .5, col="gray", main = title, xlab = "throughput sec", ylab = "duration ms")
   points(centers, pch = 16, cex = .8, col="blue")
 }
