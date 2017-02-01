@@ -26,7 +26,7 @@ plotLoad <- function(data) {
   plot(data[, cpuCol], data[, memCol], xlab = "% cpu", ylab = "used memory MB", pch = 16, cex = .9)
 }
 
-clusterFlow <- function(data, flowNum) {
+clusterFlow <- function(data, flowNum, plotSteps = FALSE) {
   thruCols <- paste("throughput_", flowNum, sep = "");
   durCols <- paste("duration_", flowNum, sep = "");
   flowData<- subset(data, select = c(thruCols, durCols));
@@ -34,17 +34,31 @@ clusterFlow <- function(data, flowNum) {
   
   km <- list(kmeans(flowData.sc, 1))
   values <- km[[1]]$tot.withinss;
-  
+
   for (i in 2:10) {
     # add a new centroid
     prev <- km[[i-1]]
     centers <- rbind(prev$centers, newCentroid(flowData.sc, prev))
 
     km[[i]] <- kmeans(flowData.sc, centers, iter.max= 20)
+    if (plotSteps) {
+      plotKm(flowData.sc, km[[i]]$centers, paste("flow", flowNum, "step", i))
+    }
     values[i] <- km[[i]]$tot.withinss
   }
   
-  plot(2:10, values[2:10], type = "b", main = paste("scaled flow", flowNum), xlab = "num clusters", ylab = "tot.withinss")
+  diff2 <- diff(diff(values))
+  K <- which.max(diff2) + 1 
+  if (plotSteps) {
+    plot(values, type = "b", main = paste("scaled flow", flowNum), xlab = "num clusters", ylab = "tot.withinss")
+    lines(diff2, col="blue")
+    print(paste("Number of clusters", K))
+  }
+  
+  scaleAttr <- attributes(flowData.sc)
+  centers <- apply(km[[K]]$centers, MARGIN = 1, FUN = function(c) 
+    {c * scaleAttr$`scaled:scale` + scaleAttr$`scaled:center`})
+  t(centers)
 }
 
 sqDist <- function(p1, p2) {
@@ -58,4 +72,9 @@ newCentroid <- function(flowData, prev) {
   distances <- apply(cmembers, MARGIN = 1, FUN = function(v) {sum((v-cc)^2)})
   remote <- names(which.max(distances))
   flowData[remote,]
+}
+
+plotKm <- function(data, centers, title) {
+  plot(data, pch = 16, cex = .5, col="gray", main = title)
+  points(centers, pch = 16, cex = .8, col="blue")
 }
