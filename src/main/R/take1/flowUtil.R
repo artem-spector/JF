@@ -7,10 +7,15 @@ allFlows <- function(data) {
   as.integer(substr(durationCols, 10, 1000))
 }
 
-flowSubset <- function(data, flowNum) {
+flowSubset <- function(data, flowNum, addTimeColumn = FALSE) {
   tCol <-   paste("throughput_", flowNum, sep = "");
   dCol <- paste("duration_", flowNum, sep = "");
-  subset(data, select = c(tCol, dCol));
+  res <- subset(data, select = c(tCol, dCol));
+  colnames(res) <- c("throughput", "duration")
+  if (addTimeColumn) {
+    res <- cbind(res, time = strptime(rownames(res), format = "%Y.%m.%d_%H:%M:%S"))
+  }
+  res
 }
 
 multiFlow <- function(data, flows) {
@@ -18,8 +23,8 @@ multiFlow <- function(data, flows) {
   for (flowNum in flows) {
     singleFlow <- flowSubset(data, flowNum)
     rownames(singleFlow) <- paste("f", flowNum, rownames(singleFlow), sep = "_")
-    colnames(singleFlow) <- c("throughput", "duration")
     res <- rbind(res, singleFlow)
   }
   res
 }
+
