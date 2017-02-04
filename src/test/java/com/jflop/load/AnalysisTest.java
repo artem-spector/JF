@@ -41,22 +41,22 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void testSingleFlow() throws Exception {
         generateFlows(1, 20, 20, 100, 100);
-        runFlows(flowsAndThroughput, 3, "target/testSingleFlow-temp");
+        runFlows(flowsAndThroughput, 3, "target/testSingleFlow-temp", true);
     }
 
     @Test
     public void testMultipleFlows() throws Exception {
         generateFlows(6, 10, 100, 50, 200);
-        runFlows(flowsAndThroughput, 3, "target/testMultipleFlows-temp");
+        runFlows(flowsAndThroughput, 3, "target/testMultipleFlows-temp", true);
     }
 
     @Test
     public void runContinuously() throws Exception {
         generateFlows(6, 10, 100, 50, 200);
-        runFlows(flowsAndThroughput, 10000, "target/testMultipleFlows-temp");
+        runFlows(flowsAndThroughput, 10000, "target/testContinuous-temp", false);
     }
 
-    private void runFlows(Object[][] generatedFlows, int numIterations, String folderPath) throws Exception {
+    private void runFlows(Object[][] generatedFlows, int numIterations, String folderPath, boolean saveSteps) throws Exception {
         startLoad();
         startMonitoring();
         awaitNextSummary(30, null); // skip the first summary
@@ -70,7 +70,7 @@ public class AnalysisTest extends LoadTestBase {
         Map<String, Set<String>> previous = null;
         for (int i = 0; i < numIterations; i++) {
             String fileName = "step" + (i + 1) + ".json";
-            if (folderPath != null) {
+            if (saveSteps) {
                 File file = new File(folder, fileName);
                 analysisTask.saveStepToFile(file);
             }
@@ -78,7 +78,7 @@ public class AnalysisTest extends LoadTestBase {
             System.out.println("-------------- step " + (i + 1) + " ---------------");
             awaitNextSummary(10, new Date());
 
-            if (folderPath != null) {
+            if (saveSteps) {
                 LoadRunner.LoadResult loadResult = getLoadResult();
                 File file = new File(folder, fileName);
                 assertTrue("File does not exist: " + file.getAbsolutePath(), file.exists());
