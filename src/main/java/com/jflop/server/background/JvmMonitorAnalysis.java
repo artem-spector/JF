@@ -112,15 +112,17 @@ public class JvmMonitorAnalysis extends BackgroundTask {
                     if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
             });
 
-            res.flows = new HashMap<>();
             List<FlowMetadata> flowMetadata = get(mapper, map, "flowMetadata", new TypeReference<List<FlowMetadata>>(){});
             List<List<FlowOccurrenceData>> flowOccurrences = get(mapper, map, "flowOccurrences", new TypeReference<List<List<FlowOccurrenceData>>>(){});
-            flowMetadata.forEach(flow -> res.flows.put(flow, new ArrayList<>()));
-            flowOccurrences.forEach(occ ->
-            {
-                for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : res.flows.entrySet())
-                    if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
-            });
+            if (flowMetadata != null && flowOccurrences != null) {
+                res.flows = new HashMap<>();
+                flowMetadata.forEach(flow -> res.flows.put(flow, new ArrayList<>()));
+                flowOccurrences.forEach(occ ->
+                {
+                    for (Map.Entry<FlowMetadata, List<FlowOccurrenceData>> entry : res.flows.entrySet())
+                        if (entry.getKey().getDocumentId().equals(occ.get(0).getMetadataId())) entry.getValue().addAll(occ);
+                });
+            }
 
             res.loadData = get(mapper, map, "loadData", new TypeReference<List<LoadData>>() {});
 

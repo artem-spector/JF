@@ -24,7 +24,8 @@ public class SampleTest {
     private static final String[] FOLDERS = new String[]{
             "samples/analysisSteps/1/",
             "samples/analysisSteps/2/",
-            "samples/analysisSteps/3/"
+            "samples/analysisSteps/3/",
+            "samples/analysisSteps/4/"
     };
 
     @Test
@@ -76,10 +77,13 @@ public class SampleTest {
         for (String folderPath : FOLDERS) {
             for (AnalysisStepTestHelper helper : steps(folderPath)) {
                 Map<String, Float> line = helper.createMetrics();
-
-                System.out.println("metric line:");
-                for (Map.Entry<String, Float> entry : line.entrySet()) {
-                    System.out.println(entry.getKey() + "->" + entry.getValue());
+                if (line == null) {
+                    System.out.println("No metrics in this step");
+                } else {
+                    System.out.println("metric line:");
+                    for (Map.Entry<String, Float> entry : line.entrySet()) {
+                        System.out.println(entry.getKey() + "->" + entry.getValue());
+                    }
                 }
             }
         }

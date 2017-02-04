@@ -45,7 +45,7 @@ public class AnalysisStepTestHelper {
     }
 
     public FlowSummary getFlowSummary() {
-        if (flowSummaryCalculated == null) {
+        if (flowSummaryCalculated == null && flows != null) {
             flowSummaryCalculated = new FlowSummary();
             flowSummaryCalculated.aggregateFlows(flows);
             flowSummaryCalculated.aggregateThreads(threads);
@@ -56,6 +56,10 @@ public class AnalysisStepTestHelper {
     public List<Set<String>> groupSameFlows() {
         Map<String, FlowMetadata> allFlows = getAllFlowMetadata();
         List<Set<String>> sameGroups = new ArrayList<>();
+        if (allFlows == null) {
+            System.out.println("No flows recorded in this step");
+            return sameGroups;
+        }
 
         for (String flowId : allFlows.keySet()) {
             boolean found = false;
@@ -86,6 +90,10 @@ public class AnalysisStepTestHelper {
 
     public void checkThreadsCoverage() {
         FlowSummary flowSummary = getFlowSummary();
+        if (flowSummary == null) {
+            System.out.println("No flows recorded in this step");
+            return;
+        }
 
         for (ThreadMetadata threadMetadata : threads.keySet()) {
             boolean covered = false;
@@ -104,6 +112,10 @@ public class AnalysisStepTestHelper {
 
     public void calculateDistanceAndOutline() {
         FlowSummary summary = getFlowSummary();
+        if (summary == null) {
+            System.out.println("No flows recorded in this step");
+            return;
+        }
 
         Set<String> allFlows = new HashSet<>();
         summary.roots.forEach(root -> root.flows.forEach(flow -> allFlows.add(flow.flowId)));
@@ -127,6 +139,8 @@ public class AnalysisStepTestHelper {
     }
 
     public Map<String, Float> createMetrics() throws IOException {
+        if (metricMetadata == null) return null;
+
         Map<String, Float> observation = new TreeMap<>();
 
         if (threads != null) {
@@ -156,6 +170,10 @@ public class AnalysisStepTestHelper {
         Map<String, Set<String>> res = new HashMap<>();
         Map<String, FlowMetadata> allFlows = getAllFlowMetadata();
         FlowSummary flowSummary = getFlowSummary();
+        if (flowSummary == null) {
+            System.out.println("No flows recorded in this step");
+            return null;
+        }
 
         for (int i = 0; i < generatedFlows.size(); i++) {
             GeneratedFlow flow = generatedFlows.get(i);
@@ -212,6 +230,7 @@ public class AnalysisStepTestHelper {
     }
 
     private Map<String, FlowMetadata> getAllFlowMetadata() {
+        if (flows == null) return null;
         Map<String, FlowMetadata> allFlows = new HashMap<>();
         for (FlowMetadata flowMetadata : flows.keySet()) {
             allFlows.put(flowMetadata.getDocumentId(), flowMetadata);

@@ -53,7 +53,7 @@ public class AnalysisTest extends LoadTestBase {
     @Test
     public void runContinuously() throws Exception {
         generateFlows(6, 10, 100, 50, 200);
-        runFlows(flowsAndThroughput, 10000, null);
+        runFlows(flowsAndThroughput, 10000, "target/testMultipleFlows-temp");
     }
 
     private void runFlows(Object[][] generatedFlows, int numIterations, String folderPath) throws Exception {
