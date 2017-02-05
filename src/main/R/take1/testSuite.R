@@ -19,7 +19,7 @@ correlationRootFlows <- function(plotFlows = TRUE) {
   correlationMatrix(metrics, rootFlows, metric = "both")
 }
 
-loadSample <- function(folder = "../../../test/resources/samples/metrics/1/") {
+loadSample <- function(folder) {
   # clear environment
   rm(list = ls(.GlobalEnv), envir = .GlobalEnv)
   
@@ -29,6 +29,7 @@ loadSample <- function(folder = "../../../test/resources/samples/metrics/1/") {
   }
 
   # load metrics  
+  print(paste("Loading data from folder", folder))
   file <- paste(folder, "metrics.dat", sep = "")
   metrics <<- read.table(file, sep = " ", na.strings = "null", header = TRUE, row.names = "time")
 
@@ -46,16 +47,20 @@ loadSample <- function(folder = "../../../test/resources/samples/metrics/1/") {
   rootFlows <<- flowNum[flowNum$flowId %in% rootIds, "flowNum"]
 }
 
-testTarget <- function() {
-  loadSample("../../../../target/testContinuous-temp/")
+analyzeSample <- function(folder = "../../../../target/testContinuous-temp/") {
+  loadSample(folder)
   kmSingleFlow(rootFlows)
   plotFlowTs(metrics, rootFlows)
   cm <- correlationMatrix(metrics, rootFlows, metric = "both")
   cK <- km(cm, nrow(cm) - 1)
   numClusters <- nrow(cK$centers)
-  print(paste("Detected", numClusters, " groups of root flows."))
+  print(paste("Detected", numClusters, "groups of root flows:"))
   for (i in 1:numClusters) {
     print(paste("group", i, ":")) 
     print(row.names(cm)[cK$cluster == i])
   }
+}
+
+sample1 <- function() {
+  analyzeSample("../../../test/resources/samples/metrics/1/")
 }
