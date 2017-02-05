@@ -50,5 +50,12 @@ testTarget <- function() {
   loadSample("../../../../target/testContinuous-temp/")
   kmSingleFlow(rootFlows)
   plotFlowTs(metrics, rootFlows)
-  correlationMatrix(metrics, rootFlows, metric = "both")
+  cm <- correlationMatrix(metrics, rootFlows, metric = "both")
+  cK <- km(cm, nrow(cm) - 1)
+  numClusters <- nrow(cK$centers)
+  print(paste("Detected", numClusters, " groups of root flows."))
+  for (i in 1:numClusters) {
+    print(paste("group", i, ":")) 
+    print(row.names(cm)[cK$cluster == i])
+  }
 }
