@@ -109,3 +109,15 @@ Instrumentation chronological sequence:
  The difference between the clusters and individual flows can be represented via "pseudo-flow", which contains significant differences.
  Use stacktraces when possible, because they contain all the path elements, and not only instrumented ones.
 
+## 5 Feb 2017
+
+ The basic analysis includes:
+ * analyze cpu and memory time series and see whether they are below threshold
+   Decide whether to follow on mem and cpu with the flows
+
+ For each root flow calculate:
+ * scalability as correlation between duration and throughput
+ * if duration is distributed too wide, try finding the subflows responsible for the difference
+ * if cpu should be followed, cpu consumption as time series correlation between throughput and cpu load
+ * if mem should be followed, mem consumption as time series correlation between throughput and mem usage
+
