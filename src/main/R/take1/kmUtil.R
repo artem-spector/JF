@@ -1,5 +1,5 @@
 km <- function(data, maxClusters, plotSteps = FALSE) {
-  data.sc <- scale(data)
+  data.sc <- scale(data[complete.cases(data),])
   
   km <- list(kmeans(data.sc, 1))
   values <- km[[1]]$tot.withinss

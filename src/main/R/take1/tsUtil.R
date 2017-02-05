@@ -1,5 +1,6 @@
 flowTs <- function(data, flowNum) {
   f <- flowSubset(data, flowNum)
+  f[is.na(f)] <- 0
   list(duration = ts(f$duration), throughput = ts(f$throughput), both = ts(f))
 }
 
