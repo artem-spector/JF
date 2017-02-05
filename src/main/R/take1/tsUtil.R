@@ -7,8 +7,8 @@ flowCCF <- function(data, f1, f2, type = c("correlation", "covariance")) {
   fts1 <- flowTs(data, f1)
   fts2 <- flowTs(data, f2)
   list(
-    duration = ccf(fts1$duration, fts2$duration, type = type, plot = FALSE),
-    throughput = ccf(fts1$throughput, fts2$throughput, type = type, plot = FALSE)
+    duration = ccf(fts1$duration, fts2$duration, type = type, na.action = na.pass, plot = FALSE),
+    throughput = ccf(fts1$throughput, fts2$throughput, type = type, na.action = na.pass, plot = FALSE)
   )
 }
 

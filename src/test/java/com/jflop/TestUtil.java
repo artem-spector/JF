@@ -111,51 +111,59 @@ public class TestUtil {
     }
 
     private void exportFlowMetadata(Set<String> flowIds, File file) throws FileNotFoundException {
-        PrintStream out = new PrintStream(file);
-        out.println("flowId className methodName methodDescriptor firstLine returnLine");
-
-        int[] total = new int[] {0, 0};
+        List<List<String>> lines = new ArrayList<>();
         Set<String> covered = new HashSet<>();
 
         for (String id : flowIds) {
             PersistentData<FlowMetadata> doc = esClient.getDocument("jf-metadata", "flow", new PersistentData<>(id, 0), FlowMetadata.class);
             if (doc != null) {
-                int[] count = printMetadata(doc.source.rootFlow, out, covered);
-                total[0] += count[0];
-                total[1] = Math.max(total[1], count[1]);
+                lines.addAll(printMetadata(doc.source.rootFlow, covered));
             }
+        }
+
+        List<String> columnNames = new ArrayList<>(Arrays.asList("flowId", "className", "methodName", "methodDescriptor", "firstLine", "returnLine"));
+        int baseLen = columnNames.size();
+        int maxLen = lines.stream().max(Comparator.comparingInt(List::size)).get().size();
+        for (int i = 1; i <= maxLen - baseLen; i++) columnNames.add("nested" + i);
+
+        PrintStream out = new PrintStream(file);
+        out.println(columnNames.stream().collect(Collectors.joining(" ")));
+        for (List<String> line : lines) {
+            out.print(line.stream().collect(Collectors.joining(" ")));
+            for (int i = line.size(); i < maxLen; i++)
+                out.print(" null");
+            out.println();
         }
 
         out.flush();
         out.close();
-        System.out.println(total[0] + " X " + total[1] + " matrix exported to file " + file.getAbsolutePath());
+        System.out.println(lines.size() + " X " + maxLen + " matrix exported to file " + file.getAbsolutePath());
     }
 
-    private int[] printMetadata(FlowMetadata.FlowElement element, PrintStream out, Set<String> covered) {
+    private List<List<String>> printMetadata(FlowMetadata.FlowElement element, Set<String> covered) {
+        List<List<String>> res = new ArrayList<>();
+
         int numSubflows = element.subflows == null ? 0 : element.subflows.size();
-        if (covered.contains(element.flowId))
-            return new int[]{0, 0};
-
-        out.print(element.flowId + " " + element.className + " " + element.methodName + " " + element.methodDescriptor + " " + element.firstLine + " " + element.returnLine);
-        if (numSubflows > 0) {
-            for (FlowMetadata.FlowElement subflow : element.subflows) {
-                out.print(" " + subflow.flowId);
-            }
+        if (covered.contains(element.flowId)) {
+            return res;
         }
 
-        out.println();
+        List<String> line = new ArrayList<>(Arrays.asList(element.flowId, element.className, element.methodName, element.methodDescriptor, element.firstLine, element.returnLine));
+        res.add(line);
+        if (numSubflows > 0) {
+            for (FlowMetadata.FlowElement subflow : element.subflows)
+                line.add(subflow.flowId);
+        }
+
         covered.add(element.flowId);
-        int[] count = new int[]{1, 6 + numSubflows};
 
         if (numSubflows > 0) {
             for (FlowMetadata.FlowElement subflow : element.subflows) {
-                int[] subCount = printMetadata(subflow, out, covered);
-                count[0] += subCount[0];
-                count[1] = Math.max(count[1], subCount[1]);
+                res.addAll(printMetadata(subflow, covered));
             }
         }
 
-        return count;
+        return res;
     }
 
 }
