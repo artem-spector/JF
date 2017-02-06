@@ -28,3 +28,12 @@ multiFlow <- function(data, flows) {
   res
 }
 
+# positive and zero value means scalable flow (duration and throughpout increase/decrease together or independently)
+# negative value means above -0.5 means limited scalabilty
+# negative value below -0.5 means no scalability
+flowScalability <- function(data, flowNum, plot = FALSE) {
+  flow <- flowTs(data, flowNum)
+  correlation <- ccf(flow$duration, flow$throughput, type = "correlation", lag.max = 0, plot = plot)
+  correlation[0]$acf[1,1,1]
+}
+

@@ -59,8 +59,12 @@ analyzeSample <- function(folder = "../../../../target/testContinuous-temp/") {
     print(paste("group", i, ":")) 
     print(row.names(cm)[cK$cluster == i])
   }
+  for (f in rootFlows) {
+    print(paste("Flow", f, "scalability =", flowScalability(metrics, f)))
+  }
 }
 
-sample1 <- function() {
-  analyzeSample("../../../test/resources/samples/metrics/1/")
+sample <- function(num) {
+  analyzeSample(paste("../../../test/resources/samples/metrics/", num, "/", sep = ""))
 }
+
