@@ -1,7 +1,30 @@
-rootFlowNumbers <- function(data) {
+flowId2Num <- function(flowNumTable, ids) {
+  flowNumTable[flowNumTable$flowId %in% ids, "flowNum"]
+}
+
+flowNum2Id <- function(flowNumTable, nums) {
+  flowNumTable[flowNumTable$flowNum %in% nums, "flowId"]
+}
+
+rootFlowNumbers <- function(flowMetadata, flowNum) {
   nested <- unlist(flowMetadata[, grep("nested", colnames(flowMetadata))])
   rootIds <- flowMetadata[!(flowMetadata[,1] %in% nested), 1]
-  flowNum[flowNum$flowId %in% rootIds, "flowNum"]
+  flowId2Num(flowNum, rootIds)
+}
+
+nestedFlows <- function(flowNum, flowMetadata, flowNumTable, recursive = FALSE) {
+  flowId <- flowNum2Id(flowNumTable, flowNum)
+  nested <- flowMetadata[flowMetadata$flowId == flowId, grep("nested", colnames(flowMetadata))]
+  nested <- nested[!is.na(nested)]
+  nested <- flowId2Num(flowNumTable, nested)
+  
+  res <- nested
+  if (recursive) {
+    for (f in nested) {
+      res <- append(res, nestedFlows(f, flowMetadata, flowNumTable, recursive = TRUE))
+    }
+  }
+  unique(res)
 }
 
 flowSubset <- function(data, flowNum, addTimeColumn = FALSE) {

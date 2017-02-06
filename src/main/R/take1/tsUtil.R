@@ -4,12 +4,12 @@ flowTs <- function(data, flowNum) {
   list(duration = ts(f$duration), throughput = ts(f$throughput), both = ts(f))
 }
 
-flowCCF <- function(data, f1, f2, type = c("correlation", "covariance")) {
+flowCorrelation <- function(data, f1, f2) {
   fts1 <- flowTs(data, f1)
   fts2 <- flowTs(data, f2)
   list(
-    duration = ccf(fts1$duration, fts2$duration, type = type, plot = FALSE),
-    throughput = ccf(fts1$throughput, fts2$throughput, type = type, plot = FALSE)
+    duration = cor(fts1$duration, fts2$duration),
+    throughput = cor(fts1$throughput, fts2$throughput)
   )
 }
 
@@ -19,10 +19,10 @@ correlationMatrix <- function(data, flows, metric = c("throughput", "duration", 
   m <- matrix(0, n, n, dimnames = list(names, names))
   for(i in 1:n) {
     for(j in 1:n) {
-      c <- flowCCF(data, flows[i], flows[j])
-      max.dc <- max(abs(c$duration$acf))
-      max.tc <- max(abs(c$throughput$acf))
-      m[i, j] <- switch(metric, throughput = max.tc, duration = max.dc, both = (max.tc + max.dc) / 2)
+      c <- flowCorrelation(data, flows[i], flows[j])
+      dc <- abs(c$duration)
+      tc <- abs(c$throughput)
+      m[i, j] <- switch(metric, throughput = tc, duration = dc, both = (tc + dc) / 2)
     }
   }
   m

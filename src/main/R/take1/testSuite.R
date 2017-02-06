@@ -42,7 +42,7 @@ loadSample <- function(folder) {
   flowNum <<- read.table(file, sep = " ", na.strings = "null", header = TRUE, stringsAsFactors = FALSE)
   
   # extract root flows
-  rootFlows <<- rootFlowNumbers(metrics)
+  rootFlows <<- rootFlowNumbers(flowMetadata, flowNum)
 }
 
 analyzeSample <- function(folder = "../../../../target/testContinuous-temp/") {
