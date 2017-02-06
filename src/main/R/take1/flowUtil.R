@@ -1,10 +1,7 @@
-read.metrics <- function (fileName, folder = "") {
-  read.table(file=paste(folder, fileName, sep = ""), sep = " ", na.strings = "null", header = TRUE, row.names = "time")
-}
-
-allFlows <- function(data) {
-  durationCols <- grep("^duration_", colnames(data), value = TRUE)
-  as.integer(substr(durationCols, 10, 1000))
+rootFlowNumbers <- function(data) {
+  nested <- unlist(flowMetadata[, grep("nested", colnames(flowMetadata))])
+  rootIds <- flowMetadata[!(flowMetadata[,1] %in% nested), 1]
+  flowNum[flowNum$flowId %in% rootIds, "flowNum"]
 }
 
 flowSubset <- function(data, flowNum, addTimeColumn = FALSE) {
@@ -31,9 +28,8 @@ multiFlow <- function(data, flows) {
 # positive and zero value means scalable flow (duration and throughpout increase/decrease together or independently)
 # negative value means above -0.5 means limited scalabilty
 # negative value below -0.5 means no scalability
-flowScalability <- function(data, flowNum, plot = FALSE) {
+flowScalability <- function(data, flowNum) {
   flow <- flowTs(data, flowNum)
-  correlation <- ccf(flow$duration, flow$throughput, type = "correlation", lag.max = 0, plot = plot)
-  correlation[0]$acf[1,1,1]
+  cor(flow$duration, flow$throughput)
 }
 

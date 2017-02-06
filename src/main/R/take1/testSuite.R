@@ -42,9 +42,7 @@ loadSample <- function(folder) {
   flowNum <<- read.table(file, sep = " ", na.strings = "null", header = TRUE, stringsAsFactors = FALSE)
   
   # extract root flows
-  nested <- unlist(flowMetadata[, grep("nested", colnames(flowMetadata))])
-  rootIds <<- flowMetadata[!(flowMetadata[,1] %in% nested), 1]
-  rootFlows <<- flowNum[flowNum$flowId %in% rootIds, "flowNum"]
+  rootFlows <<- rootFlowNumbers(metrics)
 }
 
 analyzeSample <- function(folder = "../../../../target/testContinuous-temp/") {
