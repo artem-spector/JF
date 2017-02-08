@@ -56,3 +56,26 @@ flowScalability <- function(data, flowNum) {
   cor(flow$duration, flow$throughput)
 }
 
+#------------------------------------------------
+flowVariance <- function(flows, data, flowMetadata, flowNumTable) {
+  res <- list()
+  for (f in flows) {
+    row <- c()
+    row[as.character(f)] <- var(flowTs(data, f)$duration)
+    nested <- nestedFlows(f, flowMetadata, flowNum, TRUE)
+    for (n in nested)
+      row[as.character(n)] <- var(flowTs(data, n)$duration)
+    res[[as.character(f)]] <- row
+  }
+  res
+}
+
+flowDurationNestedCorrelation <- function(flow, data, flowMetadata, flowNumTable) {
+  nested <- nestedFlows(flow, flowMetadata, flowNumTable, TRUE)
+  fts <- flowTs(data, flow)
+  res <- c()
+  for (n in nested)
+    res[as.character(n)] <- cor(fts$duration, flowTs(data, n)$duration)
+  res
+}
+
