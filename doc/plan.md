@@ -112,12 +112,51 @@ Instrumentation chronological sequence:
 ## 5 Feb 2017
 
  The basic analysis includes:
+ 
  * analyze cpu and memory time series and see whether they are below threshold
    Decide whether to follow on mem and cpu with the flows
 
  For each root flow calculate:
+ 
  * scalability as correlation between duration and throughput
  * if duration is distributed too wide, try finding the subflows responsible for the difference
  * if cpu should be followed, cpu consumption as time series correlation between throughput and cpu load
  * if mem should be followed, mem consumption as time series correlation between throughput and mem usage
 
+## 11 Feb 2017
+
+**The guideline for data collection:** keep all the raw data, and don't add any synthetic features on the collection phase.
+Specifically, keep each snapshot as a separate observation with its original data - cumulative time, snapshot duration, and count.
+Introduce additional features like throughput on the analysis phase.
+
+There still is a question what is the correct representation of a flow, and how to combine the stacktraces with flows
+**Flow metadata** is a tree, where each node repesents: 
+
+* method entry point (class, name, description, flile, first line), 
+* exit point (line num)
+* ordered list of nested flows
+
+All the nodes of the flow represent only *instrumented* methods, and the latest instrumentation configuration is a part of the flow metadata.
+
+**Flow observation** is a tree of the same shape as the metadata, where each node has the following attributes:
+
+* duration cumulative time
+* count
+* duration distribution: mean, variance, min, max, etc
+All these attributes are reported by the agent, and not calculated
+
+**Thread metadata** is a path within a flow with an attribute of thread state (runnable, waiting, blocked). 
+It's nodes are methods similar to flows, but there are two important differences between the flow nodes and stacktrace nodes:
+ 
+ * stacktrace contains all the methods (instrumented or not)
+ * stacktrace methods have no description and may be ambiguous
+
+**Thread observation** is an occurence of the thread metadata in a thread dump, and it has a single attribute: count
+
+Ideally we want to be able to easily match thread observations to flow observations, so that the flows could be enriched 
+with concurrency metrics of the thread dumps. However this matching is not strightfrward and has the following challenges:
+ 
+ * Flows contain only instrumented methods, so the instrumentation config should be taken into account when matching thread to flow.
+   Even then he matching can be ambiguous
+ * Stacktrace methods have no description, so the matching should use line numbers, which is not reliable
+ * Thread dumps and snapshots are taken at different times, so the matching is approximate

@@ -39,6 +39,7 @@ public class TestUtil {
         util.exportMetrics(new File(FOLDER + "metrics.dat"), 10000);
         Set<String> flowIds = util.exportFlowNums(new File(FOLDER + "flowNum.dat"));
         util.exportFlowMetadata(flowIds, new File(FOLDER, "flowMetadata.dat"));
+        util.exportFlowMetadataJson(flowIds, new File(FOLDER, "flowMetadata.json"));
     }
 
     private TestUtil() throws Exception {
@@ -108,6 +109,24 @@ public class TestUtil {
         out.close();
         System.out.println(count + " X 2 matrix exported to file " + file.getAbsolutePath());
         return res;
+    }
+
+    private void exportFlowMetadataJson(Set<String> flowIds, File file) throws IOException {
+        Map<String, Object> json = new HashMap<>();
+        int count = 0;
+        for (String id : flowIds) {
+            PersistentData<FlowMetadata> doc = esClient.getDocument("jf-metadata", "flow", new PersistentData<>(id, 0), FlowMetadata.class);
+            if (doc != null) {
+                count++;
+                json.put(id, doc.source);
+            }
+        }
+
+        PrintStream out = new PrintStream(file);
+        mapper.writeValue(out, json);
+        out.flush();
+        out.close();
+        System.out.println(count + " flow metadata objects exported to file " + file.getAbsolutePath());
     }
 
     private void exportFlowMetadata(Set<String> flowIds, File file) throws FileNotFoundException {
