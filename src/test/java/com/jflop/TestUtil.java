@@ -1,5 +1,6 @@
 package com.jflop;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.persistency.ESClient;
 import com.jflop.server.persistency.PersistentData;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -36,14 +38,68 @@ public class TestUtil {
 
     public static void main(String[] args) throws Exception {
         TestUtil util = new TestUtil();
+/*
         util.exportMetrics(new File(FOLDER + "metrics.dat"), 10000);
         Set<String> flowIds = util.exportFlowNums(new File(FOLDER + "flowNum.dat"));
         util.exportFlowMetadata(flowIds, new File(FOLDER, "flowMetadata.dat"));
-        util.exportFlowMetadataJson(flowIds, new File(FOLDER, "flowMetadata.json"));
+*/
+
+        util.exportRawData(new File(FOLDER), 1000);
     }
 
     private TestUtil() throws Exception {
         esClient = new ESClient("localhost", 9300);
+    }
+
+    private void exportRawData(File folder, int maxObservations) throws IOException {
+        SearchResponse response;
+        List<Map<String, Object>> observations;
+
+        // load data
+        writeJson(getLatestData("load", maxObservations), new File(folder, "loadData.json"));
+
+        // thread dumps
+        observations = getLatestData("thread", maxObservations);
+        writeJson(observations, new File(folder, "threadData.json"));
+
+        // thread metadata
+        Set<String> dumpIDs = new HashSet<>();
+        for (Map<String, Object> source : observations) {
+            dumpIDs.add((String) source.get("dumpId"));
+        }
+        writeJson(getMetadata("thread", dumpIDs), new File(folder, "threadMetadata.json"));
+
+        // flows
+        observations = getLatestData("flow", maxObservations);
+        writeJson(observations, new File(folder, "flowData.json"));
+
+        // flow metadata
+        Set<String> flowIDs = new HashSet<>();
+        for (Map<String, Object> source : observations) {
+            flowIDs.add((String) ((Map) source.get("rootFlow")).get("flowId"));
+        }
+        writeJson(getMetadata("flow", flowIDs), new File(folder, "flowMetadata.json"));
+    }
+
+    private List<Map<String, Object>> getLatestData(String doctype, int maxDocuments) {
+        List<Map<String, Object>> res = new ArrayList<>();
+        SearchResponse response = esClient.search("jf-raw-data", doctype, QueryBuilders.matchAllQuery(), maxDocuments, SortBuilders.fieldSort("time").order(SortOrder.ASC));
+        for (SearchHit hit : response.getHits().getHits()) {
+            res.add(hit.getSource());
+        }
+        return res;
+    }
+
+    private List<Map> getMetadata(String doctype, Set<String> ids) {
+        return esClient.getDocuments("jf-metadata", doctype, Map.class, ids);
+    }
+
+    private void writeJson(Object json, File file) throws IOException {
+        PrintStream out = new PrintStream(file);
+        mapper.writeValue(out, json);
+        out.flush();
+        out.close();
+        System.out.println("Data exported to file " + file.getAbsolutePath());
     }
 
     private void exportMetrics(File file, int maxHits) throws IOException {
