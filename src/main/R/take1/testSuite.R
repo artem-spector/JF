@@ -62,7 +62,36 @@ analyzeSample <- function(folder = "../../../../target/testContinuous-temp/") {
   }
 }
 
+# main method, the number is the sample folder
 sample <- function(num) {
   analyzeSample(paste("../../../test/resources/samples/metrics/", num, "/", sep = ""))
 }
 
+# tree analysis
+analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doPrint = TRUE) {
+  loadTrees(folder, doPrint)
+}
+
+loadTrees <- function(folder, doPrint) {
+  flowMetadataTree <<- readFlowMetadata(paste(folder, "flowMetadata.json", sep = ""))
+  if (doPrint) print(paste("loaded", length(flowMetadataTree), "root flows"))
+  threadMetadataTree <<- readThreadMetadata(paste(folder, "threadMetadata.json", sep = ""))
+  if (doPrint) print(paste("loaded", length(threadMetadataTree), "stack traces"))
+}
+
+mapFlowsToThreads <- function(flows, threads) {
+  numFlows <- length(flows)
+  numThreads <- length(threads)
+  m <- matrix(FALSE, numFlows, numThreads)
+  
+  for (i in 1:numFlows) {
+    print(i)
+    flow <- flows[[i]]
+    for (j in 1:numThreads) {
+      print(paste("\t", j))
+      thread <- threads[[j]]
+      m[i,j] <- stacktraceFitsFlow(thread, flow)
+    }
+  }
+  m
+}

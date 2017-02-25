@@ -42,6 +42,7 @@ readFlowMetadata <- function(file) {
   res <- list()
   for (i in 1:nrow(frame)) {
     root <- flowAsTree(frame[i, "rootFlow"])
+    root$instrumentedMethods <- getInstrumentedMethods(frame[i, "instrumentedMethodsJson"][[1]])
     res[[root$flowId]] <- root
   }
   res
@@ -68,4 +69,51 @@ flowAsTree <- function(flow) {
   }
   
   node
+}
+
+getInstrumentedMethods <- function(instrumentedMethodsJson) {
+  res <- data.frame()
+  for (i in 1:nrow(instrumentedMethodsJson)) {
+    res[i, "className"] <- gsub("/", ".", instrumentedMethodsJson[i, "cls"])
+    res[i, "methodName"] <- instrumentedMethodsJson[i, "mtd"]
+  }
+  res
+} 
+
+stacktraceFitsFlow <- function(stacktrace, flow) {
+  found <- NULL
+  dummy <- Node$new("dummy")
+  filterInstrumentedMethods(dummy, stacktrace, flow$instrumentedMethods)
+
+  if (!isLeaf(dummy)) {
+    path <- dummy$leaves[[1]]$path[-1]
+    
+    if (flow$name == path[1]) {
+      found <- path
+      if (length(path) > 1)
+        found <- flow$Climb(path[-1])$path
+    }
+  }
+  
+  !is.null(found)
+}
+
+filterInstrumentedMethods <- function(parent, current, instrumentation) {
+  if (isInstrumented(current, instrumentation)) {
+    clone <- Clone(current)
+    clone$Prune(function(x) FALSE)
+    parent$AddChildNode(clone)
+    parent <- clone
+  }
+  
+  if (!isLeaf(current)) {
+    children <- current$children
+    for (i in 1: length(children)) {
+      filterInstrumentedMethods(parent, children[[i]], instrumentation)
+    }
+  }
+}
+
+isInstrumented <- function(stacktraceElement, instrumentation) {
+  sum(instrumentation$className == stacktraceElement$className & instrumentation$methodName == stacktraceElement$methodName) > 0
 }
