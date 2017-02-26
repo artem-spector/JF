@@ -85,10 +85,8 @@ mapFlowsToThreads <- function(flows, threads) {
   m <- matrix(FALSE, numFlows, numThreads)
   
   for (i in 1:numFlows) {
-    print(i)
     flow <- flows[[i]]
     for (j in 1:numThreads) {
-      print(paste("\t", j))
       thread <- threads[[j]]
       m[i,j] <- stacktraceFitsFlow(thread, flow)
     }

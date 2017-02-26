@@ -72,48 +72,26 @@ flowAsTree <- function(flow) {
 }
 
 getInstrumentedMethods <- function(instrumentedMethodsJson) {
-  res <- data.frame()
+  res <- c()
   for (i in 1:nrow(instrumentedMethodsJson)) {
-    res[i, "className"] <- gsub("/", ".", instrumentedMethodsJson[i, "cls"])
-    res[i, "methodName"] <- instrumentedMethodsJson[i, "mtd"]
+    res <- append(res, paste(gsub("/", ".", instrumentedMethodsJson[i, "cls"]), instrumentedMethodsJson[i, "mtd"], sep = "."))
   }
   res
 } 
 
 stacktraceFitsFlow <- function(stacktrace, flow) {
+  # in the stacktrace path keep only instrumented methods of the flow 
+  path <- stacktrace$leaves[[1]]$path
+  path <- path[path %in% flow$instrumentedMethods]
+
+  # climb the stacktrace path on the flow tree
   found <- NULL
-  dummy <- Node$new("dummy")
-  filterInstrumentedMethods(dummy, stacktrace, flow$instrumentedMethods)
-
-  if (!isLeaf(dummy)) {
-    path <- dummy$leaves[[1]]$path[-1]
-    
-    if (flow$name == path[1]) {
-      found <- path
-      if (length(path) > 1)
-        found <- flow$Climb(path[-1])$path
-    }
+  len <- length(path)
+  if (len > 0 && flow$name == path[1]) {
+    found <- path
+    if (len > 1)
+      found <- flow$Climb(path[-1])$path
   }
-  
+
   !is.null(found)
-}
-
-filterInstrumentedMethods <- function(parent, current, instrumentation) {
-  if (isInstrumented(current, instrumentation)) {
-    clone <- Clone(current)
-    clone$Prune(function(x) FALSE)
-    parent$AddChildNode(clone)
-    parent <- clone
-  }
-  
-  if (!isLeaf(current)) {
-    children <- current$children
-    for (i in 1: length(children)) {
-      filterInstrumentedMethods(parent, children[[i]], instrumentation)
-    }
-  }
-}
-
-isInstrumented <- function(stacktraceElement, instrumentation) {
-  sum(instrumentation$className == stacktraceElement$className & instrumentation$methodName == stacktraceElement$methodName) > 0
 }
