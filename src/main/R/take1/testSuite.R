@@ -82,7 +82,7 @@ loadTrees <- function(folder, doPrint) {
 mapFlowsToThreads <- function(flows, threads) {
   numFlows <- length(flows)
   numThreads <- length(threads)
-  m <- matrix(FALSE, numFlows, numThreads)
+  m <- matrix(nrow = numFlows, ncol = numThreads, dimnames = list(names(flows), names(threads)))
   
   for (i in 1:numFlows) {
     flow <- flows[[i]]
@@ -91,5 +91,12 @@ mapFlowsToThreads <- function(flows, threads) {
       m[i,j] <- stacktraceFitsFlow(thread, flow)
     }
   }
-  m
+  
+  unmappedTraces <- c()
+  for (i in 1:ncol(m)) {
+    if (sum(m[,i]) == 0)
+      unmappedTraces <- append(unmappedTraces, i)
+  }
+
+  m[, -unmappedTraces]
 }

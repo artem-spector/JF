@@ -42,7 +42,7 @@ readFlowMetadata <- function(file) {
   res <- list()
   for (i in 1:nrow(frame)) {
     root <- flowAsTree(frame[i, "rootFlow"])
-    root$instrumentedMethods <- getInstrumentedMethods(frame[i, "instrumentedMethodsJson"][[1]])
+    root$instrumentedMethods <- unique(root$Get("name"))
     res[[root$flowId]] <- root
   }
   res
@@ -70,14 +70,6 @@ flowAsTree <- function(flow) {
   
   node
 }
-
-getInstrumentedMethods <- function(instrumentedMethodsJson) {
-  res <- c()
-  for (i in 1:nrow(instrumentedMethodsJson)) {
-    res <- append(res, paste(gsub("/", ".", instrumentedMethodsJson[i, "cls"]), instrumentedMethodsJson[i, "mtd"], sep = "."))
-  }
-  res
-} 
 
 stacktraceFitsFlow <- function(stacktrace, flow) {
   # in the stacktrace path keep only instrumented methods of the flow 
