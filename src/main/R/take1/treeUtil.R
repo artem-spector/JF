@@ -71,7 +71,7 @@ flowAsTree <- function(flow) {
   node
 }
 
-stacktraceFitsFlow <- function(stacktrace, flow) {
+stacktracePathInFlow <- function(stacktrace, flow) {
   # in the stacktrace path keep only instrumented methods of the flow 
   path <- stacktrace$leaves[[1]]$path
   path <- path[path %in% flow$instrumentedMethods]
@@ -85,5 +85,44 @@ stacktraceFitsFlow <- function(stacktrace, flow) {
       found <- flow$Climb(path[-1])$path
   }
 
-  !is.null(found)
+  found
 }
+
+mapFlowsToThreads <- function(flows, threads) {
+  numFlows <- length(flows)
+  numThreads <- length(threads)
+
+  for (i in 1:numFlows) {
+    flow <- flows[[i]]
+    for (j in 1:numThreads) {
+      thread <- threads[[j]]
+      path <- stacktracePathInFlow(thread, flow)
+      if (!is.null(path)) {
+        flow$hotspots[[names(threads)[j]]] <- path
+      }
+    }
+  }
+}
+
+plotFlowWithHotspots <- function(flow) {
+  if (isLeaf(flow)) {
+    print(paste("Flow", flow$flowId, "has a single node", flow$name, ", not plotting it"))
+  } else {
+    SetNodeStyle(flow, keepExisting = FALSE, inherit = TRUE, penwidth = "2px", shape = "box", style = "rounded")
+    for (path in flow$hotspots) {
+      spot <- NULL
+      if (length(path) == 1) {
+        spot <- flow
+      } else {
+        spot <- flow$Climb(path[-1])
+      }
+      if (!is.null(spot)) {
+        text <- paste(spot$path, collapse = " ")
+        SetNodeStyle(spot, inherit = FALSE, keepExisting = FALSE, penwidth = "5px", tooltip = text)
+      }
+    }
+    print(paste("Plotting flow", flow$flowId))
+    plot(flow)
+  }
+}
+

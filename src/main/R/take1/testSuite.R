@@ -68,35 +68,16 @@ sample <- function(num) {
 }
 
 # tree analysis
-analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doPrint = TRUE) {
-  loadTrees(folder, doPrint)
-}
-
-loadTrees <- function(folder, doPrint) {
-  flowMetadataTree <<- readFlowMetadata(paste(folder, "flowMetadata.json", sep = ""))
-  if (doPrint) print(paste("loaded", length(flowMetadataTree), "root flows"))
-  threadMetadataTree <<- readThreadMetadata(paste(folder, "threadMetadata.json", sep = ""))
-  if (doPrint) print(paste("loaded", length(threadMetadataTree), "stack traces"))
-}
-
-mapFlowsToThreads <- function(flows, threads) {
-  numFlows <- length(flows)
-  numThreads <- length(threads)
-  m <- matrix(nrow = numFlows, ncol = numThreads, dimnames = list(names(flows), names(threads)))
+analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doDebug = TRUE) {
+  flows <- readFlowMetadata(paste(folder, "flowMetadata.json", sep = ""))
+  threads <- readThreadMetadata(paste(folder, "threadMetadata.json", sep = ""))
   
-  for (i in 1:numFlows) {
-    flow <- flows[[i]]
-    for (j in 1:numThreads) {
-      thread <- threads[[j]]
-      m[i,j] <- stacktraceFitsFlow(thread, flow)
-    }
+  if (doDebug) {
+    print(paste("loaded", length(flows), "root flows and", length(threads), "stack traces"))
+    flowMetadataTree <<- flows
+    threadMetadataTree <<- threads
   }
   
-  unmappedTraces <- c()
-  for (i in 1:ncol(m)) {
-    if (sum(m[,i]) == 0)
-      unmappedTraces <- append(unmappedTraces, i)
-  }
-
-  m[, -unmappedTraces]
+  mapFlowsToThreads(flows, threads)
 }
+
