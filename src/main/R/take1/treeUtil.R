@@ -98,7 +98,9 @@ mapFlowsToThreads <- function(flows, threads) {
       thread <- threads[[j]]
       path <- stacktracePathInFlow(thread, flow)
       if (!is.null(path)) {
-        flow$hotspots[[names(threads)[j]]] <- path
+        threadId <- names(threads)[j]
+        flow$traces[[threadId]]$path <- path
+        flow$traces[[threadId]]$trace <- thread$leaves[[1]]$path
       }
     }
   }
@@ -109,15 +111,15 @@ plotFlowWithHotspots <- function(flow) {
     print(paste("Flow", flow$flowId, "has a single node", flow$name, ", not plotting it"))
   } else {
     SetNodeStyle(flow, keepExisting = FALSE, inherit = TRUE, penwidth = "2px", shape = "box", style = "rounded")
-    for (path in flow$hotspots) {
+    for (trace in flow$traces) {
       spot <- NULL
-      if (length(path) == 1) {
+      if (length(trace$path) == 1) {
         spot <- flow
       } else {
-        spot <- flow$Climb(path[-1])
+        spot <- flow$Climb(trace$path[-1])
       }
       if (!is.null(spot)) {
-        text <- paste(spot$path, collapse = " ")
+        text <- paste(trace$trace, collapse = " ")
         SetNodeStyle(spot, inherit = FALSE, keepExisting = FALSE, penwidth = "5px", tooltip = text)
       }
     }
