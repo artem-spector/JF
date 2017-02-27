@@ -3,11 +3,7 @@ package com.jflop.server.feature;
 import com.jflop.server.admin.ValidationException;
 import com.jflop.server.admin.data.AgentJVM;
 import com.jflop.server.admin.data.FeatureCommand;
-import com.jflop.server.runtime.data.AgentData;
-import com.jflop.server.runtime.data.AgentDataFactory;
-import com.jflop.server.runtime.data.FlowMetadata;
-import com.jflop.server.runtime.data.FlowOccurrenceData;
-import org.jflop.config.JflopConfiguration;
+import com.jflop.server.runtime.data.*;
 import org.jflop.snapshot.Flow;
 import org.jflop.snapshot.Snapshot;
 import org.springframework.stereotype.Component;
@@ -75,13 +71,19 @@ public class SnapshotFeature extends AgentFeature {
         List configJson = (List) json.get(InstrumentationConfigurationFeature.CONFIG);
 
         List<AgentData> res = new ArrayList<>();
-        for (Flow flow : snapshot.getFlowMap().values()) {
-            FlowMetadata metadata = agentDataFactory.createInstance(FlowMetadata.class);
-            metadata.init(flow, configJson);
-            res.add(metadata);
-            FlowOccurrenceData occurrence = agentDataFactory.createInstance(FlowOccurrenceData.class);
-            occurrence.init(durationSec, flow);
-            res.add(occurrence);
+        Map<Flow.Key, Flow> flows = snapshot.getFlowMap();
+        if (!flows.isEmpty()) {
+            SnapshotData snapshotData = agentDataFactory.createInstance(SnapshotData.class);
+            snapshotData.init(snapshot);
+            res.add(snapshotData);
+            for (Flow flow : flows.values()) {
+                FlowMetadata metadata = agentDataFactory.createInstance(FlowMetadata.class);
+                metadata.init(flow, configJson);
+                res.add(metadata);
+                FlowOccurrenceData occurrence = agentDataFactory.createInstance(FlowOccurrenceData.class);
+                occurrence.init(durationSec, flow);
+                res.add(occurrence);
+            }
         }
         return res;
     }
