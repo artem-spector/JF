@@ -41,14 +41,28 @@ readFlowMetadata <- function(file) {
   frame <- fromJSON(lines)
   res <- list()
   for (i in 1:nrow(frame)) {
-    root <- flowAsTree(frame[i, "rootFlow"])
+    root <- createFlowMetadataNode(frame[i, "rootFlow"])
     root$instrumentedMethods <- unique(root$Get("name"))
     res[[root$flowId]] <- root
   }
   res
 }
 
-flowAsTree <- function(flow) {
+readFlowData <- function(file) {
+  lines <- readLines(file, warn = FALSE)
+  frame <- fromJSON(lines)
+  res <- list()
+  for (i in 1:nrow(frame)) {
+    print(paste("build tree", i, "of", nrow(frame)))
+    
+    root <- createFlowDataNode(frame[i, "rootFlow"])
+    root$duration <- frame[i, "snapshotDurationSec"]
+    res <- append(res, root)
+  }
+  res
+}
+
+createFlowMetadataNode <- function(flow) {
   className <- gsub("/", ".", flow$className)
   node <- Node$new(paste(className, flow$methodName, sep = "."))
   node$flowId <- flow$flowId
@@ -63,7 +77,27 @@ flowAsTree <- function(flow) {
     nested <- flow$subflows[[1]]
     if (!is.null(nested)) {
       for (i in 1:nrow(nested)) {
-        node$AddChildNode(flowAsTree(nested[i,]))
+        node$AddChildNode(createFlowMetadataNode(nested[i,]))
+      }
+    }
+  }
+  
+  node
+}
+
+createFlowDataNode <- function(data) {
+  node <- Node$new(data$flowId)
+  node$stat$maxTime <- data$maxTime
+  node$stat$minTime <- data$minTime
+  node$stat$cumulativeTime <- data$cumulativeTime
+  node$stat$count <- data$count
+  
+  subflows <- data$subflows
+  if (!is.na(subflows) && !is.null(subflows)) {
+    nested <- subflows[[1]]
+    if (!is.null(nested)) {
+      for (i in 1:nrow(nested)) {
+        node$AddChildNode(createFlowDataNode(nested[i,]))
       }
     }
   }
