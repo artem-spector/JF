@@ -1,3 +1,34 @@
+library(jsonlite)
+library(data.tree)
+
+readSnapshots <- function(file) {
+  lines <- readLines(file, warn = FALSE)
+  frame <- fromJSON(lines)
+  res <- list()
+  for (i in 1:nrow(frame)) {
+    snapshot <- frame[i,]$snapshotJson
+    durationNano <- snapshot$endTime - snapshot$startTime
+    for (i in 1:nrow(snapshot$flows[[1]])) {
+      root <- parseFlow(snapshot$flows[[1]][i,])
+      root$durationNano <-durationNano
+      res <- append(res, root)
+    }
+  }
+  res
+}
+
+parseFlow <- function(data) {
+  flow <- Node$new(paste(gsub("/", ".", data$className), data$methodName, sep = "."), flowId = data$key,
+                    className = data$class, methodName = data$methodName, methodDescriptor = data$methodDescriptor,
+                    file = data$file, firstLine = data$firstLine, returnLine = data$returnLine, statistics = data$statistics)
+  if (!is.null(data$subflows) && length(data$subflows) == 1 && !is.null(data$subflows[[1]])) {
+    for (i in 1:nrow(data$subflows[[1]])) {
+      flow$AddChildNode(parseFlow(data$subflows[[1]][i,]))
+    }
+  }
+  flow
+}
+
 readThreadMetadata <- function(file) {
   lines <- readLines(file, warn = FALSE)
   frame <- fromJSON(lines)
