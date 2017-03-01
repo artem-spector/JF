@@ -69,15 +69,23 @@ sample <- function(num) {
 
 # tree analysis
 analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doDebug = TRUE) {
-  flows <- readFlowMetadata(paste(folder, "flowMetadata.json", sep = ""))
-  threads <- readThreadMetadata(paste(folder, "threadMetadata.json", sep = ""))
-  
-  if (doDebug) {
-    print(paste("loaded", length(flows), "root flows and", length(threads), "stack traces"))
-    flowMetadataTree <<- flows
-    threadMetadataTree <<- threads
+  snapshots <- readSnapshots(paste(folder, "snapshots.json", sep = ""))
+
+  rootFlows <- list()
+  for (f in snapshots) {
+    id <- f$flowId
+    occurrences <- rootFlows[[id]]
+    if (is.null(occurrences)) {
+      rootFlows[[id]] <- list()
+    }
+    rootFlows[[id]][[length(occurrences) + 1]] <- f
   }
   
-  mapFlowsToThreads(flows, threads)
+  if (doDebug) {
+    print(paste("loaded", length(snapshots), "snapshots"))
+    print(paste(length(rootFlows), "root flows detected"))
+    snapshots <<- snapshots
+    rootFlows <<- rootFlows
+  }
 }
 
