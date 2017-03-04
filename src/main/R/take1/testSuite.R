@@ -69,23 +69,37 @@ sample <- function(num) {
 
 # tree analysis
 analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doDebug = TRUE) {
-  snapshots <- readSnapshots(paste(folder, "snapshots.json", sep = ""))
+  rootFlows <- readSnapshots(paste(folder, "snapshots.json", sep = ""))
 
-  rootFlows <- list()
-  for (f in snapshots) {
-    id <- f$flowId
-    occurrences <- rootFlows[[id]]
-    if (is.null(occurrences)) {
-      rootFlows[[id]] <- list()
-    }
-    rootFlows[[id]][[length(occurrences) + 1]] <- f
-  }
-  
   if (doDebug) {
-    print(paste("loaded", length(snapshots), "snapshots"))
-    print(paste(length(rootFlows), "root flows detected"))
-    snapshots <<- snapshots
+    print(paste("loaded", length(rootFlows), "root flows"))
     rootFlows <<- rootFlows
   }
+  
+  df <- extractFeaturesFromRootFlows(rootFlows)
+  rootIds <- unique(df[, "flowId"])
+  
+  if (doDebug) {
+    print(paste(length(rootIds), "distinct root flows detected"))
+  }
+  
+  for (id in rootIds)
+    calculateFlowScalability(subset(df, df[, "flowId"] == id), doDebug)
 }
 
+calculateFlowScalability <- function(data, doDebug) {
+  flowId <- data[1,"flowId"]
+  durationThroughputTs <- ts(subset(data, select = c("avgTime", "throughput")))
+  if (doDebug) {
+    plot.ts(durationThroughputTs, main = paste(nrow(data), "observations of", flowId))
+  }
+
+  # positive and zero value means scalable flow (duration and throughpout increase/decrease together or independently)
+  # negative value means above -0.5 means limited scalabilty
+  # negative value below -0.5 means no scalability
+  scalability <- cor(data[, "avgTime"], data[, "throughput"])
+  if (doDebug) {
+    print(paste("flow", flowId, "duration to throughput correlation is", scalability))
+  }
+  scalability
+}

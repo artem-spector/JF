@@ -39,26 +39,26 @@ nanoToSec <- function(nano) {
   nano / 1000000000
 }
 
-flowsAsDataframe <- function(flows, recursive = FALSE) {
+extractFeaturesFromRootFlows <- function(rootFlows, recursive = FALSE) {
   res <- data.frame()
-  for(flow in flows) {
-    res <- addFlowToDataframe(flow, res, recursive)
+  for(root in rootFlows) {
+    res <- flowFeatures(root, res, root$snapshotDuration, recursive)
   }
   res
 }
 
-addFlowToDataframe <- function(flow, frame, recursive) {
+flowFeatures <- function(flow, frame, snapshotDuration, recursive) {
   row <- nrow(frame) + 1
   frame[row, "flowId"] <- flow$flowId
   frame[row, "minTime"] <- flow$stat$min
   frame[row, "maxTime"] <- flow$stat$max
-  frame[row, "cumulativeTime"] <- flow$stat$cumulative
-  frame[row, "count"] <- flow$stat$count
+  frame[row, "avgTime"] <- flow$stat$cumulative / flow$stat$count
+  frame[row, "throughput"] <- flow$stat$count / snapshotDuration
   
   if (recursive) {
     if (!is.null(flow$children)) {
       for(nested in flow$children) 
-        frame <- addFlowToDataframe(nested, frame, TRUE)
+        frame <- flowFeatures(nested, frame, snapshotDuration, recursive)
     }
   }
   
