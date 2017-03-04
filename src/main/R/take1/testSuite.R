@@ -70,10 +70,12 @@ sample <- function(num) {
 # tree analysis
 analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doDebug = TRUE) {
   rootFlows <- readSnapshots(paste(folder, "snapshots.json", sep = ""))
+  threadDumps <- readThreadDumps(paste(folder, "liveThreads.json", sep = ""))
 
   if (doDebug) {
-    print(paste("loaded", length(rootFlows), "root flows"))
+    print(paste("loaded", length(rootFlows), "root flows, and ", length(threadDumps), "threadDumps"))
     rootFlows <<- rootFlows
+    threadDumps <<- threadDumps
   }
   
   df <- extractFeaturesFromRootFlows(rootFlows)

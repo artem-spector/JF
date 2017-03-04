@@ -82,6 +82,9 @@ public class JvmMonitorFeature extends AgentFeature {
         List liveThreads = (List) json.get(LIVE_THREADS);
         if (liveThreads != null) {
             message += "\n" + liveThreads.size() + " live threads";
+            LiveThreadsData threadDump = agentDataFactory.createInstance(LiveThreadsData.class);
+            threadDump.init(liveThreads);
+            res.add(threadDump);
 
             Map<String, ThreadOccurrenceData> occurrences = new HashMap<>();
             for (Object thread : liveThreads) {

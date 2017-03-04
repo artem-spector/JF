@@ -36,7 +36,8 @@ public class RawDataIndex extends IndexTemplate {
                 new DocType("load", "persistency/loadData.json", LoadData.class),
                 new DocType("thread", "persistency/threadOccurrenceData.json", ThreadOccurrenceData.class),
                 new DocType("flow", "persistency/flowOccurrenceData.json", FlowOccurrenceData.class),
-                new DocType("snapshot", "persistency/snapshotData.json", SnapshotData.class)
+                new DocType("snapshot", "persistency/snapshotData.json", SnapshotData.class),
+                new DocType("liveThreads", "persistency/liveThreadsData.json", LiveThreadsData.class)
         );
     }
 

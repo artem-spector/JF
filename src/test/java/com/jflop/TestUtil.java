@@ -62,6 +62,10 @@ public class TestUtil {
         observations = getLatestData("snapshot", maxObservations);
         writeJson(observations, new File(folder, "snapshots.json"));
 
+        // live threads (raw thread dumps)
+        observations = getLatestData("liveThreads", maxObservations);
+        writeJson(observations, new File(folder, "liveThreads.json"));
+
         // thread dumps
         observations = getLatestData("thread", maxObservations);
         writeJson(observations, new File(folder, "threadData.json"));

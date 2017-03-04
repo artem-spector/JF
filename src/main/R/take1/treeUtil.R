@@ -1,6 +1,45 @@
 library(jsonlite)
 library(data.tree)
 
+readThreadDumps <- function(file) {
+  lines <- readLines(file, warn = FALSE)
+  frame <- fromJSON(lines)
+  res <- list()
+
+  for (i in 1: nrow(frame)) {
+    threadDump <- frame[i,]
+    res[[length(res) + 1]] <- parseThreadDump(threadDump)
+  }
+  
+  res
+}
+
+parseThreadDump <- function(data) {
+  dump <- list(time = data$time)
+  threads <- list()
+  for (i in 1:nrow(data$liveThreads[[1]])) {
+    threadData <- data$liveThreads[[1]][1,]
+    thread <- list(threadId = threadData$threadId, threadName = threadData$threadName, threadState = threadData$threadState)
+    thread$stacktrace <- parseStacktrace(threadData$stackTrace[[1]])
+    threads[[length(threads) + 1]] <- thread
+  }
+  dump$threads <- threads
+  dump
+}
+
+parseStacktrace <- function(trace) {
+  root <- NULL
+  parent <- NULL
+  for (i in 1:nrow(trace)) {
+    mtd <- trace[i,]
+    node <- Node$new(paste(mtd$className, mtd$methodName, sep = "."), fileName = mtd$fileName, lineNumber = mtd$lineNumber)
+    if (!is.null(parent)) parent$AddChildNode(node)
+    if (is.null(root)) root <- node
+    parent <- node
+  }
+  root
+}
+
 readSnapshots <- function(file) {
   lines <- readLines(file, warn = FALSE)
   frame <- fromJSON(lines)
