@@ -7,10 +7,10 @@ readSnapshots <- function(file) {
   res <- list()
   for (i in 1:nrow(frame)) {
     snapshot <- frame[i,]$snapshotJson
-    durationNano <- snapshot$endTime - snapshot$startTime
+    duration <- (snapshot$endTime - snapshot$startTime) / 1000 # timestamps are in millis
     for (i in 1:nrow(snapshot$flows[[1]])) {
       root <- parseFlow(snapshot$flows[[1]][i,])
-      root$durationNano <-durationNano
+      root$snapshotDuration <- duration
       res <- append(res, root)
     }
   }
@@ -20,13 +20,49 @@ readSnapshots <- function(file) {
 parseFlow <- function(data) {
   flow <- Node$new(paste(gsub("/", ".", data$className), data$methodName, sep = "."), flowId = data$key,
                     className = data$class, methodName = data$methodName, methodDescriptor = data$methodDescriptor,
-                    file = data$file, firstLine = data$firstLine, returnLine = data$returnLine, statistics = data$statistics)
+                    file = data$file, firstLine = data$firstLine, returnLine = data$returnLine)
+  flow$stat <- list(
+    min = nanoToSec(data$statistics$min), 
+    max = nanoToSec(data$statistics$max), 
+    cumulative = nanoToSec(data$statistics$cumulative), 
+    count = data$statistics$count
+  )
   if (!is.null(data$subflows) && length(data$subflows) == 1 && !is.null(data$subflows[[1]])) {
     for (i in 1:nrow(data$subflows[[1]])) {
       flow$AddChildNode(parseFlow(data$subflows[[1]][i,]))
     }
   }
   flow
+}
+
+nanoToSec <- function(nano) {
+  nano / 1000000000
+}
+
+flowsAsDataframe <- function(flows, recursive = FALSE) {
+  res <- data.frame()
+  for(flow in flows) {
+    res <- addFlowToDataframe(flow, res, recursive)
+  }
+  res
+}
+
+addFlowToDataframe <- function(flow, frame, recursive) {
+  row <- nrow(frame) + 1
+  frame[row, "flowId"] <- flow$flowId
+  frame[row, "minTime"] <- flow$stat$min
+  frame[row, "maxTime"] <- flow$stat$max
+  frame[row, "cumulativeTime"] <- flow$stat$cumulative
+  frame[row, "count"] <- flow$stat$count
+  
+  if (recursive) {
+    if (!is.null(flow$children)) {
+      for(nested in flow$children) 
+        frame <- addFlowToDataframe(nested, frame, TRUE)
+    }
+  }
+  
+  frame
 }
 
 readThreadMetadata <- function(file) {
