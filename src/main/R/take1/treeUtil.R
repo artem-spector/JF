@@ -9,7 +9,8 @@ readSnapshots <- function(file) {
     snapshot <- frame[i,]$snapshotJson
     duration <- (snapshot$endTime - snapshot$startTime) / 1000 # timestamps are in millis
     for (i in 1:nrow(snapshot$flows[[1]])) {
-      root <- parseFlow(snapshot$flows[[1]][i,])
+      root <- parseFlow(snapshot$flows[[1]][i,], NULL, duration)
+      root$snapshotStart <- snapshot$startTime
       root$snapshotDuration <- duration
       res <- append(res, root)
     }
@@ -17,7 +18,7 @@ readSnapshots <- function(file) {
   res
 }
 
-parseFlow <- function(data) {
+parseFlow <- function(data, rootCumulativeTime, snapshotDuration) {
   flow <- Node$new(paste(gsub("/", ".", data$className), data$methodName, sep = "."), flowId = data$key,
                     className = data$class, methodName = data$methodName, methodDescriptor = data$methodDescriptor,
                     file = data$file, firstLine = data$firstLine, returnLine = data$returnLine)
@@ -27,10 +28,20 @@ parseFlow <- function(data) {
     cumulative = nanoToSec(data$statistics$cumulative), 
     count = data$statistics$count
   )
+  if (is.null(rootCumulativeTime)) rootCumulativeTime <- flow$stat$cumulative
+  flow$stat$avg <- flow$stat$cumulative / flow$stat$count
+  flow$stat$throughput <- flow$stat$count / snapshotDuration
+  flow$stat$weight <- flow$stat$cumulative / rootCumulativeTime
+  flow$stat$ownWeight <- flow$stat$weight
+  
   if (!is.null(data$subflows) && length(data$subflows) == 1 && !is.null(data$subflows[[1]])) {
+    childrenTime <- 0
     for (i in 1:nrow(data$subflows[[1]])) {
-      flow$AddChildNode(parseFlow(data$subflows[[1]][i,]))
+      child <- parseFlow(data$subflows[[1]][i,], rootCumulativeTime, snapshotDuration)
+      flow$AddChildNode(child)
+      childrenTime <- childrenTime + child$stat$cumulative
     }
+    flow$stat$ownWeight <- flow$stat$weight - (childrenTime / rootCumulativeTime)
   }
   flow
 }
@@ -42,23 +53,26 @@ nanoToSec <- function(nano) {
 extractFeaturesFromRootFlows <- function(rootFlows, recursive = FALSE) {
   res <- data.frame()
   for(root in rootFlows) {
-    res <- flowFeatures(root, res, root$snapshotDuration, recursive)
+    res <- flowFeatures(root, res, root$snapshotDuration, root$stat$cumulative, recursive)
   }
   res
 }
 
-flowFeatures <- function(flow, frame, snapshotDuration, recursive) {
+flowFeatures <- function(flow, frame, snapshotDuration, rootTime, recursive) {
   row <- nrow(frame) + 1
   frame[row, "flowId"] <- flow$flowId
   frame[row, "minTime"] <- flow$stat$min
   frame[row, "maxTime"] <- flow$stat$max
-  frame[row, "avgTime"] <- flow$stat$cumulative / flow$stat$count
-  frame[row, "throughput"] <- flow$stat$count / snapshotDuration
+  frame[row, "avgTime"] <- flow$stat$avg
+  frame[row, "throughput"] <- flow$stat$throughput
+  frame[row, "weight"] <- flow$stat$weight
+  frame[row, "ownWeight"] <- flow$stat$ownWeight
   
   if (recursive) {
     if (!is.null(flow$children)) {
-      for(nested in flow$children) 
-        frame <- flowFeatures(nested, frame, snapshotDuration, recursive)
+      for(nested in flow$children) {
+        frame <- flowFeatures(nested, frame, snapshotDuration, rootTime, recursive)
+      }
     }
   }
   
