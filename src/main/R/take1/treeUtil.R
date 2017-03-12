@@ -18,7 +18,7 @@ parseThreadDump <- function(data) {
   dump <- list(time = data$time)
   threads <- list()
   for (i in 1:nrow(data$liveThreads[[1]])) {
-    threadData <- data$liveThreads[[1]][1,]
+    threadData <- data$liveThreads[[1]][i,]
     thread <- list(threadId = threadData$threadId, threadName = threadData$threadName, threadState = threadData$threadState)
     thread$stacktrace <- parseStacktrace(threadData$stackTrace[[1]])
     threads[[length(threads) + 1]] <- thread
@@ -30,12 +30,16 @@ parseThreadDump <- function(data) {
 parseStacktrace <- function(trace) {
   root <- NULL
   parent <- NULL
-  for (i in 1:nrow(trace)) {
-    mtd <- trace[i,]
-    node <- Node$new(paste(mtd$className, mtd$methodName, sep = "."), fileName = mtd$fileName, lineNumber = mtd$lineNumber)
-    if (!is.null(parent)) parent$AddChildNode(node)
-    if (is.null(root)) root <- node
-    parent <- node
+  if (nrow(trace) > 0) {
+    for (i in 1:nrow(trace)) {
+      mtd <- trace[i,]
+      node <- Node$new(paste(mtd$className, mtd$methodName, sep = "."), fileName = mtd$fileName, lineNumber = mtd$lineNumber)
+      if (!is.null(parent)) {
+        parent$AddChildNode(node)
+      }
+      if (is.null(root)) root <- node
+      parent <- node
+    }
   }
   root
 }
@@ -51,6 +55,7 @@ readSnapshots <- function(file) {
       root <- parseFlow(snapshot$flows[[1]][i,], NULL, duration)
       root$snapshotStart <- snapshot$startTime
       root$snapshotDuration <- duration
+      root$time <- frame[i, "time"]
       res <- append(res, root)
     }
   }
@@ -92,12 +97,12 @@ nanoToSec <- function(nano) {
 extractFeaturesFromRootFlows <- function(rootFlows, recursive = FALSE) {
   res <- data.frame()
   for(root in rootFlows) {
-    res <- flowFeatures(root, res, root$snapshotDuration, root$stat$cumulative, recursive)
+    res <- flowFeatures(root, res, root, recursive)
   }
   res
 }
 
-flowFeatures <- function(flow, frame, snapshotDuration, rootTime, recursive) {
+flowFeatures <- function(flow, frame, root, recursive) {
   row <- nrow(frame) + 1
   frame[row, "flowId"] <- flow$flowId
   frame[row, "minTime"] <- flow$stat$min
@@ -106,16 +111,76 @@ flowFeatures <- function(flow, frame, snapshotDuration, rootTime, recursive) {
   frame[row, "throughput"] <- flow$stat$throughput
   frame[row, "weight"] <- flow$stat$weight
   frame[row, "ownWeight"] <- flow$stat$ownWeight
-  
+  frame[row, "time"] <- root$time
+
   if (recursive) {
     if (!is.null(flow$children)) {
       for(nested in flow$children) {
-        frame <- flowFeatures(nested, frame, snapshotDuration, rootTime, recursive)
+        frame <- flowFeatures(nested, frame, root, recursive)
       }
     }
   }
   
   frame
+}
+
+enrichFlowsWithThreadDumps <- function(rootFlows, allDumps) {
+  # find the snapshot times 
+  snapshotTimes <- c()
+  for (r in rootFlows)
+    snapshotTimes <- append(snapshotTimes, r$time)
+  snapshotTimes <- unique(snapshotTimes)
+  
+  # loop by snapshots 
+  for (s in snapshotTimes) {
+    # extract root flows, their instrumented methods, and thread dumps to be merged
+    flows <- list()
+    dumps <- list()
+    instr <- c()
+    if (!is.na(s)) {
+      from <- s - 5000
+      to <- s + 1000
+      for (r in rootFlows) {
+        if (!is.na(r$time) && r$time == s) {
+          flows[[length(flows) + 1]] <- r
+          instr <- unique(append(instr, r$Get("name")))
+        }
+      }
+      for (d in allDumps) {
+        if (d$time >= from && d$time <=to) {
+          dumps[[length(dumps) + 1]] <- d
+        }
+      }
+    }
+    
+    # add dump data to flows
+    if (length(flows) > 0 && length(dumps) > 0) {
+      for (f in flows) {
+        for (d in dumps) {
+          addThreadsToFlow(f, d, instr)
+        }
+      }
+    }
+  }
+  
+  TRUE
+}
+
+addThreadsToFlow <- function(flow, dump, instr) {
+  for (t in dump$threads) {
+    # in the stacktrace path keep only instrumented methods of the flow 
+    path <- t$stacktrace$leaves[[1]]$path
+    path <- path[path %in% instr]
+    
+    # climb the stacktrace path on the flow tree
+    found <- NULL
+    len <- length(path)
+    if (len > 0 && flow$name == path[1]) {
+      found <- path
+      if (len > 1)
+        found <- flow$Climb(path[-1])$path
+    }
+  }
 }
 
 readThreadMetadata <- function(file) {
