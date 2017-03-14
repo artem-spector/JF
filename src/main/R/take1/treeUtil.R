@@ -4,44 +4,52 @@ library(data.tree)
 readThreadDumps <- function(file) {
   lines <- readLines(file, warn = FALSE)
   frame <- fromJSON(lines)
-  res <- list()
+  res <- data.frame()
 
   for (i in 1: nrow(frame)) {
-    threadDump <- frame[i,]
-    res[[length(res) + 1]] <- parseThreadDump(threadDump)
+    res <- rbind(res, parseThreadDump(frame[i,]))
   }
   
   res
 }
 
 parseThreadDump <- function(data) {
-  dump <- list(time = data$time)
-  threads <- list()
+  res <- data.frame()
   for (i in 1:nrow(data$liveThreads[[1]])) {
     threadData <- data$liveThreads[[1]][i,]
-    thread <- list(threadId = threadData$threadId, threadName = threadData$threadName, threadState = threadData$threadState)
-    thread$stacktrace <- parseStacktrace(threadData$stackTrace[[1]])
-    threads[[length(threads) + 1]] <- thread
+    found <- which(res$threadId == threadData$threadId)
+    if (length(found) == 0) {
+      idx <- nrow(res) + 1
+      res[idx, "time"] <- data$time
+      res[idx, "threadId"] <- threadData$threadId
+      res[idx, "pathStr"] <- getPathString(threadData$stackTrace[[1]])
+    } else {
+      idx <- found[1]
+      res[idx, "count"] <- res[idx, "count"] + 1
+    }
   }
-  dump$threads <- threads
-  dump
+  res
+}
+
+getPathString <- function(trace) {
+  pathStr <- ""
+  if (nrow(trace) > 0) {
+    for (i in 1:nrow(trace)) {
+      pathStr <- paste(pathStr, paste(trace[i, "className"], trace[i, "methodName"], sep = "."), sep = "/")
+    }
+  }
+  pathStr
 }
 
 parseStacktrace <- function(trace) {
-  root <- NULL
-  parent <- NULL
+  curr <- ""
   if (nrow(trace) > 0) {
     for (i in 1:nrow(trace)) {
-      mtd <- trace[i,]
-      node <- Node$new(paste(mtd$className, mtd$methodName, sep = "."), fileName = mtd$fileName, lineNumber = mtd$lineNumber)
-      if (!is.null(parent)) {
-        parent$AddChildNode(node)
-      }
-      if (is.null(root)) root <- node
-      parent <- node
+      curr <- paste(curr, paste(trace[i, "className"], trace[i, "methodName"], sep = "."), sep = "/")
+      trace[i, "pathString"] <- curr 
     }
   }
-  root
+  as.Node(trace)
 }
 
 readSnapshots <- function(file) {
@@ -146,19 +154,13 @@ enrichFlowsWithThreadDumps <- function(rootFlows, allDumps) {
           instr <- unique(append(instr, r$Get("name")))
         }
       }
-      for (d in allDumps) {
-        if (d$time >= from && d$time <=to) {
-          dumps[[length(dumps) + 1]] <- d
-        }
-      }
+      threads <- allDumps[allDumps$time >= from & allDumps$time <= to,]
     }
     
     # add dump data to flows
-    if (length(flows) > 0 && length(dumps) > 0) {
+    if (length(flows) > 0 && nrow(threads) > 0) {
       for (f in flows) {
-        for (d in dumps) {
-          addThreadsToFlow(f, d, instr)
-        }
+        addThreadsToFlow(f, threads, instr)
       }
     }
   }
@@ -166,10 +168,12 @@ enrichFlowsWithThreadDumps <- function(rootFlows, allDumps) {
   TRUE
 }
 
-addThreadsToFlow <- function(flow, dump, instr) {
-  for (t in dump$threads) {
+addThreadsToFlow <- function(flow, threads, instr) {
+  threadIds <- unique(threads$threadId)
+  for (id in threadIds) {
     # in the stacktrace path keep only instrumented methods of the flow 
-    path <- t$stacktrace$leaves[[1]]$path
+    t <- threads[threads$threadId == id,][1,]
+    path <- unlist(strsplit(t$pathStr, split = "/"))
     path <- path[path %in% instr]
     
     # climb the stacktrace path on the flow tree
