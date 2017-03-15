@@ -70,14 +70,23 @@ sample <- function(num) {
 # tree analysis
 analyzeTrees <- function(folder = "../../../../target/testContinuous-temp/", doDebug = TRUE) {
   rootFlows <- readSnapshots(paste(folder, "snapshots.json", sep = ""))
-  threadDumps <- readThreadDumps(paste(folder, "liveThreads.json", sep = ""))
 
   if (doDebug) {
-    print(paste("loaded", length(rootFlows), "root flows, and ", length(threadDumps), "threadDumps"))
+    print(paste("loaded", length(rootFlows), "root flows"))
     rootFlows <<- rootFlows
+  }
+
+  threadDumps <- readThreadDumps(paste(folder, "liveThreads.json", sep = ""))
+  if (doDebug) {
+    print(paste("loaded", length(threadDumps), "threadDumps"))
     threadDumps <<- threadDumps
   }
-  
+
+  enrichFlowsWithThreadDumps(rootFlows, threadDumps)
+  if (doDebug) {
+    print("flows eriched with thread dumps data")
+  }
+      
   df <- extractFeaturesFromRootFlows(rootFlows)
   rootIds <- unique(df[, "flowId"])
   

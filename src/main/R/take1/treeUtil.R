@@ -1,5 +1,6 @@
 library(jsonlite)
 library(data.tree)
+library(digest)
 
 readThreadDumps <- function(file) {
   lines <- readLines(file, warn = FALSE)
@@ -17,12 +18,16 @@ parseThreadDump <- function(data) {
   res <- data.frame()
   for (i in 1:nrow(data$liveThreads[[1]])) {
     threadData <- data$liveThreads[[1]][i,]
-    found <- which(res$threadId == threadData$threadId)
+    pathStr <- getPathString(threadData$stackTrace[[1]])
+    threadId <- sha1(pathStr)
+    found <- which(res$threadId == threadId)
     if (length(found) == 0) {
       idx <- nrow(res) + 1
       res[idx, "time"] <- data$time
-      res[idx, "threadId"] <- threadData$threadId
-      res[idx, "pathStr"] <- getPathString(threadData$stackTrace[[1]])
+      res[idx, "threadId"] <- threadId
+      res[idx, "status"] <- threadData$threadState
+      res[idx, "count"] <- 1
+      res[idx, "pathStr"] <- pathStr
     } else {
       idx <- found[1]
       res[idx, "count"] <- res[idx, "count"] + 1
@@ -35,21 +40,10 @@ getPathString <- function(trace) {
   pathStr <- ""
   if (nrow(trace) > 0) {
     for (i in 1:nrow(trace)) {
-      pathStr <- paste(pathStr, paste(trace[i, "className"], trace[i, "methodName"], sep = "."), sep = "/")
+      pathStr <- paste(paste(trace[i, "className"], trace[i, "methodName"], sep = "."), pathStr, sep = "/")
     }
   }
   pathStr
-}
-
-parseStacktrace <- function(trace) {
-  curr <- ""
-  if (nrow(trace) > 0) {
-    for (i in 1:nrow(trace)) {
-      curr <- paste(curr, paste(trace[i, "className"], trace[i, "methodName"], sep = "."), sep = "/")
-      trace[i, "pathString"] <- curr 
-    }
-  }
-  as.Node(trace)
 }
 
 readSnapshots <- function(file) {
@@ -173,16 +167,24 @@ addThreadsToFlow <- function(flow, threads, instr) {
   for (id in threadIds) {
     # in the stacktrace path keep only instrumented methods of the flow 
     t <- threads[threads$threadId == id,][1,]
-    path <- unlist(strsplit(t$pathStr, split = "/"))
-    path <- path[path %in% instr]
+    trace <- unlist(strsplit(t$pathStr, split = "/"))
+    path <- trace[trace %in% instr]
     
     # climb the stacktrace path on the flow tree
-    found <- NULL
     len <- length(path)
     if (len > 0 && flow$name == path[1]) {
-      found <- path
+      found <- flow
       if (len > 1)
-        found <- flow$Climb(path[-1])$path
+        found <- flow$Climb(path[-1])
+      
+      if (is.null(found$hotspots[[id]])) {
+        found$hotspots[[id]]$trace <- trace
+        found$hotspots[[id]]$status <- t$status
+        found$hotspots[[id]]$nDumps <- 0
+        found$hotspots[[id]]$totalThreads <- 0
+      }
+      found$hotspots[[id]]$nDumps <- found$hotspots[[id]]$nDumps + 1
+      found$hotspots[[id]]$totalThreads <- found$hotspots[[id]]$totalThreads + t$count
     }
   }
 }
@@ -334,18 +336,16 @@ plotFlowWithHotspots <- function(flow) {
     print(paste("Flow", flow$flowId, "has a single node", flow$name, ", not plotting it"))
   } else {
     SetNodeStyle(flow, keepExisting = FALSE, inherit = TRUE, penwidth = "2px", shape = "box", style = "rounded")
-    for (trace in flow$traces) {
-      spot <- NULL
-      if (length(trace$path) == 1) {
-        spot <- flow
-      } else {
-        spot <- flow$Climb(trace$path[-1])
+    flow$Do(function(node){
+      if (!is.null(node$hotspots)) {
+        txt <- ""
+        for (s in node$hotspots) {
+          txt <- paste(txt, "status:", s$status, "concurrency:", s$totalThreads / s$nDumps)
+        }
+        SetNodeStyle(node, inherit = FALSE, keepExisting = FALSE, penwidth = "5px", tooltip = txt)
       }
-      if (!is.null(spot)) {
-        text <- paste(trace$trace, collapse = " ")
-        SetNodeStyle(spot, inherit = FALSE, keepExisting = FALSE, penwidth = "5px", tooltip = text)
-      }
-    }
+    })
+
     print(paste("Plotting flow", flow$flowId))
     plot(flow)
   }
