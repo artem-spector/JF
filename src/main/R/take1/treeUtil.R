@@ -68,26 +68,24 @@ parseFlow <- function(data, rootCumulativeTime, snapshotDuration) {
   flow <- Node$new(paste(gsub("/", ".", data$className), data$methodName, sep = "."), flowId = data$key,
                     className = data$class, methodName = data$methodName, methodDescriptor = data$methodDescriptor,
                     file = data$file, firstLine = data$firstLine, returnLine = data$returnLine)
-  flow$stat <- list(
-    min = nanoToSec(data$statistics$min), 
-    max = nanoToSec(data$statistics$max), 
-    cumulative = nanoToSec(data$statistics$cumulative), 
-    count = data$statistics$count
-  )
-  if (is.null(rootCumulativeTime)) rootCumulativeTime <- flow$stat$cumulative
-  flow$stat$avg <- flow$stat$cumulative / flow$stat$count
-  flow$stat$throughput <- flow$stat$count / snapshotDuration
-  flow$stat$weight <- flow$stat$cumulative / rootCumulativeTime
-  flow$stat$ownWeight <- flow$stat$weight
+
+  flow$cumulativeDurationSec <- nanoToSec(data$statistics$cumulative)
+  flow$minDurationSec <- nanoToSec(data$statistics$min)
+  flow$maxDurationSec <- nanoToSec(data$statistics$max)
+  flow$invocationCount = data$statistics$count
+  if (is.null(rootCumulativeTime)) rootCumulativeTime <- flow$cumulativeDurationSec
+  
+  flow$avgDurationSec <- flow$cumulativeDurationSec / flow$invocationCount
+  flow$throughput <- flow$invocationCount / snapshotDuration
+  flow$weight <- flow$cumulativeDurationSec / rootCumulativeTime
+  flow$ownWeight <- flow$weight
   
   if (!is.null(data$subflows) && length(data$subflows) == 1 && !is.null(data$subflows[[1]])) {
-    childrenTime <- 0
     for (i in 1:nrow(data$subflows[[1]])) {
       child <- parseFlow(data$subflows[[1]][i,], rootCumulativeTime, snapshotDuration)
       flow$AddChildNode(child)
-      childrenTime <- childrenTime + child$stat$cumulative
+      flow$ownWeight <- flow$ownWeight - child$weight
     }
-    flow$stat$ownWeight <- flow$stat$weight - (childrenTime / rootCumulativeTime)
   }
   flow
 }
@@ -107,12 +105,13 @@ extractFeaturesFromRootFlows <- function(rootFlows, recursive = FALSE) {
 flowFeatures <- function(flow, frame, root, recursive) {
   row <- nrow(frame) + 1
   frame[row, "flowId"] <- flow$flowId
-  frame[row, "minTime"] <- flow$stat$min
-  frame[row, "maxTime"] <- flow$stat$max
-  frame[row, "avgTime"] <- flow$stat$avg
-  frame[row, "throughput"] <- flow$stat$throughput
-  frame[row, "weight"] <- flow$stat$weight
-  frame[row, "ownWeight"] <- flow$stat$ownWeight
+  frame[row, "mtd"] <- flow$name
+  frame[row, "minTime"] <- flow$minDurationSec
+  frame[row, "maxTime"] <- flow$maxDurationSec
+  frame[row, "avgTime"] <- flow$avgDurationSec
+  frame[row, "throughput"] <- flow$throughput
+  frame[row, "weight"] <- flow$weight
+  frame[row, "ownWeight"] <- flow$ownWeight
   frame[row, "time"] <- root$time
 
   if (recursive) {
@@ -177,14 +176,19 @@ addThreadsToFlow <- function(flow, threads, instr) {
       if (len > 1)
         found <- flow$Climb(path[-1])
       
-      if (is.null(found$hotspots[[id]])) {
-        found$hotspots[[id]]$trace <- trace
-        found$hotspots[[id]]$status <- t$status
-        found$hotspots[[id]]$nDumps <- 0
-        found$hotspots[[id]]$totalThreads <- 0
+      if (!is.null(found)) {
+        # add hotspot as a child node
+        hotspotList <- subset(found$children, found$children$name == id)
+        hotspotNode <- NULL
+        if (length(hotspotList) == 0) {
+          hotspotNode = Node$new(id, status = t[1,"status"], trace = trace, numThreads = 0, numDumps = 0)
+          found$AddChildNode(hotspotNode)
+        } else {
+          hotspotNode <- hotspotList[[1]]
+        }
+        hotspotNode$numThreads <- hotspotNode$numThreads + t$count
+        hotspotNode$numDumps <- hotspotNode$numDumps + 1
       }
-      found$hotspots[[id]]$nDumps <- found$hotspots[[id]]$nDumps + 1
-      found$hotspots[[id]]$totalThreads <- found$hotspots[[id]]$totalThreads + t$count
     }
   }
 }
@@ -278,10 +282,10 @@ createFlowMetadataNode <- function(flow) {
 
 createFlowDataNode <- function(data) {
   node <- Node$new(data$flowId)
-  node$stat$maxTime <- data$maxTime
-  node$stat$minTime <- data$minTime
-  node$stat$cumulativeTime <- data$cumulativeTime
-  node$stat$count <- data$count
+  node$maxTime <- data$maxTime
+  node$minTime <- data$minTime
+  node$cumulativeTime <- data$cumulativeTime
+  node$count <- data$count
   
   subflows <- data$subflows
   if (!is.na(subflows) && !is.null(subflows)) {
@@ -331,23 +335,48 @@ mapFlowsToThreads <- function(flows, threads) {
   }
 }
 
-plotFlowWithHotspots <- function(flow) {
-  if (isLeaf(flow)) {
-    print(paste("Flow", flow$flowId, "has a single node", flow$name, ", not plotting it"))
-  } else {
-    SetNodeStyle(flow, keepExisting = FALSE, inherit = TRUE, penwidth = "2px", shape = "box", style = "rounded")
-    flow$Do(function(node){
-      if (!is.null(node$hotspots)) {
-        txt <- ""
-        for (s in node$hotspots) {
-          txt <- paste(txt, "status:", s$status, "concurrency:", s$totalThreads / s$nDumps)
-        }
-        SetNodeStyle(node, inherit = FALSE, keepExisting = FALSE, penwidth = "5px", tooltip = txt)
-      }
-    })
+isHotspotNode <- function(node) {
+  is.null(node$ownWeight)
+}
 
-    print(paste("Plotting flow", flow$flowId))
-    plot(flow)
+nodeLabel <- function(node) {
+  if (isHotspotNode(node)) {
+    return(paste0(node$status, "\nconcurrency: ", round(node$numThreads / node$numDumps)))
+  } else {
+    return(paste0(node$name, '\n', format(node$ownWeight * 100, scientific = FALSE, digits = 1, nsmall = 1), "%"))
   }
 }
 
+nodeFillColor <- function(node) {
+  if (isHotspotNode(node)) {
+    return(switch(node$status, "RUNNABLE" = "green", "WAITING" = "yellow", "TIMED_WAITING" = "yellow", "BLOCKED" = "red"))
+  } else {
+    rank <- as.integer(node$ownWeight * 8) + 1 
+    return(paste0("/blues9/", rank))
+  }
+}
+
+nodeFontColor <- function(node) {
+  if (isHotspotNode(node)) {
+    return("black")
+  } else if (node$ownWeight >= 0.65) {
+    return("white")
+  } else {
+    return("black")
+  }
+}
+
+edgeLabel <- function(node) {
+  label <- ""
+  if (!node$isRoot && !isHotspotNode(node)) {
+    label <- format(node$invocationCount / node$parent$invocationCount, scientific = FALSE, digits = 1)
+  }
+  label
+}
+
+plotFlow <- function(flow) {
+  SetEdgeStyle(flow, fontname = 'helvetica', label = edgeLabel)
+  SetNodeStyle(flow, fontname = 'helvetica', penwidth = "1px", shape = "box", style = "filled,rounded", 
+               label = nodeLabel, fillcolor = nodeFillColor, fontcolor = nodeFontColor)
+  plot(flow)
+}
