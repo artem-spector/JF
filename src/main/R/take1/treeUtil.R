@@ -339,12 +339,35 @@ isHotspotNode <- function(node) {
   is.null(node$ownWeight)
 }
 
+nodeShape <- function(node) {
+  if (isHotspotNode(node))
+    return("ellipse")
+  else 
+    return("box")
+}
+
 nodeLabel <- function(node) {
   if (isHotspotNode(node)) {
-    return(paste0(node$status, "\nconcurrency: ", round(node$numThreads / node$numDumps)))
+    return(node$status)
   } else {
-    return(paste0(node$name, '\n', format(node$ownWeight * 100, scientific = FALSE, digits = 1, nsmall = 1), "%"))
+    weightStr <- paste0("own time: ", format(node$ownWeight * 100, scientific = FALSE, digits = 1, nsmall = 1), "%")
+    if (node$isRoot)
+      return (
+        paste0(node$name, 
+          "\navg duration: ", format(node$avgDurationSec, digits = 3), "sec",
+          "\nthroughput: ", format(node$throughput, digits = 2, nsmall = 1), "/sec",
+          '\n', weightStr
+        ))
+    else 
+      return (paste0(node$name, '\n', weightStr))
   }
+}
+
+nodeTooltip <- function(node) {
+  if (isHotspotNode(node))
+    return (paste0(node$trace, collapse = "\n"))
+  else 
+    return (paste0(node$file, " ", node$firstLine, "..", node$returnLine))
 }
 
 nodeFillColor <- function(node) {
@@ -367,16 +390,31 @@ nodeFontColor <- function(node) {
 }
 
 edgeLabel <- function(node) {
-  label <- ""
-  if (!node$isRoot && !isHotspotNode(node)) {
-    label <- format(node$invocationCount / node$parent$invocationCount, scientific = FALSE, digits = 1)
-  }
-  label
+  if (isHotspotNode(node))
+    return (format(round(node$numThreads / node$numDumps)))
+  else if (!node$isRoot) 
+    return (format(node$invocationCount / node$parent$invocationCount, scientific = FALSE, digits = 1))
+  else
+    return ("")
+}
+
+edgeArrowhead <- function(node) {
+  if (isHotspotNode(node))
+    return ("none")
+  else
+    return ("normal")
+}
+
+edgeLine <- function(node) {
+  if (isHotspotNode(node))
+    return ("dashed")
+  else
+    return ("solid")
 }
 
 plotFlow <- function(flow) {
-  SetEdgeStyle(flow, fontname = 'helvetica', label = edgeLabel)
-  SetNodeStyle(flow, fontname = 'helvetica', penwidth = "1px", shape = "box", style = "filled,rounded", 
-               label = nodeLabel, fillcolor = nodeFillColor, fontcolor = nodeFontColor)
+  SetEdgeStyle(flow, fontname = 'helvetica', label = edgeLabel, arrowhead = edgeArrowhead, style = edgeLine)
+  SetNodeStyle(flow, fontname = 'helvetica', penwidth = "1px", shape = nodeShape, style = "filled,rounded", 
+               label = nodeLabel, tooltip = nodeTooltip, fillcolor = nodeFillColor, fontcolor = nodeFontColor)
   plot(flow)
 }
