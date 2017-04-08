@@ -1,6 +1,7 @@
 library(jsonlite)
 library(data.tree)
 library(digest)
+library(DiagrammeRsvg)
 
 readThreadDumps <- function(file) {
   lines <- readLines(file, warn = FALSE)
@@ -417,4 +418,8 @@ plotFlow <- function(flow) {
   SetNodeStyle(flow, fontname = 'helvetica', penwidth = "1px", shape = nodeShape, style = "filled,rounded", 
                label = nodeLabel, tooltip = nodeTooltip, fillcolor = nodeFillColor, fontcolor = nodeFontColor)
   plot(flow)
+}
+
+saveFlowAsSVG <- function(flow, name) {
+  writeLines(export_svg(render_graph(ToDiagrammeRGraph(flow))), paste0(name, ".svg"))
 }
