@@ -137,7 +137,7 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public String createDocument(String index, String docType, Object pojo, String id) {
         try {
-            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(pojo), XContentType.JSON);
+            IndexRequestBuilder request = client.prepareIndex(index, docType).setSource(mapper.writeValueAsBytes(pojo), XContentType.JSON);
             if (id != null) request.setId(id);
             return request.execute().actionGet().getId();
         } catch (JsonProcessingException e) {
