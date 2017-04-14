@@ -14,20 +14,23 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,21 +61,33 @@ public class ESClient implements InitializingBean, DisposableBean {
     @Value("${elasticsearch.port}")
     private int esPort;
 
-    private Client client;
+    @Value("${cluster.name}")
+    private String esCluster;
+
+    @Value("${transport.client}")
+    private String esClientCredentials;
+
+    private TransportClient client;
 
     public ESClient() {
     }
 
-    public ESClient(String esHost, int esPort) throws Exception {
+    public ESClient(String esHost, int esPort, String cluster, String credentials) throws Exception {
         this.esHost = esHost;
         this.esPort = esPort;
+        this.esCluster = cluster;
+        this.esClientCredentials = credentials;
         afterPropertiesSet();
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        client = TransportClient.builder().build()
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(esHost), esPort));
+        Settings settings = Settings.builder()
+                .put("cluster.name", esCluster)
+                .put("xpack.security.user", esClientCredentials)
+                .build();
+        client = new PreBuiltXPackTransportClient(settings)
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"), 9300));
     }
 
     @Override
@@ -88,7 +103,7 @@ public class ESClient implements InitializingBean, DisposableBean {
     public void putTemplate(String name, String template, Collection<DocType> docTypes) {
         PutIndexTemplateRequestBuilder request = client.admin().indices().preparePutTemplate(name).setTemplate(template).setOrder(1);
         for (DocType docType : docTypes) {
-            request.addMapping(docType.docType, docType.readMapping());
+            request.addMapping(docType.docType, docType.readMapping(), XContentType.JSON);
         }
         request.execute().actionGet();
         awaitClusterAvailable(5);
@@ -122,7 +137,7 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public String createDocument(String index, String docType, Object pojo, String id) {
         try {
-            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(pojo));
+            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(pojo), XContentType.JSON);
             if (id != null) request.setId(id);
             return request.execute().actionGet().getId();
         } catch (JsonProcessingException e) {
@@ -132,7 +147,7 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public <T> PersistentData<T> createDocument(String index, String docType, PersistentData<T> doc) {
         try {
-            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(doc.source));
+            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(doc.source), XContentType.JSON);
             if (doc.id != null) request.setId(doc.id);
             IndexResponse response = request.execute().actionGet();
             return new PersistentData<>(response.getId(), response.getVersion(), doc.source);
@@ -156,14 +171,14 @@ public class ESClient implements InitializingBean, DisposableBean {
         try {
             createDocument(index, docType, doc);
             return null;
-        } catch (DocumentAlreadyExistsException e) {
+        } catch (VersionConflictEngineException e) {
             return getDocument(index, docType, doc, type);
         }
     }
 
     public <T> PersistentData<T> updateDocument(String index, String docType, PersistentData<T> doc) {
         try {
-            UpdateRequestBuilder request = client.prepareUpdate(index, docType, doc.id).setDoc(mapper.writeValueAsBytes(doc.source));
+            UpdateRequestBuilder request = client.prepareUpdate(index, docType, doc.id).setDoc(mapper.writeValueAsBytes(doc.source), XContentType.JSON);
             if (doc.version != 0) request.setVersion(doc.version);
             UpdateResponse response = request.execute().actionGet();
             return new PersistentData<>(response.getId(), response.getVersion(), doc.source);
@@ -202,7 +217,7 @@ public class ESClient implements InitializingBean, DisposableBean {
             return null;
         }
 
-        List<T> res = new ArrayList<T>();
+        List<T> res = new ArrayList<>();
         for (Iterator<MultiGetItemResponse> iterator = response.iterator(); iterator.hasNext(); ) {
             MultiGetItemResponse item = iterator.next();
             GetResponse itemResponse = item.getResponse();
@@ -221,7 +236,7 @@ public class ESClient implements InitializingBean, DisposableBean {
     public boolean deleteDocument(String indexName, String docType, PersistentData document) {
         DeleteRequestBuilder request = client.prepareDelete(indexName, docType, document.id);
         if (document.version != 0) request.setVersion(document.version);
-        return request.execute().actionGet().isFound();
+        return request.execute().actionGet().status() == RestStatus.FOUND;
     }
 
     public SearchResponse search(String indexName, String type, QueryBuilder query, int maxHits, SortBuilder sort) {
@@ -254,7 +269,7 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public void deleteByQuery(String indexName, QueryBuilder query) {
         int maxBulkLen = 100;
-        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query).setNoFields();
+        SearchRequestBuilder searchQuery = client.prepareSearch(indexName).setQuery(query);
 
         boolean done = false;
         while (!done) {

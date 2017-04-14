@@ -1,6 +1,5 @@
 package com.jflop;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.persistency.ESClient;
 import com.jflop.server.persistency.PersistentData;
@@ -17,7 +16,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -48,7 +46,7 @@ public class TestUtil {
     }
 
     private TestUtil() throws Exception {
-        esClient = new ESClient("localhost", 9300);
+        esClient = new ESClient("localhost", 9300, "jf-server", "jfserver:jfserver");
     }
 
     private void exportRawData(File folder, int maxObservations) throws IOException {
