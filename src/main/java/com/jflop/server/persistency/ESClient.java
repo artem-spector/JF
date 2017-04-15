@@ -138,7 +138,10 @@ public class ESClient implements InitializingBean, DisposableBean {
     public String createDocument(String index, String docType, Object pojo, String id) {
         try {
             IndexRequestBuilder request = client.prepareIndex(index, docType).setSource(mapper.writeValueAsBytes(pojo), XContentType.JSON);
-            if (id != null) request.setId(id);
+            if (id != null) {
+                request.setId(id);
+                request.setCreate(true);
+            }
             return request.execute().actionGet().getId();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -147,8 +150,11 @@ public class ESClient implements InitializingBean, DisposableBean {
 
     public <T> PersistentData<T> createDocument(String index, String docType, PersistentData<T> doc) {
         try {
-            IndexRequestBuilder request = client.prepareIndex(index, docType).setCreate(true).setSource(mapper.writeValueAsBytes(doc.source), XContentType.JSON);
-            if (doc.id != null) request.setId(doc.id);
+            IndexRequestBuilder request = client.prepareIndex(index, docType).setSource(mapper.writeValueAsBytes(doc.source), XContentType.JSON);
+            if (doc.id != null) {
+                request.setId(doc.id);
+                request.setCreate(true);
+            }
             IndexResponse response = request.execute().actionGet();
             return new PersistentData<>(response.getId(), response.getVersion(), doc.source);
         } catch (JsonProcessingException e) {
