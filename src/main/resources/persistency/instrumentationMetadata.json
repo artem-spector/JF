@@ -4,16 +4,13 @@
       "agentJvm": {
         "properties": {
           "accountId": {
-            "type": "string",
-            "index": "not_analyzed"
+            "type": "keyword"
           },
           "agentId": {
-            "type": "string",
-            "index": "not_analyzed"
+            "type": "keyword"
           },
           "jvmId": {
-            "type": "string",
-            "index": "not_analyzed"
+            "type": "keyword"
           }
         }
       },
@@ -21,23 +18,19 @@
         "type": "date"
       },
       "dataType": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "classId": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "className": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "isBlacklisted": {
         "type": "boolean"
       },
       "blacklistReason": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       }
     }
   }

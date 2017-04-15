@@ -2,25 +2,21 @@
   "account": {
     "properties": {
       "accountId": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "accountName": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "agents": {
         "properties": {
           "agentId": {
-            "type": "string"
+            "type": "keyword"
           },
           "agentName": {
-            "type": "string",
-            "index": "no"
+            "type": "keyword"
           },
           "enabledFeatures": {
-            "type": "string",
-            "index": "no"
+            "type": "keyword"
           }
         }
       }
