@@ -52,7 +52,7 @@ public class MetadataIndex extends IndexTemplate {
 
     public <T extends Metadata> List<T> findMetadata(AgentJVM agentJVM, Class<T> metadataClass, Date fromTime, int maxHits) {
         QueryBuilder query = QueryBuilders.boolQuery()
-                .must(QueryBuilders.rangeQuery("time").gte(fromTime))
+                .must(QueryBuilders.rangeQuery("time").gte(fromTime.getTime()))
                 .must(QueryBuilders.termQuery("agentJvm.accountId", agentJVM.accountId))
                 .must(QueryBuilders.termQuery("agentJvm.agentId", agentJVM.agentId))
                 .must(QueryBuilders.termQuery("agentJvm.jvmId", agentJVM.jvmId));

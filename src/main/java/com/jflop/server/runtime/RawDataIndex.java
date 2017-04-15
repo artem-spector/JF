@@ -57,7 +57,7 @@ public class RawDataIndex extends IndexTemplate {
     public <M extends Metadata, O extends OccurrenceData> Map<M, List<O>> getOccurrencesAndMetadata(AgentJVM agentJvm, Class<O> occurrenceType, Class<M> metadataType, Date from, Date to) {
         QueryBuilder query = QueryBuilders.boolQuery()
                 .must(agentJvmQuery(agentJvm))
-                .must(QueryBuilders.rangeQuery("time").from(from).to(to));
+                .must(QueryBuilders.rangeQuery("time").from(from.getTime()).to(to.getTime()));
 
         List<PersistentData<O>> found = find(query, 10000, occurrenceType, null);
 
@@ -89,7 +89,7 @@ public class RawDataIndex extends IndexTemplate {
     }
 
     public List<LoadData> getLoadData(Date from, Date to) {
-        RangeQueryBuilder time = QueryBuilders.rangeQuery("time").from(from).to(to);
+        RangeQueryBuilder time = QueryBuilders.rangeQuery("time").from(from.getTime()).to(to.getTime());
         List<PersistentData<LoadData>> found = find(time, 300, LoadData.class, null);
         return found.stream().map(doc -> doc.source).collect(Collectors.toList());
     }
