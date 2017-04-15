@@ -175,8 +175,7 @@ public class ESClient implements InitializingBean, DisposableBean {
      */
     public <T> PersistentData<T> createDocumentIfNotExists(String index, String docType, PersistentData<T> doc, Class<T> type) {
         try {
-            createDocument(index, docType, doc);
-            return null;
+            return createDocument(index, docType, doc);
         } catch (VersionConflictEngineException e) {
             return getDocument(index, docType, doc, type);
         }

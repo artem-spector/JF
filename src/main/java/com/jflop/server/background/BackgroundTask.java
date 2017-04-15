@@ -71,7 +71,7 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
                     try {
                         Thread.sleep(sleepIntervalMillis);
                     } catch (InterruptedException e) {
-                        // ignore
+                        if (stopSyncThread) break;
                     }
                     Collection<TaskLockData> locks = lockIndex.getVacantLocks(taskName);
                     for (TaskLockData lock : locks) {
@@ -86,6 +86,7 @@ public abstract class BackgroundTask implements InitializingBean, DisposableBean
     public synchronized void stop() throws InterruptedException {
         stopSyncThread = true;
         if (syncThread != null) {
+            syncThread.interrupt();
             syncThread.join();
             syncThread = null;
         }

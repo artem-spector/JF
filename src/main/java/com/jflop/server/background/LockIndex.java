@@ -34,8 +34,8 @@ public class LockIndex extends IndexTemplate {
         return LOCK_INDEX_NAME;
     }
 
-    public void createTaskLock(TaskLockData taskLockData) {
-        createDocumentIfNotExists(new PersistentData<>(taskLockData.lockId, 0, taskLockData));
+    public PersistentData<TaskLockData> createTaskLock(TaskLockData taskLockData) {
+        return createDocumentIfNotExists(new PersistentData<>(taskLockData.lockId, 0, taskLockData));
     }
 
     public void deleteTaskLock(TaskLockData taskLockData) {
@@ -86,7 +86,7 @@ public class LockIndex extends IndexTemplate {
     private synchronized List<PersistentData<TaskLockData>> getAllVacantLocks() {
         long now = System.currentTimeMillis();
         if (cache == null || (now - retrievedAt) > 1000) {
-            QueryBuilder query = QueryBuilders.rangeQuery("lockedUntil").lte(new Date(now));
+            QueryBuilder query = QueryBuilders.rangeQuery("lockedUntil").lte(now);
             retrievedAt = now;
             cache = find(query, 10000, TaskLockData.class, null); // what if there are more docs than maxHits?
         }
