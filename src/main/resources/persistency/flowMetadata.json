@@ -21,7 +21,8 @@
         "type": "keyword"
       },
       "rootFlowStr": {
-        "type": "keyword"
+        "type": "text",
+        "index": false
       }
     }
   }

@@ -72,7 +72,7 @@ public class ReadWriteTest {
 
     @Test
     public void testFlowOccurrence() {
-        Flow flow = generateFlow(30);
+        Flow flow = generateFlow(300);
 
         Collection<AgentData> dataList = new ArrayList<>();
         FlowOccurrenceData occ = new AgentDataFactory(AGENT_JVM, new Date(), rawDataIndex.getDocTypes()).createInstance(FlowOccurrenceData.class);

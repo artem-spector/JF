@@ -18,8 +18,6 @@ import java.util.List;
  */
 public class FlowOccurrenceData extends OccurrenceData {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     public float snapshotDurationSec;
 
     @JsonIgnore

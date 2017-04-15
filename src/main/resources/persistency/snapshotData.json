@@ -1,17 +1,5 @@
 {
   "snapshot": {
-
-    "dynamic_templates": [
-      {
-        "strings": {
-          "match_mapping_type": "string",
-          "mapping": {
-            "type": "keyword"
-          }
-        }
-      }
-    ],
-
     "properties": {
       "agentJvm": {
         "properties": {
@@ -31,6 +19,10 @@
       },
       "dataType": {
         "type": "keyword"
+      },
+      "snapshotJsonStr": {
+        "type": "text",
+        "index": false
       }
     }
   }

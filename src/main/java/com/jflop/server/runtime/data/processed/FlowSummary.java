@@ -1,11 +1,15 @@
 package com.jflop.server.runtime.data.processed;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jflop.server.persistency.ValuePair;
 import com.jflop.server.runtime.data.*;
 import org.jflop.config.MethodConfiguration;
 import org.jflop.config.NameUtils;
+import sun.invoke.util.Wrapper;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -17,10 +21,21 @@ import java.util.*;
  */
 public class FlowSummary extends AgentData {
 
+    @JsonIgnore
     public List<MethodCall> roots;
 
     @JsonIgnore
     private Set<MethodConfiguration> allMethods;
+
+    @JsonProperty
+    public String getRootsStr() throws JsonProcessingException {
+        return MAPPER.writeValueAsString(roots);
+    }
+
+    @JsonProperty
+    public void setRootsStr(String str) throws IOException {
+        roots = MAPPER.readValue(str, List.class);
+    }
 
     public void aggregateFlows(Map<FlowMetadata, List<FlowOccurrenceData>> flows) {
         roots = new ArrayList<>();

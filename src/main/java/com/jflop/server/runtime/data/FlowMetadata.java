@@ -3,7 +3,6 @@ package com.jflop.server.runtime.data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jflop.config.MethodConfiguration;
 import org.jflop.snapshot.Flow;
 
@@ -17,8 +16,6 @@ import java.util.stream.Collectors;
  * @author artem on 15/12/2016.
  */
 public class FlowMetadata extends Metadata {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public List instrumentedMethodsJson;
 

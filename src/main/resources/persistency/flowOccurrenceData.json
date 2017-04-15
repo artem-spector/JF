@@ -29,7 +29,8 @@
       },
 
       "rootFlowStr": {
-        "type": "keyword"
+        "type": "text",
+        "index": false
       }
     }
   }

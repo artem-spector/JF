@@ -1,17 +1,6 @@
 {
   "liveThreads": {
 
-    "dynamic_templates": [
-      {
-        "strings": {
-          "match_mapping_type": "string",
-          "mapping": {
-            "type": "keyword"
-          }
-        }
-      }
-    ],
-
     "properties": {
       "agentJvm": {
         "properties": {
@@ -31,6 +20,10 @@
       },
       "dataType": {
         "type": "keyword"
+      },
+      "liveThreadsStr": {
+        "type": "text",
+        "index": false
       }
     }
   }

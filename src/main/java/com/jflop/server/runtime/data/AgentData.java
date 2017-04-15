@@ -1,6 +1,7 @@
 package com.jflop.server.runtime.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jflop.server.admin.data.AgentJVM;
 
 import java.util.Date;
@@ -12,6 +13,8 @@ import java.util.Date;
  *         Date: 10/12/16
  */
 public abstract class AgentData {
+
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     @JsonProperty
     protected AgentJVM agentJvm;

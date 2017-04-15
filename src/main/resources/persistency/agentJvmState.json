@@ -20,7 +20,8 @@
       },
 
       "errors": {
-        "type": "keyword"
+        "type": "text",
+        "index": false
       },
 
       "featureCommands": {
@@ -41,10 +42,12 @@
             "type": "date"
           },
           "successText": {
-            "type": "keyword"
+            "type": "text",
+            "index": false
           },
           "errorText": {
-            "type": "keyword"
+            "type": "text",
+            "index": false
           },
           "progressPercent": {
             "type": "integer"
