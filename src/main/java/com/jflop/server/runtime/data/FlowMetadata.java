@@ -1,8 +1,13 @@
 package com.jflop.server.runtime.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jflop.config.MethodConfiguration;
 import org.jflop.snapshot.Flow;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,8 +18,12 @@ import java.util.stream.Collectors;
  */
 public class FlowMetadata extends Metadata {
 
-    public FlowElement rootFlow;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     public List instrumentedMethodsJson;
+
+    @JsonIgnore
+    public FlowElement rootFlow;
 
     public void init(Flow flow, List instrumentedMethodsJson) {
         rootFlow = FlowElement.parse(flow);
@@ -24,6 +33,16 @@ public class FlowMetadata extends Metadata {
     @Override
     public String getDocumentId() {
         return rootFlow.flowId;
+    }
+
+    @JsonProperty
+    public String getRootFlowStr() throws JsonProcessingException {
+        return MAPPER.writeValueAsString(rootFlow);
+    }
+
+    @JsonProperty
+    public void setRootFlowStr(String str) throws IOException {
+        rootFlow = MAPPER.readValue(str, FlowElement.class);
     }
 
     /**

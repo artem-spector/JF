@@ -1,17 +1,6 @@
 {
   "flow": {
 
-    "dynamic_templates": [
-      {
-        "strings": {
-          "match_mapping_type": "string",
-          "mapping": {
-            "type": "keyword"
-          }
-        }
-      }
-    ],
-
     "properties": {
       "agentJvm": {
         "properties": {
@@ -39,24 +28,8 @@
         "type": "float"
       },
 
-      "rootFlow": {
-        "properties": {
-          "flowId": {
-            "type": "keyword"
-          },
-          "count": {
-            "type": "integer"
-          },
-          "maxTime": {
-            "type": "long"
-          },
-          "minTime": {
-            "type": "long"
-          },
-          "cumulativeTime": {
-            "type": "long"
-          }
-        }
+      "rootFlowStr": {
+        "type": "keyword"
       }
     }
   }

@@ -1,15 +1,5 @@
 {
   "flow": {
-    "dynamic_templates": [
-      {
-        "strings": {
-          "match_mapping_type": "string",
-          "mapping": {
-            "type": "keyword"
-          }
-        }
-      }
-    ],
     "properties": {
       "agentJvm": {
         "properties": {
@@ -28,6 +18,9 @@
         "type": "date"
       },
       "dataType": {
+        "type": "keyword"
+      },
+      "rootFlowStr": {
         "type": "keyword"
       }
     }
