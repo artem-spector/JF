@@ -41,6 +41,12 @@ public class ThreadMetadata extends Metadata {
         return dumpId;
     }
 
+    @Override
+    public boolean mergeTo(Metadata existing) {
+        existing.time = this.time;
+        return true;
+    }
+
     private void calculateDumpId() {
         MessageDigest digest = DigestUtil.initDigest(agentJvm);
         DigestUtil.addStringsToDigest(digest, threadState.toString());

@@ -63,7 +63,7 @@ public abstract class LoadTestBase {
     private String accountName;
     private boolean deleteAllDataBefore;
     private boolean isInitialized;
-    private AdminClient adminClient;
+    protected AdminClient adminClient;
 
     private String accountId;
     private Map<String, ValuePair<String, String>> agentName2IdPath;
@@ -171,13 +171,17 @@ public abstract class LoadTestBase {
         logger.info("Monitoring stopped in " + duration + " ms.");
     }
 
-    private long awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {
+    protected long awaitFeatureResponse(String featureId, long fromTime, int timeoutSec) throws Exception {
+        return awaitFeatureResponse(currentJvm, featureId, fromTime, timeoutSec);
+    }
+
+    protected long awaitFeatureResponse(AgentJVM agentJvm, String featureId, long fromTime, int timeoutSec) throws Exception {
         long begin = System.currentTimeMillis();
         long timeoutMillis = fromTime + timeoutSec * 1000;
 
         PersistentData<AgentJvmState> previous = null;
         while (System.currentTimeMillis() < timeoutMillis) {
-            PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(currentJvm, false);
+            PersistentData<AgentJvmState> jvmState = agentJVMIndex.getAgentJvmState(agentJvm, false);
             if (previous != null && previous.version == jvmState.version) continue;
 
             FeatureCommand command = jvmState.source.getCommand(featureId);
@@ -207,7 +211,7 @@ public abstract class LoadTestBase {
         lockIndex.deleteIndex();
     }
 
-    private ValuePair<String, String> getOrCreateAgent(String agentName) throws Exception {
+    protected ValuePair<String, String> getOrCreateAgent(String agentName) throws Exception {
         ValuePair<String, String> idPath = agentName2IdPath.get(agentName);
         if (idPath == null) {
             String agentId = adminClient.createAgent(agentName);
@@ -225,7 +229,7 @@ public abstract class LoadTestBase {
         return idPath;
     }
 
-    private Map<AgentJVM, Date> getAgentJVMsLastReported(String agentId) {
+    protected Map<AgentJVM, Date> getAgentJVMsLastReported(String agentId) {
         Map<AgentJVM, Date> res = new HashMap<>();
         for (AgentJvmState jvmState : agentJVMIndex.getAgentJvms(accountId)) {
             if (jvmState.agentJvm.agentId.equals(agentId)) {

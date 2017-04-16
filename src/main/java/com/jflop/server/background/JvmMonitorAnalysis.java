@@ -146,10 +146,12 @@ public class JvmMonitorAnalysis extends BackgroundTask {
 
     @Override
     public void step(TaskLockData lock, Date refreshThreshold) {
+/*
         beforeStep(lock, refreshThreshold);
         analyze();
         takeSnapshot();
         afterStep(lock);
+*/
     }
 
     void beforeStep(TaskLockData lock, Date refreshThreshold) {

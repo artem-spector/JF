@@ -30,7 +30,9 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.xpack.XPackClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
+import org.elasticsearch.xpack.watcher.client.WatcherClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,6 +70,7 @@ public class ESClient implements InitializingBean, DisposableBean {
     private String esClientCredentials;
 
     private TransportClient client;
+    private XPackClient xPackClient;
 
     public ESClient() {
     }
@@ -88,6 +91,7 @@ public class ESClient implements InitializingBean, DisposableBean {
                 .build();
         client = new PreBuiltXPackTransportClient(settings)
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"), 9300));
+        xPackClient = new XPackClient(client);
     }
 
     @Override
@@ -317,5 +321,9 @@ public class ESClient implements InitializingBean, DisposableBean {
         } while (System.currentTimeMillis() < timeputMillis);
 
         throw new RuntimeException("Cluster status is " + status + " after " + timeoutSec + " sec");
+    }
+
+    public WatcherClient getWatcherClient() {
+        return xPackClient.watcher();
     }
 }
