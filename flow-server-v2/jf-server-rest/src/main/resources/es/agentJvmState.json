@@ -1,0 +1,24 @@
+{
+  "agent": {
+    "properties": {
+      "agentJvm": {
+        "properties": {
+          "accountId": {
+            "type": "keyword"
+          },
+          "agentId": {
+            "type": "keyword"
+          },
+          "jvmId": {
+            "type": "keyword"
+          }
+        }
+      },
+
+      "lastReportedAt": {
+        "type": "date"
+      }
+
+    }
+  }
+}

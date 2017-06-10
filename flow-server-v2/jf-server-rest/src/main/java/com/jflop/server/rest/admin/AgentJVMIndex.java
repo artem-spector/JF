@@ -28,7 +28,7 @@ public class AgentJVMIndex extends IndexTemplate {
     public static final int MAX_FEATURES = 10;
 
     public AgentJVMIndex() {
-        super(AGENT_JVM_INDEX + "-template", AGENT_JVM_INDEX + "*", new DocType("agent", "persistency/agentJvmState.json", AgentJvmState.class));
+        super(AGENT_JVM_INDEX + "-template", AGENT_JVM_INDEX + "*", new DocType("agent", "es/agentJvmState.json", AgentJvmState.class));
     }
 
     @Override

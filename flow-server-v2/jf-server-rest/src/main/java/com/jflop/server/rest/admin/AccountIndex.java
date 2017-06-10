@@ -24,7 +24,7 @@ public class AccountIndex extends IndexTemplate {
     private static final String ACCOUNT_INDEX = "jf-accounts";
 
     public AccountIndex() {
-        super(ACCOUNT_INDEX + "-template", ACCOUNT_INDEX + "*", new DocType("account", "persistency/accountMapping.json", AccountData.class));
+        super(ACCOUNT_INDEX + "-template", ACCOUNT_INDEX + "*", new DocType("account", "es/accountMapping.json", AccountData.class));
     }
 
     @Override

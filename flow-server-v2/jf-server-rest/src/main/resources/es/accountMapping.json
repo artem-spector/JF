@@ -1,0 +1,22 @@
+{
+  "account": {
+    "properties": {
+      "accountId": {
+        "type": "keyword"
+      },
+      "accountName": {
+        "type": "keyword"
+      },
+      "agents": {
+        "properties": {
+          "agentId": {
+            "type": "keyword"
+          },
+          "agentName": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}
