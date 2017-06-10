@@ -1,6 +1,6 @@
 package com.jflop.server.rest.admin;
 
-import com.jflop.server.rest.ServerApp;
+import com.jflop.server.rest.JfServerRestApp;
 import com.jflop.server.rest.admin.data.JFAgent;
 import com.jflop.server.rest.http.HttpTestClient;
 import com.jflop.server.rest.runtime.RuntimeClient;
@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
  *         Date: 7/2/16
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = ServerApp.class)
+@SpringApplicationConfiguration(classes = JfServerRestApp.class)
 @WebAppConfiguration
 public class AdminTest {
 

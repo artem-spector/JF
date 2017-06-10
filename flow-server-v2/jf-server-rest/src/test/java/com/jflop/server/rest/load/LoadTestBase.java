@@ -1,6 +1,6 @@
 package com.jflop.server.rest.load;
 
-import com.jflop.server.rest.ServerApp;
+import com.jflop.server.rest.JfServerRestApp;
 import com.jflop.server.rest.admin.AccountIndex;
 import com.jflop.server.rest.admin.AdminClient;
 import com.jflop.server.rest.admin.AgentJVMIndex;
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
  */
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = ServerApp.class)
+@SpringApplicationConfiguration(classes = JfServerRestApp.class)
 @WebIntegrationTest()
 
 public abstract class LoadTestBase {

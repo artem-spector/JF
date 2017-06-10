@@ -1,6 +1,6 @@
 package com.jflop.server.rest.admin;
 
-import com.jflop.server.rest.ServerApp;
+import com.jflop.server.rest.JfServerRestApp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *         Date: 7/9/16
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = ServerApp.class)
+@SpringApplicationConfiguration(classes = JfServerRestApp.class)
 @WebAppConfiguration
 public class StaticResourcesTest {
 

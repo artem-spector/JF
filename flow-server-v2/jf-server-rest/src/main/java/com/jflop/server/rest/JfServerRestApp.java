@@ -10,9 +10,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *         Date: 7/2/16
  */
 @SpringBootApplication(scanBasePackages = {"com.jflop.server"})
-public class ServerApp {
+public class JfServerRestApp {
 
     public static void main(String[] args) {
-        SpringApplication.run(ServerApp.class, args);
+        SpringApplication.run(JfServerRestApp.class, args);
     }
 }
