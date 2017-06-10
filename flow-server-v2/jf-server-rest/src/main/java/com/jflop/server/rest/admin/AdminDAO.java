@@ -77,19 +77,8 @@ public class AdminDAO {
                     if (jvm.agentJvm.agentId.equals(agent.agentId)) {
                         bytes = mapper.writeValueAsBytes(jvm);
                         Map jvmJson = mapper.readValue(bytes, Map.class);
-
                         // remove jvm key
                         jvmJson.remove("agentJvm");
-
-                        // convert feature command list into a map with featureId as a key
-                        List<Map<String, Object>> commandList = (List<Map<String, Object>>) jvmJson.remove("featureCommands");
-                        Map<String, Object> commandMap = new HashMap<>();
-                        for (Map<String, Object> command : commandList) {
-                            commandMap.put((String) command.remove("featureId"), command);
-                        }
-
-                        jvmJson.put("features", commandMap);
-
                         jvms.put(jvm.agentJvm.jvmId, jvmJson);
                     }
                 }
