@@ -1,5 +1,13 @@
 /.idea
-/jf-server.iml
-/target
-/doc/*.bak
 .Rproj.user
+/flow-server-v1/doc/jfserver.asta.bak
+/flow-server-v1/src/main/R/take1/f1.svg
+/flow-server-v1/src/main/R/take1/.Rhistory
+/flow-server-v1/src/main/R/take1/.RData
+/flow-server-v1/src/main/resources/jflop-agent.jar
+.DS_Store
+flow-server-v1/jf-server.iml
+flow-server-v1/src/main/java/com/jflop/server/rest/
+flow-server-v1/src/test/java/com/jflop/integration/server/
+flow-server-v1/src/test/java/com/jflop/server/rest/
+flow-server-v1/target/
