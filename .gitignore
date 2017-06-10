@@ -11,3 +11,4 @@ flow-server-v1/src/main/java/com/jflop/server/rest/
 flow-server-v1/src/test/java/com/jflop/integration/server/
 flow-server-v1/src/test/java/com/jflop/server/rest/
 flow-server-v1/target/
+/flow-server-v2/jf-server-rest/src/main/resources/jflop-agent.jar
