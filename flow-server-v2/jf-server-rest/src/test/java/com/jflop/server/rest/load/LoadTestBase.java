@@ -5,7 +5,7 @@ import com.jflop.server.rest.admin.AccountIndex;
 import com.jflop.server.rest.admin.AdminClient;
 import com.jflop.server.rest.admin.AgentJVMIndex;
 import com.jflop.server.rest.admin.data.AccountData;
-import com.jflop.server.rest.admin.data.AgentJVM;
+import com.jflop.server.data.AgentJVM;
 import com.jflop.server.rest.admin.data.AgentJvmState;
 import com.jflop.server.rest.admin.data.JFAgent;
 import com.jflop.server.rest.http.HttpTestClient;

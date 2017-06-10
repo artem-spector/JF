@@ -1,5 +1,7 @@
 package com.jflop.server.rest.admin.data;
 
+import com.jflop.server.data.AgentJVM;
+
 import java.util.Date;
 
 /**

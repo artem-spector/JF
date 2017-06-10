@@ -3,8 +3,7 @@ package com.jflop.server.rest.load;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jflop.server.rest.util.DigestUtil;
-import org.elasticsearch.common.hash.MessageDigests;
+import com.jflop.server.util.DigestUtil;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.springframework.core.annotation.AnnotationAttributes;
@@ -169,7 +168,7 @@ public class GeneratedFlow implements FlowMockup {
 
     public GeneratedFlow(FlowElement root) {
         this.root = root;
-        MessageDigest digest = MessageDigests.sha1();
+        MessageDigest digest = DigestUtil.initDigest();
         DigestUtil.addStringsToDigest(digest, root.concatMethodNames());
         id = DigestUtil.digestToHexString(digest);
     }

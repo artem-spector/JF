@@ -1,4 +1,4 @@
-package com.jflop.server.rest.admin.data;
+package com.jflop.server.data;
 
 import java.util.Arrays;
 

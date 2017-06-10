@@ -1,11 +1,11 @@
 package com.jflop.server.rest.admin;
 
-import com.jflop.server.rest.admin.data.AgentJVM;
+import com.jflop.server.data.AgentJVM;
 import com.jflop.server.rest.admin.data.AgentJvmState;
 import com.jflop.server.rest.persistency.DocType;
 import com.jflop.server.rest.persistency.IndexTemplate;
 import com.jflop.server.rest.persistency.PersistentData;
-import com.jflop.server.rest.util.DigestUtil;
+import com.jflop.server.util.DigestUtil;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -65,7 +65,7 @@ public class AgentJVMIndex extends IndexTemplate {
     }
 
     public PersistentData<AgentJvmState> getAgentJvmState(AgentJVM agentJVM, boolean createIfNotExists) {
-        String id = DigestUtil.uniqueId(agentJVM);
+        String id = DigestUtil.uniqueId(agentJVM.accountId, agentJVM.agentId, agentJVM.jvmId);
         PersistentData<AgentJvmState> res = getDocument(new PersistentData<>(id, 0), AgentJvmState.class);
         if (res != null)
             return res;

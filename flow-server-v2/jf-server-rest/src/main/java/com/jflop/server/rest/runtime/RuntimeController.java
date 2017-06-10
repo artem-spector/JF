@@ -1,7 +1,7 @@
 package com.jflop.server.rest.runtime;
 
 import com.jflop.server.rest.admin.AdminDAO;
-import com.jflop.server.rest.admin.data.AgentJVM;
+import com.jflop.server.data.AgentJVM;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
