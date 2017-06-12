@@ -42,6 +42,15 @@ public class MultipleAgentsLoadTest extends LoadTestBase {
     }
 
     @Test
+    public void runOneAgentContinuously() throws Exception {
+        startAgents(1);
+        while (true) {
+            Thread.sleep(3000);
+            System.out.print(".");
+        }
+    }
+
+    @Test
     public void startTwoAgents() throws Exception {
         startAgents(3, 9);
         System.out.println("Sleep for 20 sec...");

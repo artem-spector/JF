@@ -60,7 +60,7 @@ public class RuntimeController {
 
             // copy commands to response
             Map<String, Object> res = new HashMap<>();
-            if (!featureCommands.isEmpty()) {
+            if (featureCommands != null && !featureCommands.isEmpty()) {
                 res.put("tasks", featureCommands);
             }
 

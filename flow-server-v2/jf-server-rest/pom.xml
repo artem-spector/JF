@@ -68,6 +68,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.jflop</groupId>
+            <artifactId>kafka-topology</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>jflop.org</groupId>
             <artifactId>jflop-common</artifactId>
             <version>3.0-DEV</version>

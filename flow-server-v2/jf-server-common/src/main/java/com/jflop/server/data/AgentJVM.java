@@ -8,7 +8,7 @@ import java.util.Arrays;
  * @author artem
  *         Date: 9/17/16
  */
-public class AgentJVM {
+public class AgentJVM implements Comparable<AgentJVM>{
 
     public String accountId;
     public String agentId;
@@ -40,5 +40,13 @@ public class AgentJVM {
     @Override
     public String toString() {
         return "agentJVM: {accountId:" + accountId + ", agentId:" + agentId + ", jvmId:" + jvmId + "}";
+    }
+
+    @Override
+    public int compareTo(AgentJVM that) {
+        int res = accountId.compareTo(that.accountId);
+        if (res == 0) res = agentId.compareTo(that.agentId);
+        if (res == 0) res = jvmId.compareTo(that.jvmId);
+        return res;
     }
 }
