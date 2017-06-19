@@ -5,7 +5,6 @@ import com.jflop.server.stream.base.SlidingWindow;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
 import com.jflop.server.stream.ext.CommandState;
 import jsat.math.OnLineStatistics;
-import org.jflop.features.JvmMonitorNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
