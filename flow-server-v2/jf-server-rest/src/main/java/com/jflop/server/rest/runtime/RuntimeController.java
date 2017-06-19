@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,7 +53,7 @@ public class RuntimeController {
             if (producer != null) producer.send(agentJVM, featuresData);
 
             // receive commands produced by processors
-            Map<String, Map<String, Object>> featureCommands = null;
+            List<Map<String, Object>> featureCommands = null;
             KafkaTopicConsumer consumer = getConsumer();
             if (consumer != null) {
                 featureCommands = consumer.getFeatureCommands(agentJVM);

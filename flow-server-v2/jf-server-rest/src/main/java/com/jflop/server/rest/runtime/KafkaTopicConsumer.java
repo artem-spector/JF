@@ -7,10 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -35,7 +32,7 @@ public class KafkaTopicConsumer {
         consumer.subscribe(Arrays.asList(topicName));
     }
 
-    public Map<String, Map<String, Object>> getFeatureCommands(AgentJVM key) {
+    public List<Map<String, Object>> getFeatureCommands(AgentJVM key) {
         synchronized (consumer) {
             ConsumerRecords<AgentJVM, Map> records = consumer.poll(0);
             for (ConsumerRecord<AgentJVM, Map> record : records) {
@@ -44,6 +41,15 @@ public class KafkaTopicConsumer {
             consumer.commitSync();
         }
 
-        return agentFeatureCommands.remove(key);
+        List<Map<String, Object>> commandsList = new ArrayList<>();
+        Map<String, Map<String, Object>> commandsMap = agentFeatureCommands.remove(key);
+        if (commandsMap != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : commandsMap.entrySet()) {
+                Map<String, Object> cmd = entry.getValue();
+                cmd.put("feature", entry.getKey());
+                commandsList.add(cmd);
+            }
+        }
+        return commandsList;
     }
 }

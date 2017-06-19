@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static org.jflop.features.JvmMonitorNames.JVM_MONITOR_FEATURE_ID;
+import static org.jflop.features.JvmMonitorNames.*;
 
 /**
  * TODO: Document!
@@ -34,14 +34,18 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
     @Override
     protected void processFeatureData(Map<String, ?> json) {
         logger.info("LoadDataProcessor.processFeatureData(" + json + ")");
-        RawLoadData rawData = new RawLoadData();
-        rawData.processCpuLoad = ((Number) json.get("processCpuLoad")).floatValue();
-        Map<String, Object> heapJson = (Map<String, Object>) json.get("heapUsage");
-        rawData.heapCommitted = ((Number) heapJson.get("committed")).floatValue();
-        rawData.heapUsed = ((Number) heapJson.get("used")).floatValue();
-        rawData.heapMax = ((Number) heapJson.get("max")).floatValue();
+        if (json.get(MESSAGE_FIELD) != null) {
+            logger.error("Got error message: " + json.get(MESSAGE_FIELD));
+        } else {
+            RawLoadData rawData = new RawLoadData();
+            rawData.processCpuLoad = ((Number) json.get(PROCESS_CPU_LOAD_FIELD)).floatValue();
+            Map<String, Object> heapJson = (Map<String, Object>) json.get(HEAP_MEMORY_USAGE_FIELD);
+            rawData.heapCommitted = ((Number) heapJson.get("committed")).floatValue();
+            rawData.heapUsed = ((Number) heapJson.get("used")).floatValue();
+            rawData.heapMax = ((Number) heapJson.get("max")).floatValue();
 
-        loadDataStore.add(rawData);
+            loadDataStore.add(rawData);
+        }
     }
 
     @Override
@@ -50,7 +54,7 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
         logger.info("LoadDataProcessor.punctuate(...); command:" + cmd);
         if (cmd == null || !cmd.inProgress()) {
             logger.info("sending monitor command");
-            sendCommand("monitor", null);
+            sendCommand(ENABLE_COMMAND, null);
         } else {
             logger.info("process sliding data");
             loadDataStore.processSlidingData(3, 3, this);
