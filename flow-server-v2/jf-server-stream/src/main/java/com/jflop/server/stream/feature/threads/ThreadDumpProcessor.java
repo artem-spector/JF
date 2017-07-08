@@ -3,6 +3,7 @@ package com.jflop.server.stream.feature.threads;
 import com.jflop.server.stream.base.ProcessorState;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
 import com.jflop.server.stream.ext.CommandState;
+import org.jflop.features.LiveThreadsNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,7 @@ public class ThreadDumpProcessor extends AgentFeatureProcessor {
 
         long lastResponse = commandState == null ? 0 : commandState.respondedAt;
         if (System.currentTimeMillis() - lastResponse > 2000)
-            sendCommand("dump", null);
+            sendCommand(LiveThreadsNames.DUMP_COMMAND, null);
     }
 
     @Override

@@ -53,7 +53,7 @@ public class RuntimeController {
             logger.info("Received agent data: " + featuresData);
             List<String> errors = (List<String>) featuresData.remove("errors");
             if (errors != null) {
-                logger.severe("Agent " + agentJVM + " reported errors: " + errors);
+                logger.severe(errors + " reported by " + agentJVM);
                 return ResponseEntity.ok(res);
             }
 
