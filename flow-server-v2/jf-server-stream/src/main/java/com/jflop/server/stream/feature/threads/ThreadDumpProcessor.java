@@ -36,7 +36,7 @@ public class ThreadDumpProcessor extends AgentFeatureProcessor {
         Set<ThreadMetadata> metadata = new HashSet<>();
         List<ThreadDump> dumps = new ArrayList<>();
         for (Map.Entry<String, ?> entry : data.entrySet()) {
-            if (entry.getKey().startsWith("dump"))
+            if (entry.getKey().startsWith(LiveThreadsNames.LIVE_THREADS_FIELD))
                 dumps.add(parseThreadDump((List<Map>) entry.getValue(), metadata));
         }
 

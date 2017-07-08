@@ -4,7 +4,6 @@ import com.jflop.server.stream.base.ProcessorState;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
 import com.jflop.server.stream.ext.CommandState;
 import com.jflop.server.stream.feature.threads.ThreadMetadataStore;
-import org.jflop.features.ClassInfoNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +44,7 @@ public class ClassInfoProcessor extends AgentFeatureProcessor {
         Map<String, Set<String>> classMethods = threadMetadataStore.getClassMethods();
         if (!classMethods.isEmpty()) {
             Map<String, Set<String>> unknownMethods = classInfoStore.findUnknownMethods(classMethods);
+            logger.info("unknown methods size = " + unknownMethods.size());
             if (!unknownMethods.isEmpty()) {
                 CommandState cmd = getCommandState();
                 if (cmd == null || !cmd.inProgress())

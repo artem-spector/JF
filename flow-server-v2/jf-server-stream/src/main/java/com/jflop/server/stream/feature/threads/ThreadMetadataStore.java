@@ -1,10 +1,13 @@
 package com.jflop.server.stream.feature.threads;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.jflop.server.stream.base.TimeWindow;
 import com.jflop.server.stream.ext.AgentStateStore;
-import com.fasterxml.jackson.core.type.TypeReference;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * TODO: Document!
