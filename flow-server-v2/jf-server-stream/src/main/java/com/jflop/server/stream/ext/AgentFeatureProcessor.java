@@ -41,7 +41,12 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
         Map<String, Object> featureData = features.get(featureId);
         if (featureData != null) {
             parseCommand(featureData);
-            processFeatureData(featureData);
+            CommandState commandState = getCommandState();
+            String error = commandState == null ? null : commandState.error;
+            if (error == null)
+                processFeatureData(featureData);
+            else
+                logger.error("Feature " + featureId + " error: " + error);
         }
         context.commit();
     }
@@ -57,14 +62,15 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
         commands.setCommandState(featureId, cmd);
 
         Map<String, Object> featureCmd = new HashMap<>();
-        featureCmd.put("command", command);
-        if (param != null) featureCmd.put("param", param);
+        featureCmd.put(command, param);
         Map<String, Object> agentCmd = new HashMap<>();
-        agentCmd.put(featureId, featureCmd);
+        agentCmd.put("feature", featureId);
+        agentCmd.put("command", featureCmd);
         context.forward(agentJVM, agentCmd, COMMANDS_SINK_ID);
     }
 
     private void parseCommand(Map<String, Object> featureData) {
+        logger.info("parse command: " + featureData);
         Integer progress = (Integer) featureData.remove("progress");
         String error = (String) featureData.remove("error");
         if (progress != null || error != null) {

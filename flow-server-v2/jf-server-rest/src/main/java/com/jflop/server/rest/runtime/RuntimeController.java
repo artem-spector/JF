@@ -45,31 +45,40 @@ public class RuntimeController {
             @PathVariable("jvmId") String jvmId,
             @RequestBody Map<String, Object> featuresData) {
 
+        Map<String, Object> res = new HashMap<>();
         try {
             AgentJVM agentJVM = adminDAO.verifyAgentJvm(agentId, jvmId);
+
+            // If agent reported errors, the request contains no data
+            logger.info("Received agent data: " + featuresData);
+            List<String> errors = (List<String>) featuresData.remove("errors");
+            if (errors != null) {
+                logger.severe("Agent " + agentJVM + " reported errors: " + errors);
+                return ResponseEntity.ok(res);
+            }
 
             // send incoming data to processing
             KafkaTopicProducer producer = getProducer();
             if (producer != null) producer.send(agentJVM, featuresData);
 
             // receive commands produced by processors
-            List<Map<String, Object>> featureCommands = null;
+            List<Map> featureCommands = null;
             KafkaTopicConsumer consumer = getConsumer();
             if (consumer != null) {
                 featureCommands = consumer.getFeatureCommands(agentJVM);
             }
 
             // copy commands to response
-            Map<String, Object> res = new HashMap<>();
             if (featureCommands != null && !featureCommands.isEmpty()) {
                 res.put("tasks", featureCommands);
             }
 
+            System.out.println("sending REST response: " + res);
             // always return success
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Unexpected exception", e);
-            return ResponseEntity.ok(null);
+            return ResponseEntity.ok(res);
         }
     }
 
