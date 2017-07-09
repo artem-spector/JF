@@ -32,9 +32,9 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
 
     @Override
     protected void processFeatureData(Map<String, ?> json) {
-        logger.info("LoadDataProcessor.processFeatureData(" + json + ")");
+        logger.debug("LoadDataProcessor.processFeatureData(" + json + ")");
         if (json.get(MESSAGE_FIELD) != null) {
-            logger.info("Got message: " + json.get(MESSAGE_FIELD));
+            logger.debug("Got message: " + json.get(MESSAGE_FIELD));
         } else {
             RawLoadData rawData = new RawLoadData();
             rawData.processCpuLoad = ((Number) json.get(PROCESS_CPU_LOAD_FIELD)).floatValue();
@@ -50,12 +50,11 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
     @Override
     protected void punctuateActiveAgent(long timestamp) {
         CommandState cmd = getCommandState();
-        logger.info("LoadDataProcessor.punctuate(...); command:" + cmd);
+        logger.debug("LoadDataProcessor.punctuate(...); command:" + cmd);
         if (cmd == null || !cmd.inProgress()) {
-            logger.info("sending monitor command");
+            logger.debug("sending monitor command");
             sendCommand(ENABLE_COMMAND, null);
         } else {
-            logger.info("process sliding data");
             loadDataStore.processSlidingData(3, 3, this);
         }
     }
@@ -80,7 +79,5 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
         }
 
         current.processedData.processCpuLoadMean = (float) cpuStat.getMean();
-        logger.info("calculated cpuMean " + current.rawData.processCpuLoad + "->" + current.processedData.processCpuLoadMean + "; prev: " + prevValues.size() + "; next:" + nextValues.size());
-
     }
 }

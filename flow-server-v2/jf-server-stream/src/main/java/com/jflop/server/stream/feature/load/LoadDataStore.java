@@ -32,7 +32,7 @@ public class LoadDataStore extends AgentStateStore<TimeWindow<LoadData>> {
     public void processSlidingData(int maxPrevValues, int maxNextValues, SlidingWindow.Visitor<LoadData> visitor) {
         updateWindow(window -> {
             NavigableMap<Long, LoadData> recentValues = window.getRecentValues();
-            logger.info("load sliding data: " + recentValues.size());
+            logger.debug("load sliding data: " + recentValues.size());
             new SlidingWindow<>(recentValues).scanValues(maxPrevValues, maxNextValues, visitor);
         });
     }
