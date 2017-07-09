@@ -36,7 +36,7 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
 
     @Override
     public void process(AgentJVM agentJVM, Map<String, Map<String, Object>> features) {
-        logger.info(getClass().getSimpleName() + ".process(" + agentJVM + ")");
+        logger.debug(getClass().getSimpleName() + ".process(" + agentJVM + ")");
         super.process(agentJVM, features);
         Map<String, Object> featureData = features.get(featureId);
         if (featureData != null) {
@@ -70,7 +70,7 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
     }
 
     private void parseCommand(Map<String, Object> featureData) {
-        logger.info("parse command: " + featureData);
+        logger.debug("parse command: " + featureData);
         Integer progress = (Integer) featureData.remove("progress");
         String error = (String) featureData.remove("error");
         if (progress != null || error != null) {

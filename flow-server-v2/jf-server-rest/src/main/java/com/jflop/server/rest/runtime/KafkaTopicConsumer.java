@@ -42,7 +42,6 @@ public class KafkaTopicConsumer {
         }
 
         List<Map> commandsMap = agentFeatureCommands.remove(key);
-        System.out.println("read commands: " + commandsMap);
         return commandsMap;
     }
 }

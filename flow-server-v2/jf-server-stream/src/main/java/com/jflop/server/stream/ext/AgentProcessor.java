@@ -34,7 +34,7 @@ public abstract class AgentProcessor<V> extends StatefulProcessor<AgentJVM, V> {
         super.init(context);
         agentJVM = null;
         if (punctuationInterval > 0) {
-            logger.info("scheduling " + getClass().getSimpleName() + " for " + punctuationInterval);
+            logger.debug("scheduling " + getClass().getSimpleName() + " for " + punctuationInterval);
             context.schedule(punctuationInterval);
         }
     }
@@ -47,7 +47,7 @@ public abstract class AgentProcessor<V> extends StatefulProcessor<AgentJVM, V> {
     @Override
     public void punctuate(long timestamp) {
         Set<AgentJVM> activeAgents = this.activeAgents.getActiveAgents(timestamp);
-        logger.info("punctuate (" + timestamp + "); processor:" + getClass().getSimpleName() + "; active agents:" + activeAgents.size());
+        logger.debug("punctuate (" + timestamp + "); processor:" + getClass().getSimpleName() + "; active agents:" + activeAgents.size());
         for (AgentJVM agentJVM : activeAgents) {
             this.agentJVM = agentJVM;
             punctuateActiveAgent(timestamp);

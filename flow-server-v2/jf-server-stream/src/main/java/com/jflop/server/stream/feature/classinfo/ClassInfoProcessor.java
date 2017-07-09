@@ -35,7 +35,7 @@ public class ClassInfoProcessor extends AgentFeatureProcessor {
 
     @Override
     protected void processFeatureData(Map<String, ?> data) {
-        logger.info("Received class info data: " + data);
+        logger.debug("Received class info data: " + data);
         classInfoStore.add(new ClassInfoData((Map<String, Map<String,List<String>>>) data));
     }
 
@@ -44,7 +44,6 @@ public class ClassInfoProcessor extends AgentFeatureProcessor {
         Map<String, Set<String>> classMethods = threadMetadataStore.getClassMethods();
         if (!classMethods.isEmpty()) {
             Map<String, Set<String>> unknownMethods = classInfoStore.findUnknownMethods(classMethods);
-            logger.info("unknown methods size = " + unknownMethods.size());
             if (!unknownMethods.isEmpty()) {
                 CommandState cmd = getCommandState();
                 if (cmd == null || !cmd.inProgress())

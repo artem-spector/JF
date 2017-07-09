@@ -50,7 +50,7 @@ public class RuntimeController {
             AgentJVM agentJVM = adminDAO.verifyAgentJvm(agentId, jvmId);
 
             // If agent reported errors, the request contains no data
-            logger.info("Received agent data: " + featuresData);
+            logger.info("Request from (" + jvmId + "): " + featuresData);
             List<String> errors = (List<String>) featuresData.remove("errors");
             if (errors != null) {
                 logger.severe(errors + " reported by " + agentJVM);
@@ -73,7 +73,7 @@ public class RuntimeController {
                 res.put("tasks", featureCommands);
             }
 
-            System.out.println("sending REST response: " + res);
+            logger.info("Response to (" + jvmId + "): " + res);
             // always return success
             return ResponseEntity.ok(res);
         } catch (Exception e) {
