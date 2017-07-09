@@ -32,7 +32,7 @@ public class ThreadDumpProcessor extends AgentFeatureProcessor {
 
     @Override
     protected void processFeatureData(Map<String, ?> data) {
-        logger.info("process thread dump: " + data);
+        logger.debug("process thread dump: " + data);
         Set<ThreadMetadata> metadata = new HashSet<>();
         List<ThreadDump> dumps = new ArrayList<>();
         for (Map.Entry<String, ?> entry : data.entrySet()) {
@@ -66,8 +66,12 @@ public class ThreadDumpProcessor extends AgentFeatureProcessor {
             List<MethodCall> stackTrace = new ArrayList<>();
             List<Map> stackTraceJson = (List<Map>) thread.get("stackTrace");
             for (Map callJson : stackTraceJson) {
+                String className = (String) callJson.get("className");
+                if (className.indexOf("/") != -1) {
+                    className = className.replace('/', '.');
+                }
                 stackTrace.add(new MethodCall(
-                        (String) callJson.get("className"),
+                        className,
                         (String) callJson.get("methodName"),
                         (String) callJson.get("fileName"),
                         (Integer) callJson.get("lineNumber")));
