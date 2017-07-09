@@ -54,6 +54,11 @@ public class TimeWindow<T> {
         return getValues(last - maxSizeMillis / 2, last);
     }
 
+    @JsonIgnore
+    public T getLastValue() {
+        return window.isEmpty() ? null : window.lastEntry().getValue();
+    }
+
     public NavigableMap<Long, T> getValues(long from, long to) {
         if (from > to)
             throw new IllegalArgumentException("from is greater than to");

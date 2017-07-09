@@ -3,6 +3,7 @@ package com.jflop.server.stream;
 import com.jflop.server.stream.base.StreamsApplication;
 import com.jflop.server.stream.ext.ActiveAgentProcessor;
 import com.jflop.server.stream.feature.classinfo.ClassInfoProcessor;
+import com.jflop.server.stream.feature.instrumentation.InstrumentationConfigProcessor;
 import com.jflop.server.stream.feature.load.LoadDataProcessor;
 import com.jflop.server.stream.feature.threads.ThreadDumpProcessor;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
@@ -28,7 +29,9 @@ public class JfServerStreamApp {
         StreamsApplication app = new StreamsApplication("processingApp", topologyProperties, StreamsApplication.AutoOffsetReset.latest)
                 .addSource(AgentFeatureProcessor.INPUT_SOURCE_ID, IN_TOPIC)
                 .addSink(AgentFeatureProcessor.COMMANDS_SINK_ID, COMMAND_OUT_TOPIC)
-                .addProcessors(ActiveAgentProcessor.class, LoadDataProcessor.class, ThreadDumpProcessor.class, ClassInfoProcessor.class);
+                .addProcessors(
+                        ActiveAgentProcessor.class, LoadDataProcessor.class,
+                        ThreadDumpProcessor.class, ClassInfoProcessor.class, InstrumentationConfigProcessor.class);
 
         app.build().start();
     }
