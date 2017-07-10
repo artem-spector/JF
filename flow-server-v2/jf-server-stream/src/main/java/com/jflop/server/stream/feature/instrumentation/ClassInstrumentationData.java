@@ -12,7 +12,7 @@ import java.util.*;
  */
 public class ClassInstrumentationData {
 
-    public String className;
+    public String externalClassName;
     public boolean isBlacklisted;
     public String blacklistReason;
     public Map<String, List<String>> methodSignatures;
@@ -20,18 +20,16 @@ public class ClassInstrumentationData {
     public ClassInstrumentationData() {
     }
 
-    public ClassInstrumentationData(String className, Set<MethodConfiguration> methods) {
-        this.className = className;
-        this.methodSignatures = new HashMap<>();
-        for (MethodConfiguration methodConf : methods) {
-            methodSignatures.computeIfAbsent(methodConf.methodName, mtd -> new ArrayList<>()).add(methodConf.methodDescriptor);
-        }
-    }
-
-    public ClassInstrumentationData(String blackListedClass, String reason) {
-        this.className = blackListedClass;
+    public ClassInstrumentationData(String blackListedExternalClassName, String reason) {
+        this.externalClassName = blackListedExternalClassName;
         isBlacklisted = true;
         blacklistReason = reason;
+    }
+
+    public void addMethodConfiguration(MethodConfiguration mtd) {
+        externalClassName = mtd.getExternalClassName();
+        if (methodSignatures == null) methodSignatures = new HashMap<>();
+        methodSignatures.computeIfAbsent(mtd.methodName, m -> new ArrayList<>()).add(mtd.methodDescriptor);
     }
 
     @Override
@@ -41,7 +39,7 @@ public class ClassInstrumentationData {
 
         ClassInstrumentationData that = (ClassInstrumentationData) obj;
         return Arrays.equals(
-                new Object[] {className, isBlacklisted, blacklistReason, methodSignatures},
-                new Object[] {that.className, that.isBlacklisted, that.blacklistReason, that.methodSignatures});
+                new Object[] {externalClassName, isBlacklisted, blacklistReason, methodSignatures},
+                new Object[] {that.externalClassName, that.isBlacklisted, that.blacklistReason, that.methodSignatures});
     }
 }

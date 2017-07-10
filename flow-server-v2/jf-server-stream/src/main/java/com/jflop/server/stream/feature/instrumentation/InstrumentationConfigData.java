@@ -1,10 +1,9 @@
 package com.jflop.server.stream.feature.instrumentation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jflop.config.MethodConfiguration;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * TODO: Document!
@@ -18,28 +17,45 @@ public class InstrumentationConfigData {
 
     public void addMethodConfiguration(MethodConfiguration mtd) {
         getInstrumentedClasses().computeIfAbsent(mtd.internalClassName, className -> new ClassInstrumentationData())
-                .methodSignatures.computeIfAbsent(mtd.methodName, methodName -> new ArrayList<>()).add(mtd.methodDescriptor);
+                .addMethodConfiguration(mtd);
     }
 
     public void blackListClass(String className, String reason) {
         getInstrumentedClasses().put(className, new ClassInstrumentationData(className, reason));
     }
 
+    @JsonIgnore
+    public Set<MethodConfiguration> getMethodConfigurations() {
+        Set<MethodConfiguration> res = new HashSet<>();
+
+        for (Map.Entry<String, ClassInstrumentationData> internalNameEntry : getInstrumentedClasses().entrySet()) {
+            ClassInstrumentationData instrumentationData = internalNameEntry.getValue();
+            if (instrumentationData.isBlacklisted) continue;
+
+            String internalClassName = internalNameEntry.getKey();
+            for (Map.Entry<String, List<String>> entry : instrumentationData.methodSignatures.entrySet()) {
+                String methodName = entry.getKey();
+                for (String descriptor : entry.getValue()) {
+                    res.add(new MethodConfiguration(internalClassName, methodName, descriptor));
+                }
+            }
+        }
+
+        return res;
+    }
+
+    public Set<String> getBlacklistedExternalClassNames() {
+        Set<String> res = new HashSet<>();
+        for (ClassInstrumentationData instrumentationData : getInstrumentedClasses().values()) {
+            if (instrumentationData.isBlacklisted)
+                res.add(instrumentationData.externalClassName);
+        }
+        return res;
+    }
+
+    @JsonIgnore
     private Map<String, ClassInstrumentationData> getInstrumentedClasses() {
         if (instrumentedClasses == null) instrumentedClasses = new HashMap<>();
         return instrumentedClasses;
-    }
-
-    public boolean covers(InstrumentationConfigData other) {
-        if (!instrumentedClasses.keySet().containsAll(other.instrumentedClasses.keySet()))
-            return false;
-
-        for (Map.Entry<String, ClassInstrumentationData> entry : other.instrumentedClasses.entrySet()) {
-            ClassInstrumentationData otherInstr = entry.getValue();
-            ClassInstrumentationData thisInstr = instrumentedClasses.get(entry.getKey());
-            if (!otherInstr.equals(thisInstr))
-                return false;
-        }
-        return true;
     }
 }
