@@ -3,6 +3,7 @@ package com.jflop.server.stream.feature.threads;
 import com.jflop.server.stream.base.ProcessorState;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
 import com.jflop.server.stream.ext.CommandState;
+import com.jflop.server.util.ClassNameUtil;
 import org.jflop.features.LiveThreadsNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,10 +67,7 @@ public class ThreadDumpProcessor extends AgentFeatureProcessor {
             List<MethodCall> stackTrace = new ArrayList<>();
             List<Map> stackTraceJson = (List<Map>) thread.get("stackTrace");
             for (Map callJson : stackTraceJson) {
-                String className = (String) callJson.get("className");
-                if (className.indexOf("/") != -1) {
-                    className = className.replace('/', '.');
-                }
+                String className = ClassNameUtil.replaceSlashWithDot((String) callJson.get("className"));
                 stackTrace.add(new MethodCall(
                         className,
                         (String) callJson.get("methodName"),

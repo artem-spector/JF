@@ -5,13 +5,12 @@ import com.jflop.server.stream.ext.AgentFeatureProcessor;
 import com.jflop.server.stream.ext.CommandState;
 import com.jflop.server.stream.feature.classinfo.ClassInfoDataStore;
 import com.jflop.server.stream.feature.threads.ThreadMetadataStore;
+import com.jflop.server.util.ClassNameUtil;
 import org.jflop.config.JflopConfiguration;
 import org.jflop.config.MethodConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,7 +52,8 @@ public class InstrumentationConfigProcessor extends AgentFeatureProcessor {
         Map<String, String> blackList = (Map<String, String>) inData.get(BLACKLIST_FIELD);
         if (blackList != null) {
             for (Map.Entry<String, String> entry : blackList.entrySet()) {
-                configData.blackListClass(entry.getKey(), entry.getValue());
+                String externalClassName = ClassNameUtil.replaceSlashWithDot(entry.getKey());
+                configData.blackListClass(externalClassName, entry.getValue());
             }
         }
 
@@ -62,11 +62,15 @@ public class InstrumentationConfigProcessor extends AgentFeatureProcessor {
 
     @Override
     protected void punctuateActiveAgent(long timestamp) {
-        InstrumentationConfigData existingConfig = configDataStore.getLastConfiguration();
+        Set<MethodConfiguration> existingConfig = configDataStore.getLastConfiguration();
         if (existingConfig != null) {
-            InstrumentationConfigData expectedConfig = buildExpectedConfig();
-            if (!existingConfig.covers(expectedConfig)) {
-                sendCommandIfNotInProgress(SET_CONFIG_COMMAND, (Map<String, ?>) toJflopConfiguration(expectedConfig).asJson());
+            Set<MethodConfiguration> expectedConfig = buildExpectedConfig();
+            if (expectedConfig != null && !existingConfig.containsAll(expectedConfig)) {
+                JflopConfiguration jflopConfiguration = new JflopConfiguration();
+                for (MethodConfiguration methodConfiguration : expectedConfig) {
+                    jflopConfiguration.addMethodConfig(methodConfiguration);
+                }
+                sendCommandIfNotInProgress(SET_CONFIG_COMMAND, jflopConfiguration.asJson());
             }
         } else {
             sendCommandIfNotInProgress(GET_CONFIG_COMMAND, null);
@@ -75,41 +79,26 @@ public class InstrumentationConfigProcessor extends AgentFeatureProcessor {
 
     @Override
     public void close() {
-
     }
 
-    private JflopConfiguration toJflopConfiguration(InstrumentationConfigData expectedConfig) {
-        JflopConfiguration jflopConfiguration = new JflopConfiguration();
-        for (Map.Entry<String, ClassInstrumentationData> entry : expectedConfig.instrumentedClasses.entrySet()) {
-            String internalClassName = entry.getKey();
-            for (Map.Entry<String, List<String>> methodEntry : entry.getValue().methodSignatures.entrySet()) {
-                String methodName = methodEntry.getKey();
-                for (String descriptor : methodEntry.getValue()) {
-                    jflopConfiguration.addMethodConfig(new MethodConfiguration(internalClassName, methodName, descriptor));
-                }
-            }
-        }
-        return jflopConfiguration;
+    /**
+     * Builds instrumentation configuration for all instrumentable methods kept in thread metadata store.
+     * If class info store does not contain all the necessary data, return null.
+     *
+     * @return instrumentation config or null if not all class data is known
+     */
+    private Set<MethodConfiguration> buildExpectedConfig() {
+        Map<String, Set<String>> classMethods = threadMetadataStore.getClassMethods();
+        classMethods.keySet().removeAll(configDataStore.getBlacklistedExternalClassNames());
+
+        return classInfoStore.findMethodSignatures(classMethods);
     }
 
-    private InstrumentationConfigData buildExpectedConfig() {
-        InstrumentationConfigData res = new InstrumentationConfigData();
-
-        Map<String, Set<String>> methodSignatures = classInfoStore.findMethodSignatures(threadMetadataStore.getClassMethods());
-        for (Map.Entry<String, Set<String>> entry : methodSignatures.entrySet()) {
-            String className = entry.getKey();
-            for (String signature : entry.getValue()) {
-                res.addMethodConfiguration(new MethodConfiguration(className + "." + signature));
-            }
-        }
-
-        return res;
-    }
-
-    private void sendCommandIfNotInProgress(String commandName, Map<String, ?> param) {
+    private void sendCommandIfNotInProgress(String commandName, Object param) {
         CommandState command = getCommandState();
+        logger.info("current instrumentation command: " + command);
         if (command == null || !command.inProgress()) {
-            logger.info("sending instrumentation command " + commandName);
+            logger.info("sending instrumentation command " + commandName + "->" + param);
             sendCommand(commandName, param);
         }
     }
