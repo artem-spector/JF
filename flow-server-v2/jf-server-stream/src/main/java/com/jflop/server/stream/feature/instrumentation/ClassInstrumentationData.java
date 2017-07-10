@@ -33,4 +33,15 @@ public class ClassInstrumentationData {
         isBlacklisted = true;
         blacklistReason = reason;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || !(obj instanceof ClassInstrumentationData)) return false;
+
+        ClassInstrumentationData that = (ClassInstrumentationData) obj;
+        return Arrays.equals(
+                new Object[] {className, isBlacklisted, blacklistReason, methodSignatures},
+                new Object[] {that.className, that.isBlacklisted, that.blacklistReason, that.methodSignatures});
+    }
 }

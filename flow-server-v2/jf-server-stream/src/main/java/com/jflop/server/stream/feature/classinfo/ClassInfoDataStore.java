@@ -23,6 +23,23 @@ public class ClassInfoDataStore extends AgentStateStore<TimeWindow<ClassInfoData
         updateWindow(window -> window.putValue(timestamp(), data));
     }
 
+    public Map<String, Set<String>> findMethodSignatures(Map<String, Set<String>> classMethods) {
+        Map<String, Set<String>> res = new HashMap<>();
+        Map<String, Map<String, Set<String>>> allClassInfo = getAllClassInfo();
+
+        for (Map.Entry<String, Set<String>> entry : classMethods.entrySet()) {
+            String className = entry.getKey();
+            Map<String, Set<String>> allMethodSignatures = allClassInfo.get(className);
+            Set<String> targetSignatures = new HashSet<>();
+            for (String methodName : entry.getValue()) {
+                targetSignatures.addAll(allMethodSignatures.get(methodName));
+            }
+            res.put(className, targetSignatures);
+        }
+
+        return res;
+    }
+
     public Map<String, Set<String>> findUnknownMethods(Map<String, Set<String>> classMethods) {
         Map<String, Set<String>> res = new HashMap<>();
         Map<String, Map<String, Set<String>>> known = getAllClassInfo();
