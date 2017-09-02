@@ -6,6 +6,7 @@ import com.jflop.server.stream.ext.AgentStateStore;
 import org.jflop.config.MethodConfiguration;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -26,8 +27,8 @@ public class InstrumentationConfigDataStore extends AgentStateStore<TimeWindow<I
     }
 
     public Set<MethodConfiguration> getLastConfiguration() {
-        InstrumentationConfigData configData = getWindow(agentJVM()).getLastValue();
-        return configData == null ? null : configData.getMethodConfigurations();
+        Map.Entry<Long, InstrumentationConfigData> entry = getWindow(agentJVM()).getLastEntry();
+        return entry == null ? null : entry.getValue().getMethodConfigurations();
     }
 
     public Set<String> getBlacklistedExternalClassNames() {

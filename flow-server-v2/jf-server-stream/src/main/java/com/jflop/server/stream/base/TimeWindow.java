@@ -55,8 +55,8 @@ public class TimeWindow<T> {
     }
 
     @JsonIgnore
-    public T getLastValue() {
-        return window.isEmpty() ? null : window.lastEntry().getValue();
+    public Map.Entry<Long, T> getLastEntry() {
+        return window.isEmpty() ? null : window.lastEntry();
     }
 
     public NavigableMap<Long, T> getValues(long from, long to) {

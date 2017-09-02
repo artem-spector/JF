@@ -5,6 +5,7 @@ import com.jflop.server.stream.ext.ActiveAgentProcessor;
 import com.jflop.server.stream.feature.classinfo.ClassInfoProcessor;
 import com.jflop.server.stream.feature.instrumentation.InstrumentationConfigProcessor;
 import com.jflop.server.stream.feature.load.LoadDataProcessor;
+import com.jflop.server.stream.feature.snapshot.SnapshotProcessor;
 import com.jflop.server.stream.feature.threads.ThreadDumpProcessor;
 import com.jflop.server.stream.ext.AgentFeatureProcessor;
 
@@ -31,7 +32,8 @@ public class JfServerStreamApp {
                 .addSink(AgentFeatureProcessor.COMMANDS_SINK_ID, COMMAND_OUT_TOPIC)
                 .addProcessors(
                         ActiveAgentProcessor.class, LoadDataProcessor.class,
-                        ThreadDumpProcessor.class, ClassInfoProcessor.class, InstrumentationConfigProcessor.class);
+                        ThreadDumpProcessor.class, ClassInfoProcessor.class, InstrumentationConfigProcessor.class,
+                        SnapshotProcessor.class);
 
         app.build().start();
     }

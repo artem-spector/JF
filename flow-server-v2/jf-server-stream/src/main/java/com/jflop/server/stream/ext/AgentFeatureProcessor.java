@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.jflop.server.stream.ext.AgentFeatureProcessor.*;
+import static org.jflop.features.CommonFeatureNames.ERROR_FIELD;
+import static org.jflop.features.CommonFeatureNames.PROGRESS_FIELD;
 
 /**
  * Maintains the command state and allows sending commands to the agent
@@ -71,8 +73,8 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
 
     private void parseCommand(Map<String, Object> featureData) {
         logger.debug("parse command: " + featureData);
-        Integer progress = (Integer) featureData.remove("progress");
-        String error = (String) featureData.remove("error");
+        Integer progress = (Integer) featureData.remove(PROGRESS_FIELD);
+        String error = (String) featureData.remove(ERROR_FIELD);
         if (progress != null || error != null) {
             CommandState cmd = getCommandState();
             if (cmd == null) cmd = new CommandState();
