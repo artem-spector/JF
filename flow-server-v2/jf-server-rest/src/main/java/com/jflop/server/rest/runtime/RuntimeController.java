@@ -2,20 +2,19 @@ package com.jflop.server.rest.runtime;
 
 import com.jflop.server.data.AgentJVM;
 import com.jflop.server.rest.admin.AdminDAO;
+import com.jflop.server.rest.runtime.kafka.CommandTopicConsumer;
+import com.jflop.server.rest.runtime.kafka.InTopicProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.jflop.server.TopicNames.COMMAND_OUT_TOPIC;
-import static com.jflop.server.TopicNames.IN_TOPIC;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 /**
@@ -35,8 +34,11 @@ public class RuntimeController {
     @Autowired
     private AdminDAO adminDAO;
 
-    private KafkaTopicProducer producer;
-    private KafkaTopicConsumer consumer;
+    @Autowired
+    private InTopicProducer producer;
+
+    @Autowired
+    private CommandTopicConsumer consumer;
 
     @RequestMapping(method = POST, path = "/{agentId}/{jvmId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -58,15 +60,10 @@ public class RuntimeController {
             }
 
             // send incoming data to processing
-            KafkaTopicProducer producer = getProducer();
-            if (producer != null) producer.send(agentJVM, featuresData);
+            producer.send(agentJVM, featuresData);
 
             // receive commands produced by processors
-            List<Map> featureCommands = null;
-            KafkaTopicConsumer consumer = getConsumer();
-            if (consumer != null) {
-                featureCommands = consumer.getFeatureCommands(agentJVM);
-            }
+            List<Map> featureCommands = consumer.getFeatureCommands(agentJVM);
 
             // copy commands to response
             if (featureCommands != null && !featureCommands.isEmpty()) {
@@ -87,25 +84,4 @@ public class RuntimeController {
         logger.log(Level.SEVERE, "Unexpected exception", ex);
     }
 
-    private KafkaTopicProducer getProducer() {
-        if (producer == null) {
-            try {
-                producer = new KafkaTopicProducer(IN_TOPIC);
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "Failed creating Kafka producer", e);
-            }
-        }
-        return producer;
-    }
-
-    private KafkaTopicConsumer getConsumer() {
-        if (consumer == null) {
-            try {
-                consumer = new KafkaTopicConsumer(COMMAND_OUT_TOPIC, "jf-rest-server");
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "Failed creating Kafka consumer", e);
-            }
-        }
-        return consumer;
-    }
 }
