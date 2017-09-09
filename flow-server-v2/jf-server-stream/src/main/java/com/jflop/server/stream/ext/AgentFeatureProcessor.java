@@ -18,13 +18,14 @@ import static org.jflop.features.CommonFeatureNames.PROGRESS_FIELD;
  *
  * @author artem on 22/05/2017.
  */
-@ProcessorTopology(parentSources = {INPUT_SOURCE_ID}, childSinks = {COMMANDS_SINK_ID})
+@ProcessorTopology(parentSources = {INPUT_SOURCE_ID}, childSinks = {COMMANDS_SINK_ID, DB_INGEST_SINK_ID})
 public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, Map<String, Object>>> {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentFeatureProcessor.class);
 
     public static final String INPUT_SOURCE_ID = "AgentInput";
     public static final String COMMANDS_SINK_ID = "OutgoingCommands";
+    public static final String DB_INGEST_SINK_ID = "DBIngestData";
 
     public final String featureId;
 
@@ -69,6 +70,11 @@ public abstract class AgentFeatureProcessor extends AgentProcessor<Map<String, M
         agentCmd.put("feature", featureId);
         agentCmd.put("command", featureCmd);
         context.forward(agentJVM, agentCmd, COMMANDS_SINK_ID);
+    }
+
+    protected void sendDataToDB(String docType, Map json) {
+        json.put("docType", docType);
+        context.forward(agentJVM, json, DB_INGEST_SINK_ID);
     }
 
     private void parseCommand(Map<String, Object> featureData) {

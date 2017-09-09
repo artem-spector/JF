@@ -44,6 +44,7 @@ public class LoadDataProcessor extends AgentFeatureProcessor implements SlidingW
             rawData.heapMax = ((Number) heapJson.get("max")).floatValue();
 
             loadDataStore.add(rawData);
+            sendDataToDB("RawLoadData", json);
         }
     }
 

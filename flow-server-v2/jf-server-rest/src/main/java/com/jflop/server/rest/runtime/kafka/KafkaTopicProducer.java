@@ -1,13 +1,11 @@
-package com.jflop.server.rest.runtime;
+package com.jflop.server.rest.runtime.kafka;
 
-import com.jflop.server.data.AgentJVM;
-import com.jflop.server.data.JacksonSerdes;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -16,12 +14,12 @@ import java.util.Properties;
  * @author artem
  *         Date: 5/6/17
  */
-public class KafkaTopicProducer {
+public abstract class KafkaTopicProducer<K, V> {
 
     private String topicName;
-    private final Producer<AgentJVM, Map<String, Object>> producer;
+    private final Producer<K, V> producer;
 
-    public KafkaTopicProducer(String topicName) throws IOException {
+    KafkaTopicProducer(String topicName, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
         this.topicName = topicName;
         Properties topologyProp = new Properties();
         topologyProp.load(getClass().getClassLoader().getResourceAsStream("export.properties"));
@@ -33,13 +31,13 @@ public class KafkaTopicProducer {
         props.put("batch.size", 16384);
         props.put("linger.ms", 1);
         props.put("buffer.memory", 33554432);
-        props.put("key.serializer", JacksonSerdes.AgentJVM().serializer().getClass().getName());
-        props.put("value.serializer", JacksonSerdes.Map().serializer().getClass().getName());
+        props.put("key.serializer", keySerializer.getClass().getName());
+        props.put("value.serializer", valueSerializer.getClass().getName());
 
         producer = new KafkaProducer<>(props);
     }
 
-    public void send(AgentJVM key, Map<String, Object> value) {
+    public void send(K key, V value) {
         producer.send(new ProducerRecord<>(topicName, key, value));
     }
 }
